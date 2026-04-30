@@ -1,0 +1,49 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(php artisan *)",
+      "Bash(composer require *)",
+      "Bash(curl -s -X GET http://127.0.0.1:8000/api/v1/orders -H \"Accept: application/json\")",
+      "Bash(curl -s http://127.0.0.1:8001/up)",
+      "Bash(curl -s -X GET \"http://127.0.0.1:8000/api/v1/orders\" -H \"Accept: application/json\")",
+      "Bash(findstr /C:\"Tests:\" /C:\"FAIL\" /C:\"passed\")",
+      "Bash(vendor/bin/phpunit tests/Feature/Api/CustomerAuthTest.php --colors=never)",
+      "Bash(vendor/bin/phpunit --colors=never)",
+      "Bash(php vendor/bin/phpunit --colors=never)",
+      "Bash(tee /tmp/test_output.txt)",
+      "Bash(php vendor/bin/phpunit --testdox --colors=never)",
+      "Read(//tmp/**)",
+      "Read(//c/tmp/**)",
+      "Bash(mkdir -p \"C:/Users/HittyDeliveries/AppData/Local/Temp\")",
+      "Read(//c/Users/HittyDeliveries/AppData/Local/Temp/**)",
+      "Bash(php vendor/bin/phpunit --testdox --colors=never tests/Feature/Api/CustomerAuthTest.php)",
+      "Bash(php vendor/bin/phpunit tests/Feature/Api/CustomerOrderTest.php)",
+      "Bash(php vendor/bin/phpunit tests/Feature/Api/CustomerOrderTest.php --verbose)",
+      "Bash(php vendor/bin/phpunit tests/Feature/Api/CustomerOrderTest.php --display-errors)",
+      "PowerShell(cd \"c:\\\\xampp\\\\htdocs\\\\EldoGasDeliverySystem\\\\EldoGasDeliverySystem\"; php -r \"require 'vendor/autoload.php'; \\\\$app = require 'bootstrap/app.php'; require 'tests/TestCase.php'; require 'tests/Feature/Api/CustomerOrderTest.php'; echo 'loaded ok';\" 2>&1)",
+      "Bash(php vendor/bin/phpunit tests/Feature/Api/CustomerOrderTest.php --log-junit /tmp/junit.xml)",
+      "Bash(php vendor/bin/phpunit tests/Unit/OtpServiceTest.php)",
+      "Bash(php vendor/bin/phpunit tests/Feature/Api/CustomerAuthTest.php)",
+      "Bash(php vendor/bin/phpunit --display-deprecations --display-warnings --display-notices)",
+      "Bash(php vendor/bin/phpunit tests/Feature/Api/CustomerAuthTest.php --stop-on-risky)",
+      "Bash(php vendor/bin/phpunit tests/Feature/Api/CustomerAuthTest.php --stop-on-deprecation)",
+      "Bash(php -m)",
+      "Bash(php --version)",
+      "Bash(php vendor/bin/phpunit tests/Feature/Api/CustomerOrderTest.php --debug)",
+      "Bash(php -d memory_limit=256M vendor/bin/phpunit tests/Feature/Api/CustomerOrderTest.php --debug)",
+      "Bash(php -d memory_limit=256M vendor/bin/phpunit tests/Feature/Api/CustomerOrderTest.php)",
+      "Bash(php vendor/bin/phpunit tests/Feature/Api/DebugTest.php --debug)",
+      "Bash(php vendor/bin/phpunit tests/Feature/Api/DebugTest.php)",
+      "Bash(php vendor/bin/phpunit)",
+      "Bash(xargs ls *)",
+      "Read(//c/FlutterApplications/eldogas_rider-app/eldogas_riderapp/**)",
+      "Read(//c/xampp/htdocs/**)",
+      "Read(//c/Users/**)",
+      "Bash(dart run *)"
+    ],
+    "additionalDirectories": [
+      "C:\\FlutterApplications\\eldogas_rider-app\\eldogas_riderapp"
+    ]
+  }
+}

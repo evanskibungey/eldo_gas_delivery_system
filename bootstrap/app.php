@@ -1,0 +1,31 @@
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withRouting(
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
+        apiPrefix: 'api/v1',
+        commands: __DIR__.'/../routes/console.php',
+        health: '/up',
+    )
+    ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
+        ]);
+
+        $middleware->alias([
+            'auth.admin'        => \App\Http\Middleware\EnsureAdminIsAuthenticated::class,
+            'auth.customer'     => \App\Http\Middleware\EnsureCustomerIsAuthenticated::class,
+            'guest.admin'       => \App\Http\Middleware\RedirectIfAdminAuthenticated::class,
+            'guest.customer'    => \App\Http\Middleware\RedirectIfCustomerAuthenticated::class,
+            'auth.api.customer' => \App\Http\Middleware\EnsureApiCustomer::class,
+            'auth.api.rider'    => \App\Http\Middleware\EnsureApiRider::class,
+        ]);
+    })
+    ->withExceptions(function (Exceptions $exceptions): void {
+        //
+    })->create();
