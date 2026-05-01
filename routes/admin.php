@@ -81,4 +81,8 @@ Route::middleware('auth.admin')->group(function () {
         ->name('tracking.positions');
     Route::put('tracking/riders/{rider}', [\App\Http\Controllers\Admin\RiderTrackingController::class, 'update'])
         ->name('tracking.update');
+
+    // Dev OTP lookup — only active when AT_API_KEY is not configured
+    Route::get('dev/otp', [\App\Http\Controllers\Admin\DevOtpController::class, 'show'])->name('dev.otp');
+    Route::post('dev/otp/lookup', [\App\Http\Controllers\Admin\DevOtpController::class, 'lookup'])->name('dev.otp.lookup');
 });
