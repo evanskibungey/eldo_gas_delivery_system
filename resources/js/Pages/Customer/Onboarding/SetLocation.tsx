@@ -1,8 +1,8 @@
-import { router, usePage } from '@inertiajs/react';
+﻿import { router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapPin, Crosshair, Loader2, CheckCircle, Search, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/Components/ui/button';
+import { Label } from '@/Components/ui/label';
 import { cn } from '@/lib/utils';
 import GuestLayout from '@/Layouts/GuestLayout';
 import CustomerLayout from '@/Layouts/CustomerLayout';
@@ -148,7 +148,7 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
 
             const map = L.map(mapRef.current, { zoomControl: true }).setView([DEFAULT_LAT, DEFAULT_LNG], 14);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
+                attribution: 'Â© OpenStreetMap contributors',
             }).addTo(map);
 
             const pin = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
@@ -168,7 +168,7 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
             leafletMap.current = map;
             marker.current     = pin;
 
-            // Auto-detect on open — moves pin to user's real position immediately
+            // Auto-detect on open â€” moves pin to user's real position immediately
             if (navigator.geolocation) {
                 setLocating(true);
                 navigator.geolocation.getCurrentPosition(
@@ -235,7 +235,7 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
                         onChange={e => onQueryChange(e.target.value)}
                         onKeyDown={onKeyDown}
                         onFocus={() => suggestions.length > 0 && setShowDrop(true)}
-                        placeholder="Search for a street, estate, or landmark…"
+                        placeholder="Search for a street, estate, or landmarkâ€¦"
                         className="flex-1 h-10 bg-transparent text-sm outline-none placeholder:text-slate-400"
                     />
                     {query && (
@@ -347,7 +347,7 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
                     className="w-full bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20 gap-2"
                 >
                     {loading ? (
-                        <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Savingâ€¦</>
                     ) : (
                         <><CheckCircle className="h-4 w-4" /> Save Location</>
                     )}

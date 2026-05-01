@@ -1,4 +1,4 @@
-import { PropsWithChildren } from 'react';
+﻿import { PropsWithChildren } from 'react';
 import { Flame } from 'lucide-react';
 import FlashMessage from '@/Components/Shared/FlashMessage';
 

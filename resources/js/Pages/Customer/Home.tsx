@@ -1,7 +1,7 @@
-import CustomerLayout from '@/Layouts/CustomerLayout';
+﻿import CustomerLayout from '@/Layouts/CustomerLayout';
 import { Link, usePage } from '@inertiajs/react';
 import { Flame, ShoppingBag, Clock, ChevronRight, AlertTriangle, Lightbulb } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/Components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface LastOrder {
@@ -48,7 +48,7 @@ export default function CustomerHome({ shopOpen, shopOpensAt, shopClosesAt, last
                 {/* Greeting */}
                 <div>
                     <h1 className="text-xl font-bold text-slate-900">
-                        Hello, {customer?.name?.split(' ')[0] ?? 'there'} 👋
+                        Hello, {customer?.name?.split(' ')[0] ?? 'there'} ðŸ‘‹
                     </h1>
                     <p className="text-sm text-slate-500">Gas delivered to your door.</p>
                 </div>
@@ -70,7 +70,7 @@ export default function CustomerHome({ shopOpen, shopOpensAt, shopClosesAt, last
                         </p>
                         <p className="text-xs text-slate-500">
                             {shopOpen
-                                ? `Closes at ${shopClosesAt} · Delivery in ~25 mins`
+                                ? `Closes at ${shopClosesAt} Â· Delivery in ~25 mins`
                                 : `Opens at ${shopOpensAt}`}
                         </p>
                     </div>
@@ -98,7 +98,7 @@ export default function CustomerHome({ shopOpen, shopOpensAt, shopClosesAt, last
                     ) : (
                         <span className="flex items-center justify-center gap-2">
                             <AlertTriangle className="h-5 w-5" />
-                            Unavailable — Opens at {shopOpensAt}
+                            Unavailable â€” Opens at {shopOpensAt}
                         </span>
                     )}
                 </Button>
@@ -122,13 +122,13 @@ export default function CustomerHome({ shopOpen, shopOpensAt, shopClosesAt, last
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-slate-800">
-                                    {lastOrder.brand_name ?? 'Gas'} · {lastOrder.size_label ?? '—'}
+                                    {lastOrder.brand_name ?? 'Gas'} Â· {lastOrder.size_label ?? 'â€”'}
                                 </p>
                                 <div className="flex items-center gap-2 mt-0.5">
                                     <span className={cn('text-xs font-semibold', ORDER_STATUS_CFG[lastOrder.status]?.color ?? 'text-slate-500')}>
                                         {ORDER_STATUS_CFG[lastOrder.status]?.label ?? lastOrder.status}
                                     </span>
-                                    <span className="text-[10px] text-slate-400">· {lastOrder.created_at}</span>
+                                    <span className="text-[10px] text-slate-400">Â· {lastOrder.created_at}</span>
                                 </div>
                             </div>
                             <p className="text-sm font-bold text-slate-800 shrink-0 tabular-nums">

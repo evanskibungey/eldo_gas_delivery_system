@@ -1,7 +1,7 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link } from '@inertiajs/react';
 import { Pencil, FileText, Package, AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/Components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface StockRow {

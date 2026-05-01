@@ -1,10 +1,10 @@
-import GuestLayout from '@/Layouts/GuestLayout';
+﻿import GuestLayout from '@/Layouts/GuestLayout';
 import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { User, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import { cn } from '@/lib/utils';
 
 export default function SetName() {
@@ -56,7 +56,7 @@ export default function SetName() {
                     className="w-full bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20 gap-2"
                 >
                     {loading ? (
-                        <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Savingâ€¦</>
                     ) : 'Continue'}
                 </Button>
             </form>

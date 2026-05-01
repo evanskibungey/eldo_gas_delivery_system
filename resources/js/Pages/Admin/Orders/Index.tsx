@@ -1,16 +1,16 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import {
     Eye, RefreshCw, Package, Clock, AlertCircle,
     Search, ShoppingBag, ChevronLeft, ChevronRight,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
 import { cn } from '@/lib/utils';
 import type { OrderStatus } from '@/types/models';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface OrderRow {
     id:             number;
@@ -46,7 +46,7 @@ interface Props {
     counts:  { pending: number; active: number; delivered: number; cancelled: number };
 }
 
-// ── Config ────────────────────────────────────────────────────────────────────
+// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const STATUS_CFG: Record<OrderStatus, { label: string; dot: string; chip: string }> = {
     pending:                 { label: 'Pending',        dot: 'bg-amber-400',   chip: 'border-amber-200   bg-amber-50   text-amber-700'   },
@@ -65,7 +65,7 @@ const PAYMENT_CHIP: Record<string, string> = {
     refunded:  'bg-slate-100  text-slate-500   border-slate-200',
 };
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StatusBadge({ status }: { status: OrderStatus }) {
     const cfg = STATUS_CFG[status];
@@ -103,7 +103,7 @@ function TabBtn({ label, count, active, onClick }: {
     );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function OrdersIndex({ orders, filters, counts }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -165,7 +165,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                     <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                         <Input
-                            placeholder="Order # or customer…"
+                            placeholder="Order # or customerâ€¦"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && applySearch()}
@@ -246,7 +246,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
 
                                 {/* Customer */}
                                 <td className="px-5 py-4">
-                                    <p className="text-sm font-medium text-slate-800">{o.customer_name ?? '—'}</p>
+                                    <p className="text-sm font-medium text-slate-800">{o.customer_name ?? 'â€”'}</p>
                                     <p className="text-[10px] text-slate-400">{o.customer_phone}</p>
                                 </td>
 
@@ -292,7 +292,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                                                 href={`/admin/orders/${o.id}`}
                                                 className="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-[10px] font-semibold text-orange-600 hover:bg-orange-100 transition-colors"
                                             >
-                                                Assign Rider →
+                                                Assign Rider â†’
                                             </Link>
                                         ) : (
                                             <span className="text-xs text-slate-300 italic">None</span>
@@ -325,7 +325,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                 {orders.last_page > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
                         <p className="text-xs text-slate-400">
-                            Page {orders.current_page} of {orders.last_page} · {orders.total} orders
+                            Page {orders.current_page} of {orders.last_page} Â· {orders.total} orders
                         </p>
                         <div className="flex gap-2">
                             {orders.prev_page_url && (

@@ -1,7 +1,7 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Star, Truck, ShieldCheck, ShieldAlert, ShieldOff, Phone } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/Components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface Order {
@@ -90,7 +90,7 @@ export default function RidersShow({ rider, stats }: Props) {
 
             <div className="grid grid-cols-3 gap-5">
 
-                {/* ── Profile card ── */}
+                {/* â”€â”€ Profile card â”€â”€ */}
                 <div className="col-span-1">
                     <div className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                         <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
@@ -160,14 +160,14 @@ export default function RidersShow({ rider, stats }: Props) {
                     </div>
                 </div>
 
-                {/* ── Right column ── */}
+                {/* â”€â”€ Right column â”€â”€ */}
                 <div className="col-span-2 space-y-5">
 
                     {/* Stats */}
                     <div className="grid grid-cols-3 gap-4">
                         {[
                             { label: 'Deliveries',     value: rider.total_deliveries.toString(), icon: Truck,  color: 'text-slate-800' },
-                            { label: 'Avg Rating',     value: rider.avg_rating > 0 ? rider.avg_rating.toFixed(1) : '—', icon: Star, color: 'text-amber-600' },
+                            { label: 'Avg Rating',     value: rider.avg_rating > 0 ? rider.avg_rating.toFixed(1) : 'â€”', icon: Star, color: 'text-amber-600' },
                             { label: 'Total Earnings', value: fmt(stats.totalEarnings), icon: null, color: 'text-emerald-700' },
                         ].map(({ label, value, color }) => (
                             <div key={label} className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden p-4">

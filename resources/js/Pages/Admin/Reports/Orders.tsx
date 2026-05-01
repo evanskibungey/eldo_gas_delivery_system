@@ -1,15 +1,15 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     Search, Eye, Download, RefreshCw, AlertCircle,
     Package, ChevronLeft, ChevronRight, ShoppingBag,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
 import { cn } from '@/lib/utils';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface OrderRow {
     id:             number;
@@ -52,7 +52,7 @@ interface Props {
     summary: { total_orders: number; with_issues: number; exception_rate: number };
 }
 
-// ── Config ────────────────────────────────────────────────────────────────────
+// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const STATUS_CHIP: Record<string, string> = {
     pending:        'border-amber-200   bg-amber-50   text-amber-700',
@@ -67,7 +67,7 @@ const STATUS_LABEL: Record<string, string> = {
     delivered: 'Delivered', cancelled: 'Cancelled',
 };
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function OrdersReport({ orders, sizes, riders, filters, summary }: Props) {
     const [from,      setFrom]      = useState(filters.from      ?? '');
@@ -229,7 +229,7 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
 
                                 {/* Customer */}
                                 <td className="px-4 py-3.5">
-                                    <p className="text-xs font-medium text-slate-800">{o.customer_name ?? '—'}</p>
+                                    <p className="text-xs font-medium text-slate-800">{o.customer_name ?? 'â€”'}</p>
                                     <p className="text-[10px] text-slate-400 font-mono">{o.customer_phone}</p>
                                 </td>
 
@@ -278,7 +278,7 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
                 {orders.last_page > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
                         <p className="text-xs text-slate-400">
-                            Page {orders.current_page} of {orders.last_page} · {orders.total} orders
+                            Page {orders.current_page} of {orders.last_page} Â· {orders.total} orders
                         </p>
                         <div className="flex gap-2">
                             {orders.prev_page_url && (

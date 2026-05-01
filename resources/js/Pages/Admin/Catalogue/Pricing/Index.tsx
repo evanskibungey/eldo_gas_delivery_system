@@ -1,7 +1,7 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link } from '@inertiajs/react';
 import { Pencil, Building2, Home, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/Components/ui/button';
 
 interface Price {
     gas_refill_price:   number;
@@ -18,7 +18,7 @@ interface Size {
 const fmt = (n: number) => `KES ${n.toLocaleString()}`;
 
 function PriceCell({ value }: { value: number | undefined }) {
-    if (value == null) return <span className="text-slate-300">—</span>;
+    if (value == null) return <span className="text-slate-300">â€”</span>;
     return <span className="font-semibold text-slate-800">{fmt(value)}</span>;
 }
 

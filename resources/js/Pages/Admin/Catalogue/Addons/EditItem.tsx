@@ -1,9 +1,9 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, Loader2, Upload, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import { cn } from '@/lib/utils';
 import { useState, useRef } from 'react';
 
@@ -67,7 +67,7 @@ export default function EditItem({ item, sizes }: Props) {
     );
 
     return (
-        <AdminLayout title={`Edit Item — ${item.name}`} subtitle="Update add-on item details">
+        <AdminLayout title={`Edit Item â€” ${item.name}`} subtitle="Update add-on item details">
             <div className="mb-6">
                 <Link href="/admin/catalogue/addon-groups" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors">
                     <ArrowLeft className="h-4 w-4" /> Back to Add-ons
@@ -88,7 +88,7 @@ export default function EditItem({ item, sizes }: Props) {
                                     className="mt-1.5 h-10 w-full rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20 focus:bg-white transition-all"
                                 >
                                     {allGroups.map(g => (
-                                        <option key={g.id} value={g.id}>{g.sizeName} — {g.name}</option>
+                                        <option key={g.id} value={g.id}>{g.sizeName} â€” {g.name}</option>
                                     ))}
                                 </select>
                             </div>
@@ -138,7 +138,7 @@ export default function EditItem({ item, sizes }: Props) {
                                         <>
                                             <Upload className="h-7 w-7 text-slate-300" />
                                             <p className="mt-2 text-xs text-slate-500">Click to upload a new photo</p>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WebP · max 2 MB</p>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WebP Â· max 2 MB</p>
                                         </>
                                     )}
                                 </div>
@@ -154,13 +154,13 @@ export default function EditItem({ item, sizes }: Props) {
 
                             <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
                                 <input id="is_active" type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="h-4 w-4 rounded border-slate-300 accent-orange-500" />
-                                <Label htmlFor="is_active" className="text-sm font-normal text-slate-600 cursor-pointer">Active — shown in ordering flow</Label>
+                                <Label htmlFor="is_active" className="text-sm font-normal text-slate-600 cursor-pointer">Active â€” shown in ordering flow</Label>
                             </div>
 
                             <div className="flex gap-3 pt-1">
                                 <Button type="button" variant="outline" className="flex-1" onClick={() => router.visit('/admin/catalogue/addon-groups')}>Cancel</Button>
                                 <Button type="submit" disabled={loading} className={cn('flex-1 bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20', loading && 'opacity-80')}>
-                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : 'Save Changes'}
+                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Savingâ€¦</> : 'Save Changes'}
                                 </Button>
                             </div>
                         </form>

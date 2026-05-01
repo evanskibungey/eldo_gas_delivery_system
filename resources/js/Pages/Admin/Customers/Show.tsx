@@ -1,14 +1,14 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link } from '@inertiajs/react';
 import {
     Phone, Star, MapPin, Package, ArrowLeft,
     TrendingUp, TrendingDown, Gift, Users, ShoppingBag,
     RefreshCw, CreditCard, Hash,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/Components/ui/button';
 import { cn } from '@/lib/utils';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface CustomerData {
     id:               number;
@@ -60,7 +60,7 @@ interface Props {
     addresses:    Address[];
 }
 
-// ── Config ────────────────────────────────────────────────────────────────────
+// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const STATUS_CHIP: Record<string, string> = {
     pending:        'border-amber-200   bg-amber-50   text-amber-700',
@@ -83,7 +83,7 @@ const TX_ICON: Record<string, { icon: typeof TrendingUp; color: string }> = {
     referral_bonus: { icon: Gift,         color: 'text-violet-600' },
 };
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StatCard({ icon: Icon, label, value, sub }: { icon: typeof Package; label: string; value: string; sub?: string }) {
     return (
@@ -104,13 +104,13 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
     );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function CustomerShow({ customer, orders, transactions, addresses }: Props) {
     return (
         <AdminLayout
             title={customer.name}
-            subtitle={`Customer profile · ${customer.phone}`}
+            subtitle={`Customer profile Â· ${customer.phone}`}
         >
             {/* Back */}
             <div className="mb-5">
@@ -158,7 +158,7 @@ export default function CustomerShow({ customer, orders, transactions, addresses
 
             <div className="grid gap-6 lg:grid-cols-3">
 
-                {/* Left column — orders + transactions */}
+                {/* Left column â€” orders + transactions */}
                 <div className="lg:col-span-2 space-y-6">
 
                     {/* Order history */}
@@ -224,7 +224,7 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                         {orders.length > 0 && (
                             <div className="mt-2 text-right">
                                 <Link href={`/admin/orders?search=${customer.phone}`} className="text-xs text-orange-500 hover:text-orange-600 font-medium">
-                                    View all orders →
+                                    View all orders â†’
                                 </Link>
                             </div>
                         )}
@@ -267,7 +267,7 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                     </div>
                 </div>
 
-                {/* Right column — addresses */}
+                {/* Right column â€” addresses */}
                 <div className="space-y-6">
                     <div>
                         <SectionHeader>Saved Addresses</SectionHeader>

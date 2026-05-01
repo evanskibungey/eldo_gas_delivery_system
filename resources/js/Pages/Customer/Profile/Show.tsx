@@ -1,4 +1,4 @@
-import CustomerLayout from '@/Layouts/CustomerLayout';
+﻿import CustomerLayout from '@/Layouts/CustomerLayout';
 import { router, useForm, Link } from '@inertiajs/react';
 import {
     User, Phone, Star, MapPin, Package, ChevronRight,
@@ -6,10 +6,10 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface CustomerData {
     id:               number;
@@ -46,7 +46,7 @@ interface Props {
     recentOrders: RecentOrder[];
 }
 
-// ── Config ────────────────────────────────────────────────────────────────────
+// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const STATUS_COLORS: Record<string, string> = {
     pending:        'bg-amber-100 text-amber-700',
@@ -65,13 +65,13 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const LABEL_ICONS: Record<string, string> = {
-    Home:       '🏠',
-    Office:     '🏢',
-    Restaurant: '🍽️',
-    Other:      '📍',
+    Home:       'ðŸ ',
+    Office:     'ðŸ¢',
+    Restaurant: 'ðŸ½ï¸',
+    Other:      'ðŸ“',
 };
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function StatChip({ icon: Icon, label, value }: { icon: typeof User; label: string; value: string | number }) {
     return (
@@ -110,7 +110,7 @@ function NameEditForm({ currentName, onDone }: { currentName: string; onDone: ()
     );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function ProfileShow({ customer, addresses, recentOrders }: Props) {
     const [editingName, setEditingName] = useState(false);
@@ -180,7 +180,7 @@ export default function ProfileShow({ customer, addresses, recentOrders }: Props
                                 <p className="text-sm font-mono font-bold text-orange-600 tracking-widest">{customer.referral_code}</p>
                             </div>
                             <Link href="/gaspoints" className="text-xs text-orange-500 hover:text-orange-600 font-medium">
-                                Share →
+                                Share â†’
                             </Link>
                         </div>
                     </div>
@@ -221,7 +221,7 @@ export default function ProfileShow({ customer, addresses, recentOrders }: Props
                                             : 'border-slate-200 bg-white',
                                     )}
                                 >
-                                    <span className="text-lg shrink-0 mt-0.5">{LABEL_ICONS[addr.label] ?? '📍'}</span>
+                                    <span className="text-lg shrink-0 mt-0.5">{LABEL_ICONS[addr.label] ?? 'ðŸ“'}</span>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
                                             <p className="text-sm font-semibold text-slate-800">{addr.label}</p>
@@ -269,7 +269,7 @@ export default function ProfileShow({ customer, addresses, recentOrders }: Props
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="text-sm font-bold text-slate-900">Recent Orders</h2>
                             <Link href="/orders" className="text-xs font-semibold text-orange-500 hover:text-orange-600">
-                                View all →
+                                View all â†’
                             </Link>
                         </div>
                         <div className="space-y-2">
@@ -285,7 +285,7 @@ export default function ProfileShow({ customer, addresses, recentOrders }: Props
                                     <div className="flex-1 min-w-0">
                                         <p className="font-mono text-xs font-semibold text-slate-700">{o.order_number}</p>
                                         <p className="text-xs text-slate-500 truncate">
-                                            {o.size_name}{o.brand_name ? ` · ${o.brand_name}` : ''} · {o.created_at}
+                                            {o.size_name}{o.brand_name ? ` Â· ${o.brand_name}` : ''} Â· {o.created_at}
                                         </p>
                                     </div>
                                     <div className="text-right shrink-0">

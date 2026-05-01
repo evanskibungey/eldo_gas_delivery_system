@@ -1,14 +1,14 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { Plus, Pencil, Eye, UserX, MoreHorizontal, ShieldCheck, ShieldAlert, Star, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuSeparator, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/Components/ui/dropdown-menu';
 
 interface Rider {
     id:                  number;
@@ -134,7 +134,7 @@ export default function RidersIndex({ riders, filters }: Props) {
             {/* Filters */}
             <div className="mb-5 flex flex-wrap items-center gap-3">
                 <Input
-                    placeholder="Search name or phone…"
+                    placeholder="Search name or phoneâ€¦"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && applyFilters()}
@@ -204,7 +204,7 @@ export default function RidersIndex({ riders, filters }: Props) {
                                     <div className="flex items-center justify-center gap-1">
                                         <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                                         <span className="text-sm font-semibold text-slate-700 tabular-nums">
-                                            {r.avg_rating > 0 ? r.avg_rating.toFixed(1) : '—'}
+                                            {r.avg_rating > 0 ? r.avg_rating.toFixed(1) : 'â€”'}
                                         </span>
                                     </div>
                                 </td>

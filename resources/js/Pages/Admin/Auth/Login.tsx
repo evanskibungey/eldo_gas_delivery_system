@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+﻿import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { router } from '@inertiajs/react';
@@ -12,9 +12,9 @@ import {
     BarChart3,
     Truck,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -79,7 +79,7 @@ export default function Login() {
     return (
         <div className="flex min-h-screen">
 
-            {/* ── Left: Brand Panel ──────────────────────────────────────── */}
+            {/* â”€â”€ Left: Brand Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <div className="relative hidden lg:flex lg:w-[58%] flex-col justify-between overflow-hidden bg-slate-950 px-14 py-12">
 
                 {/* Background gradient orbs */}
@@ -123,7 +123,7 @@ export default function Login() {
                     </h1>
 
                     <p className="text-base text-slate-400 leading-relaxed max-w-md">
-                        The complete operations platform for EldoGas — orders, riders,
+                        The complete operations platform for EldoGas â€” orders, riders,
                         stock and analytics unified in a single, powerful interface.
                     </p>
 
@@ -149,12 +149,12 @@ export default function Login() {
                 {/* Footer */}
                 <div className="relative">
                     <p className="text-xs text-slate-600">
-                        © {new Date().getFullYear()} EldoGas · Gas delivered. No stress.
+                        Â© {new Date().getFullYear()} EldoGas Â· Gas delivered. No stress.
                     </p>
                 </div>
             </div>
 
-            {/* ── Right: Auth Form ───────────────────────────────────────── */}
+            {/* â”€â”€ Right: Auth Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <div className="flex flex-1 flex-col items-center justify-center bg-white px-8 py-12">
 
                 {/* Mobile logo */}
@@ -219,7 +219,7 @@ export default function Login() {
                                     id="password"
                                     type={showPassword ? 'text' : 'password'}
                                     autoComplete="current-password"
-                                    placeholder="••••••••"
+                                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                                     {...register('password')}
                                     className={cn(
                                         'h-11 border-slate-200 bg-slate-50 pr-10 text-sm placeholder:text-slate-400',
@@ -273,7 +273,7 @@ export default function Login() {
                             )}
                         >
                             {loading ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in…</>
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing inâ€¦</>
                             ) : (
                                 'Sign in to Admin Portal'
                             )}

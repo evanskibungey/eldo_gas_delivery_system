@@ -1,4 +1,4 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+﻿import AdminLayout from '@/Layouts/AdminLayout';
 import AssignRiderModal from '@/Components/Admin/AssignRiderModal';
 import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
@@ -8,11 +8,11 @@ import {
     XCircle, Truck, Clock, CreditCard, ChevronRight,
     UserPen, Ban, ArrowRight, Wrench,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/Components/ui/button';
 import { cn } from '@/lib/utils';
 import type { OrderStatus } from '@/types/models';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface HistoryEntry {
     status:     string;
@@ -81,7 +81,7 @@ interface Props {
     availableRiders: AvailableRider[];
 }
 
-// ── Config ────────────────────────────────────────────────────────────────────
+// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const STATUS_CFG: Record<string, { label: string; dot: string; chip: string; icon: React.ElementType }> = {
     pending:                { label: 'Pending',        dot: 'bg-amber-400',   chip: 'border-amber-200   bg-amber-50   text-amber-700',   icon: Clock        },
@@ -99,7 +99,7 @@ const NEXT_STATUS_LABEL: Record<string, string> = {
     delivered:  'Mark as Delivered',
 };
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SectionCard({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
     return (
@@ -142,7 +142,7 @@ function CancelModal({ orderNumber, onCancel, onConfirm }: {
                 <textarea
                     value={reason}
                     onChange={e => setReason(e.target.value)}
-                    placeholder="e.g. Customer requested cancellation, out of stock…"
+                    placeholder="e.g. Customer requested cancellation, out of stockâ€¦"
                     rows={3}
                     className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300/20 resize-none"
                 />
@@ -180,7 +180,7 @@ function OutOfStockModal({ orderNumber, onCancel, onConfirm }: {
                 <textarea
                     value={reason}
                     onChange={e => setReason(e.target.value)}
-                    placeholder="e.g. No 13kg cylinders in stock…"
+                    placeholder="e.g. No 13kg cylinders in stockâ€¦"
                     rows={3}
                     className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/20 resize-none"
                 />
@@ -199,7 +199,7 @@ function OutOfStockModal({ orderNumber, onCancel, onConfirm }: {
     );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function OrdersShow({ order, availableRiders }: Props) {
     const [showAssign, setShowAssign]         = useState(false);
@@ -262,7 +262,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
 
-                {/* ── Left column ── */}
+                {/* â”€â”€ Left column â”€â”€ */}
                 <div className="lg:col-span-2 space-y-5">
 
                     {/* Action bar */}
@@ -294,7 +294,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                     className="h-8 gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs"
                                 >
                                     <ChevronRight className="h-3.5 w-3.5" />
-                                    {advancing ? 'Saving…' : (NEXT_STATUS_LABEL[order.next_status] ?? 'Advance')}
+                                    {advancing ? 'Savingâ€¦' : (NEXT_STATUS_LABEL[order.next_status] ?? 'Advance')}
                                 </Button>
                             )}
 
@@ -334,7 +334,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                     {isSwap ? 'Gas Refill (Swap)' : 'New Cylinder'}
                                 </p>
                                 <p className="text-sm text-slate-500">
-                                    {order.size_name}{order.brand_name ? ` · ${order.brand_name}` : ''}
+                                    {order.size_name}{order.brand_name ? ` Â· ${order.brand_name}` : ''}
                                 </p>
                             </div>
                         </div>
@@ -468,7 +468,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                     </SectionCard>
                 </div>
 
-                {/* ── Right column ── */}
+                {/* â”€â”€ Right column â”€â”€ */}
                 <div className="space-y-5">
 
                     {/* Customer */}
@@ -485,7 +485,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                             href={`/admin/customers/${order.customer.id}`}
                                             className="text-[10px] text-orange-500 hover:text-orange-600"
                                         >
-                                            View profile →
+                                            View profile â†’
                                         </Link>
                                     </div>
                                 </div>
@@ -546,7 +546,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                         </div>
                                         <div className="flex items-center gap-1 text-[10px] text-slate-400">
                                             <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                                            {order.rider.avg_rating > 0 ? order.rider.avg_rating.toFixed(1) : '—'}
+                                            {order.rider.avg_rating > 0 ? order.rider.avg_rating.toFixed(1) : 'â€”'}
                                         </div>
                                     </div>
                                 </div>

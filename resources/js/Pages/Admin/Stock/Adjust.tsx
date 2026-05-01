@@ -1,12 +1,12 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, Loader2, AlertTriangle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -60,7 +60,7 @@ export default function StockAdjust({ size, stock }: Props) {
     );
 
     return (
-        <AdminLayout title={`Adjust Stock — ${size.name}`} subtitle="Set current filled and empty cylinder counts">
+        <AdminLayout title={`Adjust Stock â€” ${size.name}`} subtitle="Set current filled and empty cylinder counts">
             <div className="mb-6">
                 <Link href="/admin/stock" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors">
                     <ArrowLeft className="h-4 w-4" /> Back to Stock
@@ -136,7 +136,7 @@ export default function StockAdjust({ size, stock }: Props) {
                                     Cancel
                                 </Button>
                                 <Button type="submit" disabled={loading} className={cn('flex-1 bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20', loading && 'opacity-80')}>
-                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : 'Save Adjustment'}
+                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Savingâ€¦</> : 'Save Adjustment'}
                                 </Button>
                             </div>
                         </form>

@@ -1,12 +1,12 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -69,7 +69,7 @@ export default function CreateGroup({ sizes, default_size_id }: Props) {
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">Cylinder Size</Label>
                                 <select {...register('size_id')} className={selectCls(errors.size_id)}>
-                                    <option value={0}>Select a size…</option>
+                                    <option value={0}>Select a sizeâ€¦</option>
                                     {sizes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
                                 <FieldError message={errors.size_id?.message} />
@@ -111,13 +111,13 @@ export default function CreateGroup({ sizes, default_size_id }: Props) {
 
                             <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
                                 <input id="is_active" type="checkbox" {...register('is_active')} className="h-4 w-4 rounded border-slate-300 accent-orange-500" />
-                                <Label htmlFor="is_active" className="text-sm font-normal text-slate-600 cursor-pointer">Active — shown in ordering flow</Label>
+                                <Label htmlFor="is_active" className="text-sm font-normal text-slate-600 cursor-pointer">Active â€” shown in ordering flow</Label>
                             </div>
 
                             <div className="flex gap-3 pt-1">
                                 <Button type="button" variant="outline" className="flex-1" onClick={() => router.visit('/admin/catalogue/addon-groups')}>Cancel</Button>
                                 <Button type="submit" disabled={loading} className={cn('flex-1 bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20', loading && 'opacity-80')}>
-                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : 'Create Group'}
+                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Savingâ€¦</> : 'Create Group'}
                                 </Button>
                             </div>
                         </form>

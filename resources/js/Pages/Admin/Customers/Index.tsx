@@ -1,12 +1,12 @@
-import AdminLayout from '@/Layouts/AdminLayout';
+﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { Search, Eye, Users, Star, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/Components/ui/button';
+import { Input } from '@/Components/ui/input';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface CustomerRow {
     id:                number;
@@ -33,7 +33,7 @@ interface Props {
     filters:   { search?: string };
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function CustomerAvatar({ name }: { name: string }) {
     return (
@@ -43,7 +43,7 @@ function CustomerAvatar({ name }: { name: string }) {
     );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function CustomersIndex({ customers, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -61,7 +61,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
                 <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                     <Input
-                        placeholder="Name or phone…"
+                        placeholder="Name or phoneâ€¦"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && applySearch()}
@@ -147,7 +147,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
 
                                 {/* Last order */}
                                 <td className="px-5 py-4">
-                                    <p className="text-xs text-slate-500">{c.last_order_at ?? '—'}</p>
+                                    <p className="text-xs text-slate-500">{c.last_order_at ?? 'â€”'}</p>
                                 </td>
 
                                 {/* Action */}
@@ -168,7 +168,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
                 {customers.last_page > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
                         <p className="text-xs text-slate-400">
-                            Page {customers.current_page} of {customers.last_page} · {customers.total} customers
+                            Page {customers.current_page} of {customers.last_page} Â· {customers.total} customers
                         </p>
                         <div className="flex gap-2">
                             {customers.prev_page_url && (
