@@ -15,9 +15,10 @@ function csrfToken(): string {
 }
 
 function normalizePhone(raw: string): string {
-    const trimmed = raw.trim();
-    if (trimmed.startsWith('0')) return '+254' + trimmed.slice(1);
-    return trimmed;
+    // Strip spaces and non-digit/plus characters, then normalise prefix
+    const clean = raw.replace(/[^\d+]/g, '').trim();
+    if (clean.startsWith('0')) return '+254' + clean.slice(1);
+    return clean;
 }
 
 export default function OtpLookup() {
@@ -35,8 +36,9 @@ export default function OtpLookup() {
         setResult(null);
 
         try {
-            const res = await fetch(route('admin.dev.otp.lookup'), {
+            const res = await fetch('/admin/dev/otp/lookup', {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept':       'application/json',
@@ -45,10 +47,15 @@ export default function OtpLookup() {
                 body: JSON.stringify({ phone: normalized }),
             });
 
+            if (!res.ok && res.status !== 200) {
+                setResult({ otp: null, message: `Server error ${res.status} — check Forge logs.` });
+                return;
+            }
+
             const data: Result = await res.json();
             setResult(data);
-        } catch {
-            setResult({ otp: null, message: 'Network error — check your connection and try again.' });
+        } catch (err) {
+            setResult({ otp: null, message: 'Request failed — ensure you are logged into the admin panel.' });
         } finally {
             setLoading(false);
         }
