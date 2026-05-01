@@ -110,7 +110,7 @@ export default function CustomerShow({ customer, orders, transactions, addresses
     return (
         <AdminLayout
             title={customer.name}
-            subtitle={`Customer profile Â· ${customer.phone}`}
+            subtitle={`Customer profile · ${customer.phone}`}
         >
             {/* Back */}
             <div className="mb-5">
@@ -158,7 +158,7 @@ export default function CustomerShow({ customer, orders, transactions, addresses
 
             <div className="grid gap-6 lg:grid-cols-3">
 
-                {/* Left column â€” orders + transactions */}
+                {/* Left column — orders + transactions */}
                 <div className="lg:col-span-2 space-y-6">
 
                     {/* Order history */}
@@ -224,7 +224,7 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                         {orders.length > 0 && (
                             <div className="mt-2 text-right">
                                 <Link href={`/admin/orders?search=${customer.phone}`} className="text-xs text-orange-500 hover:text-orange-600 font-medium">
-                                    View all orders â†’
+                                    View all orders →
                                 </Link>
                             </div>
                         )}
@@ -267,7 +267,7 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                     </div>
                 </div>
 
-                {/* Right column â€” addresses */}
+                {/* Right column — addresses */}
                 <div className="space-y-6">
                     <div>
                         <SectionHeader>Saved Addresses</SectionHeader>

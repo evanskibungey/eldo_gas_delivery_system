@@ -56,7 +56,7 @@ export default function SetName() {
                     className="w-full bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20 gap-2"
                 >
                     {loading ? (
-                        <><Loader2 className="h-4 w-4 animate-spin" /> Savingâ€¦</>
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>
                     ) : 'Continue'}
                 </Button>
             </form>

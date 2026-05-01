@@ -80,7 +80,7 @@ export default function PricingEdit({ size, price }: Props) {
     }
 
     return (
-        <AdminLayout title={`Edit Prices â€” ${size.name}`} subtitle="Update pricing for this cylinder size">
+        <AdminLayout title={`Edit Prices — ${size.name}`} subtitle="Update pricing for this cylinder size">
             <div className="mb-6">
                 <Link href="/admin/catalogue/pricing" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors">
                     <ArrowLeft className="h-4 w-4" /> Back to Pricing
@@ -110,7 +110,7 @@ export default function PricingEdit({ size, price }: Props) {
                                     Cancel
                                 </Button>
                                 <Button type="submit" disabled={loading} className={cn('flex-1 bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20', loading && 'opacity-80')}>
-                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Savingâ€¦</> : 'Update Prices'}
+                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : 'Update Prices'}
                                 </Button>
                             </div>
                         </form>

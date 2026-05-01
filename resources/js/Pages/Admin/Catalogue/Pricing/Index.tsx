@@ -18,7 +18,7 @@ interface Size {
 const fmt = (n: number) => `KES ${n.toLocaleString()}`;
 
 function PriceCell({ value }: { value: number | undefined }) {
-    if (value == null) return <span className="text-slate-300">â€”</span>;
+    if (value == null) return <span className="text-slate-300">—</span>;
     return <span className="font-semibold text-slate-800">{fmt(value)}</span>;
 }
 

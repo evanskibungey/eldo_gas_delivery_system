@@ -134,7 +134,7 @@ export default function RidersIndex({ riders, filters }: Props) {
             {/* Filters */}
             <div className="mb-5 flex flex-wrap items-center gap-3">
                 <Input
-                    placeholder="Search name or phoneâ€¦"
+                    placeholder="Search name or phone…"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && applyFilters()}
@@ -204,7 +204,7 @@ export default function RidersIndex({ riders, filters }: Props) {
                                     <div className="flex items-center justify-center gap-1">
                                         <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                                         <span className="text-sm font-semibold text-slate-700 tabular-nums">
-                                            {r.avg_rating > 0 ? r.avg_rating.toFixed(1) : 'â€”'}
+                                            {r.avg_rating > 0 ? r.avg_rating.toFixed(1) : '—'}
                                         </span>
                                     </div>
                                 </td>

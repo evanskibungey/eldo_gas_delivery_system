@@ -73,7 +73,7 @@ export default function RidersEdit({ rider }: Props) {
     );
 
     return (
-        <AdminLayout title={`Edit â€” ${rider.name}`} subtitle="Update rider details and certification">
+        <AdminLayout title={`Edit — ${rider.name}`} subtitle="Update rider details and certification">
             <div className="mb-6">
                 <Link href={`/admin/riders/${rider.id}`} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors">
                     <ArrowLeft className="h-4 w-4" /> Back to Profile
@@ -162,13 +162,13 @@ export default function RidersEdit({ rider }: Props) {
                                 <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
                                     <input id="is_active" type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="h-4 w-4 rounded border-slate-300 accent-orange-500" />
                                     <Label htmlFor="is_active" className="text-sm font-normal text-slate-600 cursor-pointer">
-                                        Active â€” can receive deliveries
+                                        Active — can receive deliveries
                                     </Label>
                                 </div>
                                 <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
                                     <input id="is_available" type="checkbox" checked={isAvailable} onChange={e => setIsAvailable(e.target.checked)} className="h-4 w-4 rounded border-slate-300 accent-emerald-500" />
                                     <Label htmlFor="is_available" className="text-sm font-normal text-slate-600 cursor-pointer">
-                                        Available â€” currently free to take orders
+                                        Available — currently free to take orders
                                     </Label>
                                 </div>
                             </div>
@@ -176,7 +176,7 @@ export default function RidersEdit({ rider }: Props) {
                             <div className="flex gap-3 pt-1">
                                 <Button type="button" variant="outline" className="flex-1" onClick={() => router.visit(`/admin/riders/${rider.id}`)}>Cancel</Button>
                                 <Button type="submit" disabled={loading} className={cn('flex-1 bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20', loading && 'opacity-80')}>
-                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Savingâ€¦</> : 'Save Changes'}
+                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : 'Save Changes'}
                                 </Button>
                             </div>
                         </form>

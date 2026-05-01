@@ -106,11 +106,11 @@ export default function AssignRiderModal({ orderId, orderNumber, riders, isReass
                                         <div className="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400">
                                             <span className="flex items-center gap-0.5">
                                                 <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                                                {r.avg_rating > 0 ? r.avg_rating.toFixed(1) : 'â€”'}
+                                                {r.avg_rating > 0 ? r.avg_rating.toFixed(1) : '—'}
                                             </span>
-                                            <span>Â·</span>
+                                            <span>·</span>
                                             <span>{r.total_deliveries} deliveries</span>
-                                            <span>Â·</span>
+                                            <span>·</span>
                                             <span>{r.phone}</span>
                                         </div>
                                     </div>
@@ -133,7 +133,7 @@ export default function AssignRiderModal({ orderId, orderNumber, riders, isReass
                             type="text"
                             value={reason}
                             onChange={e => setReason(e.target.value)}
-                            placeholder="e.g. Rider unavailable, wrong routeâ€¦"
+                            placeholder="e.g. Rider unavailable, wrong route…"
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
                         />
                     </div>
@@ -151,7 +151,7 @@ export default function AssignRiderModal({ orderId, orderNumber, riders, isReass
                         className="h-8 bg-orange-500 hover:bg-orange-600 text-xs text-white shadow-sm shadow-orange-500/20 disabled:opacity-50"
                     >
                         {submitting
-                            ? 'Savingâ€¦'
+                            ? 'Saving…'
                             : isReassign
                                 ? 'Reassign'
                                 : 'Assign Rider'}

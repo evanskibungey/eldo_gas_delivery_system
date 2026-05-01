@@ -168,7 +168,7 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
             leafletMap.current = map;
             marker.current     = pin;
 
-            // Auto-detect on open â€” moves pin to user's real position immediately
+            // Auto-detect on open — moves pin to user's real position immediately
             if (navigator.geolocation) {
                 setLocating(true);
                 navigator.geolocation.getCurrentPosition(
@@ -235,7 +235,7 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
                         onChange={e => onQueryChange(e.target.value)}
                         onKeyDown={onKeyDown}
                         onFocus={() => suggestions.length > 0 && setShowDrop(true)}
-                        placeholder="Search for a street, estate, or landmarkâ€¦"
+                        placeholder="Search for a street, estate, or landmark…"
                         className="flex-1 h-10 bg-transparent text-sm outline-none placeholder:text-slate-400"
                     />
                     {query && (
@@ -347,7 +347,7 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
                     className="w-full bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20 gap-2"
                 >
                     {loading ? (
-                        <><Loader2 className="h-4 w-4 animate-spin" /> Savingâ€¦</>
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>
                     ) : (
                         <><CheckCircle className="h-4 w-4" /> Save Location</>
                     )}

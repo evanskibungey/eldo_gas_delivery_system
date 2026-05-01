@@ -70,7 +70,7 @@ export default function CustomerHome({ shopOpen, shopOpensAt, shopClosesAt, last
                         </p>
                         <p className="text-xs text-slate-500">
                             {shopOpen
-                                ? `Closes at ${shopClosesAt} Â· Delivery in ~25 mins`
+                                ? `Closes at ${shopClosesAt} · Delivery in ~25 mins`
                                 : `Opens at ${shopOpensAt}`}
                         </p>
                     </div>
@@ -98,7 +98,7 @@ export default function CustomerHome({ shopOpen, shopOpensAt, shopClosesAt, last
                     ) : (
                         <span className="flex items-center justify-center gap-2">
                             <AlertTriangle className="h-5 w-5" />
-                            Unavailable â€” Opens at {shopOpensAt}
+                            Unavailable — Opens at {shopOpensAt}
                         </span>
                     )}
                 </Button>
@@ -122,13 +122,13 @@ export default function CustomerHome({ shopOpen, shopOpensAt, shopClosesAt, last
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-slate-800">
-                                    {lastOrder.brand_name ?? 'Gas'} Â· {lastOrder.size_label ?? 'â€”'}
+                                    {lastOrder.brand_name ?? 'Gas'} · {lastOrder.size_label ?? '—'}
                                 </p>
                                 <div className="flex items-center gap-2 mt-0.5">
                                     <span className={cn('text-xs font-semibold', ORDER_STATUS_CFG[lastOrder.status]?.color ?? 'text-slate-500')}>
                                         {ORDER_STATUS_CFG[lastOrder.status]?.label ?? lastOrder.status}
                                     </span>
-                                    <span className="text-[10px] text-slate-400">Â· {lastOrder.created_at}</span>
+                                    <span className="text-[10px] text-slate-400">· {lastOrder.created_at}</span>
                                 </div>
                             </div>
                             <p className="text-sm font-bold text-slate-800 shrink-0 tabular-nums">

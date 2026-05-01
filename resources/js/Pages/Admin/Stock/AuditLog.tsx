@@ -70,7 +70,7 @@ export default function StockAuditLog({ size, logs, filters }: Props) {
     const hasFilters = dateFrom || dateTo || changeType;
 
     return (
-        <AdminLayout title={`Audit Log â€” ${size.name}`} subtitle="Stock change history for this cylinder size">
+        <AdminLayout title={`Audit Log — ${size.name}`} subtitle="Stock change history for this cylinder size">
             <div className="mb-6 flex items-center justify-between">
                 <Link href="/admin/stock" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors">
                     <ArrowLeft className="h-4 w-4" /> Back to Stock
@@ -145,7 +145,7 @@ export default function StockAuditLog({ size, logs, filters }: Props) {
                         )}
                         {logs.data.map(log => (
                             <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
-                                <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap">{log.created_at ?? 'â€”'}</td>
+                                <td className="px-5 py-3.5 text-xs text-slate-500 whitespace-nowrap">{log.created_at ?? '—'}</td>
                                 <td className="px-5 py-3.5"><ChangeTypeBadge type={log.change_type} /></td>
                                 <td className="px-5 py-3.5 text-center">
                                     <span className={cn(
@@ -164,7 +164,7 @@ export default function StockAuditLog({ size, logs, filters }: Props) {
                                         </Link>
                                     )}
                                     {log.note && <span className={log.order_id ? 'ml-2 text-slate-400' : ''}>{log.note}</span>}
-                                    {!log.order_id && !log.note && <span className="text-slate-300 italic">â€”</span>}
+                                    {!log.order_id && !log.note && <span className="text-slate-300 italic">—</span>}
                                 </td>
                             </tr>
                         ))}

@@ -123,7 +123,7 @@ export default function Login() {
                     </h1>
 
                     <p className="text-base text-slate-400 leading-relaxed max-w-md">
-                        The complete operations platform for EldoGas â€” orders, riders,
+                        The complete operations platform for EldoGas — orders, riders,
                         stock and analytics unified in a single, powerful interface.
                     </p>
 
@@ -149,7 +149,7 @@ export default function Login() {
                 {/* Footer */}
                 <div className="relative">
                     <p className="text-xs text-slate-600">
-                        Â© {new Date().getFullYear()} EldoGas Â· Gas delivered. No stress.
+                        Â© {new Date().getFullYear()} EldoGas · Gas delivered. No stress.
                     </p>
                 </div>
             </div>
@@ -273,7 +273,7 @@ export default function Login() {
                             )}
                         >
                             {loading ? (
-                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing inâ€¦</>
+                                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in…</>
                             ) : (
                                 'Sign in to Admin Portal'
                             )}

@@ -61,7 +61,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
                 <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                     <Input
-                        placeholder="Name or phoneâ€¦"
+                        placeholder="Name or phone…"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && applySearch()}
@@ -147,7 +147,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
 
                                 {/* Last order */}
                                 <td className="px-5 py-4">
-                                    <p className="text-xs text-slate-500">{c.last_order_at ?? 'â€”'}</p>
+                                    <p className="text-xs text-slate-500">{c.last_order_at ?? '—'}</p>
                                 </td>
 
                                 {/* Action */}
@@ -168,7 +168,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
                 {customers.last_page > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
                         <p className="text-xs text-slate-400">
-                            Page {customers.current_page} of {customers.last_page} Â· {customers.total} customers
+                            Page {customers.current_page} of {customers.last_page} · {customers.total} customers
                         </p>
                         <div className="flex gap-2">
                             {customers.prev_page_url && (

@@ -111,7 +111,7 @@ export default function OtpVerification({ phone }: Props) {
                 className="mt-5 w-full bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20 gap-2"
             >
                 {loading ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> Verifyingâ€¦</>
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Verifying…</>
                 ) : 'Verify & Sign In'}
             </Button>
 
@@ -127,7 +127,7 @@ export default function OtpVerification({ phone }: Props) {
                         className="inline-flex items-center gap-1.5 text-xs font-medium text-orange-500 hover:text-orange-600 disabled:opacity-50"
                     >
                         <RotateCcw className={cn('h-3.5 w-3.5', resending && 'animate-spin')} />
-                        {resending ? 'Sendingâ€¦' : 'Resend code'}
+                        {resending ? 'Sending…' : 'Resend code'}
                     </button>
                 )}
             </div>

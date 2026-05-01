@@ -165,7 +165,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                     <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
                         <Input
-                            placeholder="Order # or customerâ€¦"
+                            placeholder="Order # or customer…"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && applySearch()}
@@ -246,7 +246,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
 
                                 {/* Customer */}
                                 <td className="px-5 py-4">
-                                    <p className="text-sm font-medium text-slate-800">{o.customer_name ?? 'â€”'}</p>
+                                    <p className="text-sm font-medium text-slate-800">{o.customer_name ?? '—'}</p>
                                     <p className="text-[10px] text-slate-400">{o.customer_phone}</p>
                                 </td>
 
@@ -292,7 +292,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                                                 href={`/admin/orders/${o.id}`}
                                                 className="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-[10px] font-semibold text-orange-600 hover:bg-orange-100 transition-colors"
                                             >
-                                                Assign Rider â†’
+                                                Assign Rider →
                                             </Link>
                                         ) : (
                                             <span className="text-xs text-slate-300 italic">None</span>
@@ -325,7 +325,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                 {orders.last_page > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
                         <p className="text-xs text-slate-400">
-                            Page {orders.current_page} of {orders.last_page} Â· {orders.total} orders
+                            Page {orders.current_page} of {orders.last_page} · {orders.total} orders
                         </p>
                         <div className="flex gap-2">
                             {orders.prev_page_url && (

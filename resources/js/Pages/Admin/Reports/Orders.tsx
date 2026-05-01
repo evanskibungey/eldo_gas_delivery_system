@@ -229,7 +229,7 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
 
                                 {/* Customer */}
                                 <td className="px-4 py-3.5">
-                                    <p className="text-xs font-medium text-slate-800">{o.customer_name ?? 'â€”'}</p>
+                                    <p className="text-xs font-medium text-slate-800">{o.customer_name ?? '—'}</p>
                                     <p className="text-[10px] text-slate-400 font-mono">{o.customer_phone}</p>
                                 </td>
 
@@ -278,7 +278,7 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
                 {orders.last_page > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
                         <p className="text-xs text-slate-400">
-                            Page {orders.current_page} of {orders.last_page} Â· {orders.total} orders
+                            Page {orders.current_page} of {orders.last_page} · {orders.total} orders
                         </p>
                         <div className="flex gap-2">
                             {orders.prev_page_url && (

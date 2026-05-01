@@ -13,7 +13,7 @@ export default function PhoneEntry() {
     const [loading,  setLoading] = useState(false);
 
     const digits = local.replace(/\D/g, '');
-    // strip leading 0 so 0712345678 and 712345678 both â†’ +254712345678
+    // strip leading 0 so 0712345678 and 712345678 both → +254712345678
     const phone  = '+254' + digits.replace(/^0/, '');
     const ready  = digits.replace(/^0/, '').length === 9;
 
@@ -38,7 +38,7 @@ export default function PhoneEntry() {
                     <Label className="text-sm font-medium text-slate-700">Phone Number</Label>
                     <div className="mt-1.5 flex overflow-hidden rounded-lg border border-slate-200 bg-slate-50 focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-400/20 transition-all">
                         <span className="flex items-center gap-1.5 border-r border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 select-none">
-                            ðŸ‡°ðŸ‡ª +254
+                            🇰🇪 +254
                         </span>
                         <Input
                             type="tel"
@@ -64,7 +64,7 @@ export default function PhoneEntry() {
                     className="w-full bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20 gap-2"
                 >
                     {loading ? (
-                        <><Loader2 className="h-4 w-4 animate-spin" /> Sending codeâ€¦</>
+                        <><Loader2 className="h-4 w-4 animate-spin" /> Sending code…</>
                     ) : (
                         <><Phone className="h-4 w-4" /> Send Verification Code <ArrowRight className="h-4 w-4 ml-auto" /></>
                     )}

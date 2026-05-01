@@ -165,7 +165,7 @@ export default function RevenueReport({ filters, summary, dailyRevenue, bySize, 
                         <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 to-amber-500" />
                         <div className="px-5 py-4 border-b border-slate-100">
                             <h2 className="text-sm font-bold text-slate-900">Daily Revenue</h2>
-                            <p className="text-xs text-slate-400">{filters.from} â†’ {filters.to}</p>
+                            <p className="text-xs text-slate-400">{filters.from} → {filters.to}</p>
                         </div>
                         <div className="px-5 py-4 space-y-3 max-h-80 overflow-y-auto">
                             {dailyRevenue.length === 0 ? (

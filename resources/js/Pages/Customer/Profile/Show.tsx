@@ -68,7 +68,7 @@ const LABEL_ICONS: Record<string, string> = {
     Home:       'ðŸ ',
     Office:     'ðŸ¢',
     Restaurant: 'ðŸ½ï¸',
-    Other:      'ðŸ“',
+    Other:      '📍',
 };
 
 // â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -180,7 +180,7 @@ export default function ProfileShow({ customer, addresses, recentOrders }: Props
                                 <p className="text-sm font-mono font-bold text-orange-600 tracking-widest">{customer.referral_code}</p>
                             </div>
                             <Link href="/gaspoints" className="text-xs text-orange-500 hover:text-orange-600 font-medium">
-                                Share â†’
+                                Share →
                             </Link>
                         </div>
                     </div>
@@ -221,7 +221,7 @@ export default function ProfileShow({ customer, addresses, recentOrders }: Props
                                             : 'border-slate-200 bg-white',
                                     )}
                                 >
-                                    <span className="text-lg shrink-0 mt-0.5">{LABEL_ICONS[addr.label] ?? 'ðŸ“'}</span>
+                                    <span className="text-lg shrink-0 mt-0.5">{LABEL_ICONS[addr.label] ?? '📍'}</span>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
                                             <p className="text-sm font-semibold text-slate-800">{addr.label}</p>
@@ -269,7 +269,7 @@ export default function ProfileShow({ customer, addresses, recentOrders }: Props
                         <div className="flex items-center justify-between mb-3">
                             <h2 className="text-sm font-bold text-slate-900">Recent Orders</h2>
                             <Link href="/orders" className="text-xs font-semibold text-orange-500 hover:text-orange-600">
-                                View all â†’
+                                View all →
                             </Link>
                         </div>
                         <div className="space-y-2">
@@ -285,7 +285,7 @@ export default function ProfileShow({ customer, addresses, recentOrders }: Props
                                     <div className="flex-1 min-w-0">
                                         <p className="font-mono text-xs font-semibold text-slate-700">{o.order_number}</p>
                                         <p className="text-xs text-slate-500 truncate">
-                                            {o.size_name}{o.brand_name ? ` Â· ${o.brand_name}` : ''} Â· {o.created_at}
+                                            {o.size_name}{o.brand_name ? ` · ${o.brand_name}` : ''} · {o.created_at}
                                         </p>
                                     </div>
                                     <div className="text-right shrink-0">

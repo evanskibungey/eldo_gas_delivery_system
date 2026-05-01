@@ -45,9 +45,9 @@ function FieldError({ message }: { message?: string }) {
 }
 
 const roleLabels: Record<string, string> = {
-    super_admin:  'Super Admin â€” Full access to all features',
-    shop_manager: 'Shop Manager â€” Manages orders and stock',
-    dispatcher:   'Dispatcher â€” Assigns and tracks riders',
+    super_admin:  'Super Admin — Full access to all features',
+    shop_manager: 'Shop Manager — Manages orders and stock',
+    dispatcher:   'Dispatcher — Assigns and tracks riders',
 };
 
 export default function AdminUsersEdit({ admin, roles, is_self }: Props) {
@@ -158,7 +158,7 @@ export default function AdminUsersEdit({ admin, roles, is_self }: Props) {
                                     errors.role && 'border-red-400 bg-red-50',
                                 )}
                             >
-                                <option value="">Select a roleâ€¦</option>
+                                <option value="">Select a role…</option>
                                 {roles.map(r => (
                                     <option key={r} value={r}>{roleLabels[r] ?? r}</option>
                                 ))}
@@ -264,7 +264,7 @@ export default function AdminUsersEdit({ admin, roles, is_self }: Props) {
                                 )}
                             >
                                 {loading
-                                    ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Savingâ€¦</>
+                                    ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</>
                                     : 'Save Changes'}
                             </Button>
                         </div>

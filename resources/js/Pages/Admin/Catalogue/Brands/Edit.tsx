@@ -101,7 +101,7 @@ export default function BrandsEdit({ brand, sizes }: Props) {
                                         <>
                                             <Upload className="h-7 w-7 text-slate-300" />
                                             <p className="mt-2 text-xs text-slate-500">Click to upload a new logo</p>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WebP Â· max 1 MB</p>
+                                            <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WebP · max 1 MB</p>
                                         </>
                                     )}
                                 </div>
@@ -136,13 +136,13 @@ export default function BrandsEdit({ brand, sizes }: Props) {
 
                             <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
                                 <input id="is_active" type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="h-4 w-4 rounded border-slate-300 accent-orange-500" />
-                                <Label htmlFor="is_active" className="text-sm font-normal text-slate-600 cursor-pointer">Active â€” visible in ordering flow</Label>
+                                <Label htmlFor="is_active" className="text-sm font-normal text-slate-600 cursor-pointer">Active — visible in ordering flow</Label>
                             </div>
 
                             <div className="flex gap-3 pt-1">
                                 <Button type="button" variant="outline" className="flex-1" onClick={() => router.visit('/admin/catalogue/brands')}>Cancel</Button>
                                 <Button type="submit" disabled={loading} className={cn('flex-1 bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20', loading && 'opacity-80')}>
-                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Savingâ€¦</> : 'Save Changes'}
+                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : 'Save Changes'}
                                 </Button>
                             </div>
                         </form>

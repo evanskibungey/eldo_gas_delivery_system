@@ -56,7 +56,7 @@ export default function EditGroup({ group, sizes }: Props) {
     );
 
     return (
-        <AdminLayout title={`Edit Group â€” ${group.name}`} subtitle="Update add-on group details">
+        <AdminLayout title={`Edit Group — ${group.name}`} subtitle="Update add-on group details">
             <div className="mb-6">
                 <Link href="/admin/catalogue/addon-groups" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors">
                     <ArrowLeft className="h-4 w-4" /> Back to Add-ons
@@ -111,13 +111,13 @@ export default function EditGroup({ group, sizes }: Props) {
 
                             <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
                                 <input id="is_active" type="checkbox" {...register('is_active')} className="h-4 w-4 rounded border-slate-300 accent-orange-500" />
-                                <Label htmlFor="is_active" className="text-sm font-normal text-slate-600 cursor-pointer">Active â€” shown in ordering flow</Label>
+                                <Label htmlFor="is_active" className="text-sm font-normal text-slate-600 cursor-pointer">Active — shown in ordering flow</Label>
                             </div>
 
                             <div className="flex gap-3 pt-1">
                                 <Button type="button" variant="outline" className="flex-1" onClick={() => router.visit('/admin/catalogue/addon-groups')}>Cancel</Button>
                                 <Button type="submit" disabled={loading} className={cn('flex-1 bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20', loading && 'opacity-80')}>
-                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Savingâ€¦</> : 'Save Changes'}
+                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : 'Save Changes'}
                                 </Button>
                             </div>
                         </form>

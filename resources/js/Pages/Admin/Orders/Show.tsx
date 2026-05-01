@@ -142,7 +142,7 @@ function CancelModal({ orderNumber, onCancel, onConfirm }: {
                 <textarea
                     value={reason}
                     onChange={e => setReason(e.target.value)}
-                    placeholder="e.g. Customer requested cancellation, out of stockâ€¦"
+                    placeholder="e.g. Customer requested cancellation, out of stock…"
                     rows={3}
                     className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300/20 resize-none"
                 />
@@ -180,7 +180,7 @@ function OutOfStockModal({ orderNumber, onCancel, onConfirm }: {
                 <textarea
                     value={reason}
                     onChange={e => setReason(e.target.value)}
-                    placeholder="e.g. No 13kg cylinders in stockâ€¦"
+                    placeholder="e.g. No 13kg cylinders in stock…"
                     rows={3}
                     className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/20 resize-none"
                 />
@@ -294,7 +294,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                     className="h-8 gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs"
                                 >
                                     <ChevronRight className="h-3.5 w-3.5" />
-                                    {advancing ? 'Savingâ€¦' : (NEXT_STATUS_LABEL[order.next_status] ?? 'Advance')}
+                                    {advancing ? 'Saving…' : (NEXT_STATUS_LABEL[order.next_status] ?? 'Advance')}
                                 </Button>
                             )}
 
@@ -334,7 +334,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                     {isSwap ? 'Gas Refill (Swap)' : 'New Cylinder'}
                                 </p>
                                 <p className="text-sm text-slate-500">
-                                    {order.size_name}{order.brand_name ? ` Â· ${order.brand_name}` : ''}
+                                    {order.size_name}{order.brand_name ? ` · ${order.brand_name}` : ''}
                                 </p>
                             </div>
                         </div>
@@ -485,7 +485,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                             href={`/admin/customers/${order.customer.id}`}
                                             className="text-[10px] text-orange-500 hover:text-orange-600"
                                         >
-                                            View profile â†’
+                                            View profile →
                                         </Link>
                                     </div>
                                 </div>
@@ -546,7 +546,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                         </div>
                                         <div className="flex items-center gap-1 text-[10px] text-slate-400">
                                             <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                                            {order.rider.avg_rating > 0 ? order.rider.avg_rating.toFixed(1) : 'â€”'}
+                                            {order.rider.avg_rating > 0 ? order.rider.avg_rating.toFixed(1) : '—'}
                                         </div>
                                     </div>
                                 </div>

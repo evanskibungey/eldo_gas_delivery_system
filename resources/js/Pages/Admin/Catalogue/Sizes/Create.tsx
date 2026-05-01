@@ -86,14 +86,14 @@ export default function SizesCreate() {
                                 <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
                                     <input id="is_commercial" type="checkbox" {...register('is_commercial')} className="h-4 w-4 rounded border-slate-300 accent-orange-500" />
                                     <Label htmlFor="is_commercial" className="text-sm font-normal text-slate-600 cursor-pointer">
-                                        Commercial size <span className="text-slate-400">(25 kg, 50 kg â€” shown separately)</span>
+                                        Commercial size <span className="text-slate-400">(25 kg, 50 kg — shown separately)</span>
                                     </Label>
                                 </div>
 
                                 <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
                                     <input id="is_active" type="checkbox" {...register('is_active')} className="h-4 w-4 rounded border-slate-300 accent-orange-500" />
                                     <Label htmlFor="is_active" className="text-sm font-normal text-slate-600 cursor-pointer">
-                                        Active â€” available for ordering
+                                        Active — available for ordering
                                     </Label>
                                 </div>
                             </div>
@@ -103,7 +103,7 @@ export default function SizesCreate() {
                                     Cancel
                                 </Button>
                                 <Button type="submit" disabled={loading} className={cn('flex-1 bg-orange-500 hover:bg-orange-600 shadow-sm shadow-orange-500/20', loading && 'opacity-80')}>
-                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Savingâ€¦</> : 'Create Size'}
+                                    {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : 'Create Size'}
                                 </Button>
                             </div>
                         </form>

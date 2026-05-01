@@ -41,7 +41,7 @@ function DeleteDialog({ size, onCancel, onConfirm }: { size: Size; onCancel: () 
 }
 
 function StockBadge({ stock }: { stock: number | null }) {
-    if (stock == null) return <span className="text-sm text-slate-300">â€”</span>;
+    if (stock == null) return <span className="text-sm text-slate-300">—</span>;
     const cls = stock === 0
         ? 'border-red-200 bg-red-50 text-red-600'
         : stock <= 5
@@ -63,7 +63,7 @@ export default function SizesIndex({ sizes }: { sizes: Size[] }) {
         setDeleteTarget(null);
     }
 
-    const fmt = (n: number | null) => n != null ? `KES ${n.toLocaleString()}` : 'â€”';
+    const fmt = (n: number | null) => n != null ? `KES ${n.toLocaleString()}` : '—';
 
     return (
         <AdminLayout title="Cylinder Sizes" subtitle="Manage available cylinder sizes">
