@@ -1,5 +1,4 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import { router } from '@inertiajs/react';
 import { useState } from 'react';
 import { Search, ShieldAlert, ClipboardCopy, CheckCheck, Phone } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
@@ -11,46 +10,48 @@ interface Result {
     message: string;
 }
 
+function csrfToken(): string {
+    return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+}
+
+function normalizePhone(raw: string): string {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('0')) return '+254' + trimmed.slice(1);
+    return trimmed;
+}
+
 export default function OtpLookup() {
     const [phone,   setPhone]   = useState('');
     const [loading, setLoading] = useState(false);
     const [result,  setResult]  = useState<Result | null>(null);
     const [copied,  setCopied]  = useState(false);
 
-    function handleLookup(e: React.FormEvent) {
+    async function handleLookup(e: React.FormEvent) {
         e.preventDefault();
-        if (!phone.trim()) return;
+        const normalized = normalizePhone(phone);
+        if (!normalized) return;
 
         setLoading(true);
         setResult(null);
 
-        router.post(
-            route('admin.dev.otp.lookup'),
-            { phone: phone.trim() },
-            {
-                preserveState: true,
-                onSuccess: (page: any) => {
-                    // Inertia doesn't expose JSON — use fetch for this endpoint
+        try {
+            const res = await fetch(route('admin.dev.otp.lookup'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept':       'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
                 },
-                onError: () => setLoading(false),
-                onFinish: () => setLoading(false),
-            }
-        );
+                body: JSON.stringify({ phone: normalized }),
+            });
 
-        // Use fetch directly since this returns JSON, not an Inertia response
-        fetch(route('admin.dev.otp.lookup'), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
-            },
-            body: JSON.stringify({ phone: phone.trim() }),
-        })
-            .then(r => r.json())
-            .then((data: Result) => setResult(data))
-            .catch(() => setResult({ otp: null, message: 'Request failed. Check admin auth.' }))
-            .finally(() => setLoading(false));
+            const data: Result = await res.json();
+            setResult(data);
+        } catch {
+            setResult({ otp: null, message: 'Network error — check your connection and try again.' });
+        } finally {
+            setLoading(false);
+        }
     }
 
     function copyOtp() {
@@ -61,22 +62,20 @@ export default function OtpLookup() {
         });
     }
 
-    const normalized = phone.startsWith('0')
-        ? '+254' + phone.slice(1)
-        : phone;
+    const preview = phone.trim() ? normalizePhone(phone) : null;
 
     return (
         <AdminLayout title="OTP Lookup">
             <div className="max-w-lg mx-auto py-10 px-4">
 
-                {/* Warning banner */}
                 <div className="mb-8 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                     <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
                     <div>
                         <p className="font-semibold">Temporary tool — no SMS configured</p>
                         <p className="mt-0.5 text-amber-700">
-                            This page is only visible while <code className="rounded bg-amber-100 px-1 font-mono text-xs">AT_API_KEY</code> is empty.
-                            It disappears automatically once you add Africa's Talking credentials.
+                            This page is only visible while{' '}
+                            <code className="rounded bg-amber-100 px-1 font-mono text-xs">AT_API_KEY</code>{' '}
+                            is empty. It disappears automatically once you add Africa's Talking credentials.
                         </p>
                     </div>
                 </div>
@@ -102,9 +101,10 @@ export default function OtpLookup() {
                                 autoFocus
                             />
                         </div>
-                        {phone && (
+                        {preview && (
                             <p className="mt-1 text-xs text-slate-400">
-                                Will search for: <span className="font-mono text-slate-600">{normalized}</span>
+                                Will search for:{' '}
+                                <span className="font-mono text-slate-600">{preview}</span>
                             </p>
                         )}
                     </div>
@@ -119,7 +119,6 @@ export default function OtpLookup() {
                     </Button>
                 </form>
 
-                {/* Result */}
                 {result && (
                     <div className={`mt-6 rounded-xl border p-5 ${
                         result.otp
@@ -134,6 +133,7 @@ export default function OtpLookup() {
                                         {result.otp}
                                     </span>
                                     <button
+                                        type="button"
                                         onClick={copyOtp}
                                         className="ml-auto flex items-center gap-1.5 rounded-lg border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-green-700 hover:bg-green-50 transition-colors"
                                     >
@@ -145,8 +145,7 @@ export default function OtpLookup() {
                                 </div>
                                 <p className="mt-2 text-xs text-green-600">{result.message}</p>
                                 <p className="mt-3 text-xs text-slate-500">
-                                    Share this 4-digit code with the user so they can complete sign-in.
-                                    Valid for 10 minutes from when they requested it.
+                                    Share this 4-digit code with the customer. Valid for 10 minutes from when they requested it.
                                 </p>
                             </>
                         ) : (

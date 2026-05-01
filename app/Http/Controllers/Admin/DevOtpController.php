@@ -27,11 +27,14 @@ class DevOtpController extends Controller
     {
         abort_if($this->smsActive(), 403, 'SMS is active — this tool is disabled.');
 
-        $phone = $request->string('phone')->trim()->toString();
+        $raw = $request->string('phone')->trim()->toString();
 
-        if (empty($phone)) {
+        if (empty($raw)) {
             return response()->json(['otp' => null, 'message' => 'Phone is required.'], 422);
         }
+
+        // Normalise: 0712... → +254712... (matches what OtpService stores)
+        $phone = str_starts_with($raw, '0') ? '+254' . substr($raw, 1) : $raw;
 
         $token = OtpToken::where('phone', $phone)
             ->whereNull('used_at')
@@ -48,7 +51,7 @@ class DevOtpController extends Controller
 
         return response()->json([
             'otp'     => $token,
-            'message' => "Active OTP for {$phone}",
+            'message' => "Active OTP for {$phone} — share with the customer.",
         ]);
     }
 
