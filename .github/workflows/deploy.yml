@@ -1,0 +1,21 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # Run tests first — only deploy if they pass
+  test:
+    uses: ./.github/workflows/tests.yml
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Trigger Forge deployment
+        run: |
+          curl --fail -X POST "${{ secrets.FORGE_DEPLOY_WEBHOOK }}"
+          echo "Deployment triggered successfully."
