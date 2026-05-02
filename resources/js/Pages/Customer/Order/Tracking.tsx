@@ -299,12 +299,12 @@ export default function Tracking({ order: initialOrder, rider: initialRider, mpe
 
     return (
         <CustomerLayout title="Track Order" showBack backHref={`/orders/${initialOrder.id}`}>
-            <div className="flex flex-col" style={{ minHeight: 'calc(100vh - 56px)' }}>
+            <div className="flex flex-col min-h-[calc(100dvh-56px)] md:min-h-[calc(100dvh-64px)]">
 
                 {/* Map */}
-                <div ref={mapRef} className="h-56 w-full bg-slate-100" />
+                <div ref={mapRef} className="h-56 md:h-96 w-full bg-slate-100" />
 
-                <div className="flex-1 mx-auto w-full max-w-sm px-4 py-4 space-y-4">
+                <div className="flex-1 mx-auto w-full max-w-sm md:max-w-4xl px-4 py-4 space-y-4">
 
                     {/* Issue banner */}
                     {initialOrder.has_issue && initialOrder.issue_type && (

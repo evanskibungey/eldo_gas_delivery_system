@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Order;
+use App\Models\SystemSetting;
 use App\Services\Sms\SmsServiceInterface;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -26,9 +27,10 @@ class SafetyTipJob implements ShouldQueue
         }
 
         $phone   = $order->customer->phone;
-        $message = 'Safety Tip from EldoGas: Smell gas? Do NOT switch on lights or appliances. '
+        $appName = SystemSetting::get('app_name', 'EldoGas');
+        $message = "Safety Tip from {$appName}: Smell gas? Do NOT switch on lights or appliances. "
             . 'Open all windows, leave the building, and call 999 or 0800 723 723. '
-            . 'Stay safe — EldoGas Team.';
+            . "Stay safe — {$appName} Team.";
 
         $sent = $sms->send($phone, $message);
 

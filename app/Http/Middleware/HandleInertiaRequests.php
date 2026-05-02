@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\StockLevel;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -19,6 +20,12 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
+
+            'app_name'   => fn () => SystemSetting::get('app_name', config('app.name')),
+            'shop_hours' => fn () => [
+                'open'  => SystemSetting::get('shop_open_time',  '07:00'),
+                'close' => SystemSetting::get('shop_close_time', '21:00'),
+            ],
 
             'auth' => [
                 'admin'    => auth('admin')->user()?->only('id', 'name', 'email', 'is_active'),

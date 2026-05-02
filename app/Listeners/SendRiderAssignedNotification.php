@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Events\RiderAssignedEvent;
 use App\Jobs\SendSmsJob;
+use App\Models\SystemSetting;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
 class SendRiderAssignedNotification implements ShouldQueue
@@ -20,7 +21,8 @@ class SendRiderAssignedNotification implements ShouldQueue
             return;
         }
 
-        $message = "EldoGas: {$rider->name} is on the way with your gas! "
+        $appName = SystemSetting::get('app_name', 'EldoGas');
+        $message = "{$appName}: {$rider->name} is on the way with your gas! "
             . "Order #{$order->order_number}. "
             . "Expected in ~25 mins. Call {$rider->phone} if needed.";
 

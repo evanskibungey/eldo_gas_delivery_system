@@ -14,10 +14,13 @@ class OtpService
     {
         OtpToken::where('phone', $phone)->whereNull('used_at')->delete();
 
+        // Longer window in dev (no real SMS) so the rider has time to check the panel.
+        $expiryMinutes = empty(config('services.africastalking.api_key')) ? 30 : 10;
+
         $otp = OtpToken::create([
             'phone'      => $phone,
             'token'      => str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT),
-            'expires_at' => now()->addMinutes(10),
+            'expires_at' => now()->addMinutes($expiryMinutes),
             'created_at' => now(),
         ]);
 

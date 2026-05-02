@@ -5,10 +5,12 @@ import { Button } from '@/Components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface Order {
-    id:           number;
-    status:       string;
-    total_amount: number;
-    created_at:   string;
+    id:            number;
+    status:        string;
+    total_amount:  number;
+    commission:    number;
+    rider_earning: number;
+    created_at:    string;
 }
 
 interface Rating {
@@ -40,9 +42,12 @@ interface Rider {
 interface Props {
     rider: Rider;
     stats: {
-        totalEarnings: number;
-        recentOrders:  Order[];
-        recentRatings: Rating[];
+        commissionRate:  number;
+        totalRevenue:    number;
+        totalCommission: number;
+        totalEarnings:   number;
+        recentOrders:    Order[];
+        recentRatings:   Rating[];
     };
 }
 
@@ -164,11 +169,12 @@ export default function RidersShow({ rider, stats }: Props) {
                 <div className="col-span-2 space-y-5">
 
                     {/* Stats */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-4 gap-4">
                         {[
-                            { label: 'Deliveries',     value: rider.total_deliveries.toString(), icon: Truck,  color: 'text-slate-800' },
-                            { label: 'Avg Rating',     value: rider.avg_rating > 0 ? rider.avg_rating.toFixed(1) : '—', icon: Star, color: 'text-amber-600' },
-                            { label: 'Total Earnings', value: fmt(stats.totalEarnings), icon: null, color: 'text-emerald-700' },
+                            { label: 'Deliveries',  value: rider.total_deliveries.toString(),                               color: 'text-slate-800'   },
+                            { label: 'Avg Rating',  value: rider.avg_rating > 0 ? rider.avg_rating.toFixed(1) : '—',       color: 'text-amber-600'   },
+                            { label: 'Net Earnings',value: fmt(stats.totalEarnings),                                        color: 'text-emerald-700' },
+                            { label: `Commission (${stats.commissionRate}%)`, value: fmt(stats.totalCommission),            color: 'text-slate-500'   },
                         ].map(({ label, value, color }) => (
                             <div key={label} className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden p-4">
                                 <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 to-amber-500" />
@@ -192,7 +198,9 @@ export default function RidersShow({ rider, stats }: Props) {
                                     <tr className="border-b border-slate-50 bg-slate-50/60">
                                         <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Order</th>
                                         <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Status</th>
-                                        <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">Amount</th>
+                                        <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">Total</th>
+                                        <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">Commission</th>
+                                        <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">Rider Gets</th>
                                         <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">Date</th>
                                     </tr>
                                 </thead>
@@ -210,6 +218,8 @@ export default function RidersShow({ rider, stats }: Props) {
                                                 </span>
                                             </td>
                                             <td className="px-5 py-2.5 text-right text-xs font-medium text-slate-700">{fmt(o.total_amount)}</td>
+                                            <td className="px-5 py-2.5 text-right text-xs text-red-400">-{fmt(o.commission)}</td>
+                                            <td className="px-5 py-2.5 text-right text-xs font-semibold text-emerald-600">{fmt(o.rider_earning)}</td>
                                             <td className="px-5 py-2.5 text-right text-xs text-slate-400">{o.created_at.slice(0, 10)}</td>
                                         </tr>
                                     ))}

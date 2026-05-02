@@ -40,7 +40,16 @@
       "Read(//c/FlutterApplications/eldogas_rider-app/eldogas_riderapp/**)",
       "Read(//c/xampp/htdocs/**)",
       "Read(//c/Users/**)",
-      "Bash(dart run *)"
+      "Bash(dart run *)",
+      "Bash(git status *)",
+      "Bash(git check-ignore *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git add *)",
+      "Bash(python fix_encoding.py)",
+      "Bash(python3 fix_encoding.py)",
+      "Bash(php fix_encoding.php)",
+      "Bash(git reset *)"
     ],
     "additionalDirectories": [
       "C:\\FlutterApplications\\eldogas_rider-app\\eldogas_riderapp"

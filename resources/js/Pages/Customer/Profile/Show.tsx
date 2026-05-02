@@ -2,7 +2,7 @@
 import { router, useForm, Link } from '@inertiajs/react';
 import {
     User, Phone, Star, MapPin, Package, ChevronRight,
-    Edit2, Check, X, Calendar, Hash,
+    Edit2, Check, X, Calendar, Hash, LogOut,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -126,7 +126,11 @@ export default function ProfileShow({ customer, addresses, recentOrders }: Props
 
     return (
         <CustomerLayout title="My Profile" showBack backHref="/home">
-            <div className="mx-auto max-w-sm px-4 py-5 space-y-5">
+            <div className="mx-auto max-w-sm md:max-w-3xl px-4 py-5">
+                <div className="md:grid md:grid-cols-[240px_1fr] md:gap-8 space-y-5 md:space-y-0">
+
+                {/* LEFT: Avatar + stats */}
+                <div className="space-y-4">
 
                 {/* Avatar + name */}
                 <div className="flex flex-col items-center text-center">
@@ -152,12 +156,17 @@ export default function ProfileShow({ customer, addresses, recentOrders }: Props
                     <p className="mt-0.5 text-sm text-slate-500 font-mono">{customer.phone}</p>
                 </div>
 
-                {/* Stats row */}
-                <div className="grid grid-cols-3 gap-2">
+                {/* Stats — row on mobile, stacked on desktop left column */}
+                <div className="grid grid-cols-3 md:grid-cols-1 gap-2">
                     <StatChip icon={Package}  label="Orders"  value={customer.total_orders} />
                     <StatChip icon={Star}      label="Points"  value={customer.gaspoints_balance.toLocaleString()} />
                     <StatChip icon={Calendar}  label="Since"   value={customer.member_since} />
                 </div>
+
+                </div>{/* END left column */}
+
+                {/* RIGHT: Account info + addresses + recent orders */}
+                <div className="space-y-5">
 
                 {/* Account info card */}
                 <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
@@ -302,6 +311,18 @@ export default function ProfileShow({ customer, addresses, recentOrders }: Props
                     </div>
                 )}
 
+                {/* Logout */}
+                <button
+                    onClick={() => router.post('/logout')}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white py-3 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+                >
+                    <LogOut className="h-4 w-4" />
+                    Log Out
+                </button>
+
+                </div>{/* END right column */}
+
+                </div>{/* END two-column grid */}
             </div>
         </CustomerLayout>
     );

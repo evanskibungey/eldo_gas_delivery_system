@@ -16,8 +16,9 @@ class OrderTrackingController extends Controller
 
         $order->load(['size:id,name', 'rider:id,name,phone,avg_rating,photo_path,is_safety_certified,current_latitude,current_longitude,heading,location_updated_at']);
 
-        $stages = ['pending', 'rider_assigned', 'picked_up', 'delivered'];
-        $stageIndex = array_search($order->status, $stages);
+        $stages = ['pending', 'rider_assigned', 'picked_up', 'on_the_way', 'delivered'];
+        $status = $order->status === 'correction_in_progress' ? 'on_the_way' : $order->status;
+        $stageIndex = array_search($status, $stages);
 
         return Inertia::render('Customer/Order/Tracking', [
             'order' => [

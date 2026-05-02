@@ -169,7 +169,11 @@ export default function GasPointsIndex({
 
     return (
         <CustomerLayout title="GasPoints" showBack backHref="/home">
-            <div className="mx-auto max-w-sm px-4 py-5 space-y-5">
+            <div className="mx-auto max-w-sm md:max-w-4xl px-4 py-5">
+                <div className="md:grid md:grid-cols-[1fr_420px] md:gap-6 space-y-5 md:space-y-0">
+
+                {/* LEFT: Balance + tiers + referral */}
+                <div className="space-y-5">
 
                 {/* Balance card */}
                 <BalanceCard balance={balance} referralCode={referralCode} />
@@ -245,7 +249,10 @@ export default function GasPointsIndex({
                     )}
                 </div>
 
-                {/* Transaction history */}
+                </div>{/* END left column */}
+
+                {/* RIGHT: Transaction history */}
+                <div>
                 <div>
                     <h2 className="mb-2 text-sm font-bold text-slate-900">Transaction History</h2>
                     <div className="rounded-xl border border-slate-200 bg-white shadow-sm px-4 divide-y divide-slate-100">
@@ -287,7 +294,9 @@ export default function GasPointsIndex({
                         </div>
                     )}
                 </div>
+                </div>{/* END right column */}
 
+                </div>{/* END two-column grid */}
             </div>
         </CustomerLayout>
     );

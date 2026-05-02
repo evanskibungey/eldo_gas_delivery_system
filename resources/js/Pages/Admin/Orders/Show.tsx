@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import AssignRiderModal from '@/Components/Admin/AssignRiderModal';
 import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
@@ -6,13 +6,13 @@ import {
     ArrowLeft, Phone, RefreshCw, Package, Star,
     ShieldCheck, MapPin, AlertCircle, CheckCircle2,
     XCircle, Truck, Clock, CreditCard, ChevronRight,
-    UserPen, Ban, ArrowRight, Wrench,
+    UserPen, Ban, ArrowRight, Wrench, PlayCircle,
 } from 'lucide-react';
 import { Button } from '@/Components/ui/button';
 import { cn } from '@/lib/utils';
 import type { OrderStatus } from '@/types/models';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface HistoryEntry {
     status:     string;
@@ -48,22 +48,25 @@ interface OrderDetail {
     issue_description:    string | null;
     issue_resolved:       boolean;
     cancel_reason:        string | null;
-    cancelled_by:     string | null;
-    rider_assigned_at: string | null;
-    picked_up_at:     string | null;
-    delivered_at:     string | null;
-    cancelled_at:     string | null;
-    created_at:       string;
-    customer:         { id: number; name: string; phone: string } | null;
-    rider:            { id: number; name: string; phone: string; avg_rating: number; avatar_url: string | null; is_safety_certified: boolean } | null;
-    addons:           Addon[];
-    history:          HistoryEntry[];
-    can_assign:                 boolean;
-    can_reassign:               boolean;
-    can_cancel:                 boolean;
-    can_report_out_of_stock:    boolean;
-    can_resolve_payment_dispute: boolean;
-    next_status:                string | null;
+    cancelled_by:         string | null;
+    rider_assigned_at:    string | null;
+    picked_up_at:         string | null;
+    on_the_way_at:        string | null;
+    delivered_at:         string | null;
+    cancelled_at:         string | null;
+    created_at:           string;
+    customer:             { id: number; name: string; phone: string } | null;
+    rider:                { id: number; name: string; phone: string; avg_rating: number; avatar_url: string | null; is_safety_certified: boolean } | null;
+    addons:               Addon[];
+    history:              HistoryEntry[];
+    can_assign:                   boolean;
+    can_reassign:                 boolean;
+    can_cancel:                   boolean;
+    can_report_out_of_stock:      boolean;
+    can_resolve_payment_dispute:  boolean;
+    can_resume_delivery:          boolean;
+    can_collect_payment:          boolean;
+    next_status:                  string | null;
 }
 
 interface AvailableRider {
@@ -81,7 +84,7 @@ interface Props {
     availableRiders: AvailableRider[];
 }
 
-// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Config ───────────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<string, { label: string; dot: string; chip: string; icon: React.ElementType }> = {
     pending:                { label: 'Pending',        dot: 'bg-amber-400',   chip: 'border-amber-200   bg-amber-50   text-amber-700',   icon: Clock        },
@@ -99,7 +102,7 @@ const NEXT_STATUS_LABEL: Record<string, string> = {
     delivered:  'Mark as Delivered',
 };
 
-// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function SectionCard({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
     return (
@@ -199,13 +202,70 @@ function OutOfStockModal({ orderNumber, onCancel, onConfirm }: {
     );
 }
 
-// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function DeliveryConfirmModal({ order, onCancel, onConfirm }: {
+    order: Pick<OrderDetail, 'order_number' | 'payment_method' | 'payment_status'>;
+    onCancel: () => void;
+    onConfirm: (note: string, paymentCollected: boolean) => void;
+}) {
+    const [note, setNote]                         = useState('');
+    const [paymentCollected, setPaymentCollected] = useState(false);
+    const showPaymentCheck = order.payment_method === 'cash' && order.payment_status !== 'collected';
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-2xl">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                </div>
+                <h3 className="mt-3 text-base font-semibold text-slate-900">Confirm Delivery</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                    Order {order.order_number} will be marked as delivered.
+                </p>
+
+                <textarea
+                    value={note}
+                    onChange={e => setNote(e.target.value)}
+                    placeholder="Optional delivery note (e.g. Left at gate, customer confirmed receipt)…"
+                    rows={3}
+                    className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300/20 resize-none"
+                />
+
+                {showPaymentCheck && (
+                    <label className="mt-3 flex items-center gap-2.5 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={paymentCollected}
+                            onChange={e => setPaymentCollected(e.target.checked)}
+                            className="h-4 w-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-400"
+                        />
+                        <span className="text-sm text-slate-700">
+                            Cash payment collected from customer
+                        </span>
+                    </label>
+                )}
+
+                <div className="mt-4 flex gap-3">
+                    <Button variant="outline" className="flex-1 h-9 text-sm" onClick={onCancel}>Go Back</Button>
+                    <Button
+                        className="flex-1 h-9 bg-emerald-500 hover:bg-emerald-600 text-white text-sm"
+                        onClick={() => onConfirm(note, paymentCollected)}
+                    >
+                        Confirm Delivery
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function OrdersShow({ order, availableRiders }: Props) {
-    const [showAssign, setShowAssign]         = useState(false);
-    const [showCancel, setShowCancel]         = useState(false);
-    const [showOutOfStock, setShowOutOfStock] = useState(false);
-    const [advancing, setAdvancing]           = useState(false);
+    const [showAssign, setShowAssign]                 = useState(false);
+    const [showCancel, setShowCancel]                 = useState(false);
+    const [showOutOfStock, setShowOutOfStock]         = useState(false);
+    const [showDeliveryConfirm, setShowDeliveryConfirm] = useState(false);
+    const [advancing, setAdvancing]                   = useState(false);
 
     const fmt = (n: number) => `KES ${n.toLocaleString()}`;
     const isSwap = order.order_type === 'swap';
@@ -213,8 +273,24 @@ export default function OrdersShow({ order, availableRiders }: Props) {
 
     function advanceStatus() {
         if (!order.next_status) return;
+        if (order.next_status === 'delivered') {
+            setShowDeliveryConfirm(true);
+            return;
+        }
         setAdvancing(true);
         router.post(`/admin/orders/${order.id}/status`, { status: order.next_status }, {
+            onFinish: () => setAdvancing(false),
+        });
+    }
+
+    function confirmDelivery(note: string, paymentCollected: boolean) {
+        setShowDeliveryConfirm(false);
+        setAdvancing(true);
+        router.post(`/admin/orders/${order.id}/status`, {
+            status:             'delivered',
+            delivery_note:      note || undefined,
+            payment_collected:  paymentCollected || undefined,
+        }, {
             onFinish: () => setAdvancing(false),
         });
     }
@@ -233,6 +309,14 @@ export default function OrdersShow({ order, availableRiders }: Props) {
 
     function resolveDispute(resolution: 'paid' | 'refund') {
         router.post(`/admin/orders/${order.id}/issues/payment-dispute/resolve`, { resolution });
+    }
+
+    function resumeDelivery() {
+        router.post(`/admin/orders/${order.id}/issues/resolve-correction`);
+    }
+
+    function collectPayment() {
+        router.post(`/admin/orders/${order.id}/collect-payment`);
     }
 
     return (
@@ -262,11 +346,12 @@ export default function OrdersShow({ order, availableRiders }: Props) {
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
 
-                {/* â”€â”€ Left column â”€â”€ */}
+                {/* ── Left column ── */}
                 <div className="lg:col-span-2 space-y-5">
 
                     {/* Action bar */}
-                    {(order.can_assign || order.can_reassign || order.next_status || order.can_cancel || order.can_report_out_of_stock) && (
+                    {(order.can_assign || order.can_reassign || order.next_status || order.can_cancel
+                        || order.can_report_out_of_stock || order.can_resume_delivery || order.can_collect_payment) && (
                         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3.5 shadow-sm">
                             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide mr-1">Actions</span>
 
@@ -288,6 +373,15 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                 </Button>
                             )}
 
+                            {order.can_resume_delivery && (
+                                <Button
+                                    size="sm" onClick={resumeDelivery}
+                                    className="h-8 gap-1.5 bg-violet-500 hover:bg-violet-600 text-white text-xs shadow-sm"
+                                >
+                                    <PlayCircle className="h-3.5 w-3.5" /> Resume Delivery
+                                </Button>
+                            )}
+
                             {order.next_status && (
                                 <Button
                                     size="sm" disabled={advancing} onClick={advanceStatus}
@@ -295,6 +389,15 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                 >
                                     <ChevronRight className="h-3.5 w-3.5" />
                                     {advancing ? 'Saving…' : (NEXT_STATUS_LABEL[order.next_status] ?? 'Advance')}
+                                </Button>
+                            )}
+
+                            {order.can_collect_payment && (
+                                <Button
+                                    size="sm" onClick={collectPayment}
+                                    className="h-8 gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs shadow-sm"
+                                >
+                                    <CreditCard className="h-3.5 w-3.5" /> Mark Payment Collected
                                 </Button>
                             )}
 
@@ -468,7 +571,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                     </SectionCard>
                 </div>
 
-                {/* â”€â”€ Right column â”€â”€ */}
+                {/* ── Right column ── */}
                 <div className="space-y-5">
 
                     {/* Customer */}
@@ -523,6 +626,38 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                             </a>
                         </div>
                     </SectionCard>
+
+                    {/* Timestamps */}
+                    {(order.rider_assigned_at || order.picked_up_at || order.on_the_way_at || order.delivered_at) && (
+                        <SectionCard title="Timeline">
+                            <div className="space-y-2">
+                                {order.rider_assigned_at && (
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-500">Assigned</span>
+                                        <span className="text-slate-700 font-medium">{order.rider_assigned_at}</span>
+                                    </div>
+                                )}
+                                {order.picked_up_at && (
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-500">Picked up</span>
+                                        <span className="text-slate-700 font-medium">{order.picked_up_at}</span>
+                                    </div>
+                                )}
+                                {order.on_the_way_at && (
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-500">On the way</span>
+                                        <span className="text-slate-700 font-medium">{order.on_the_way_at}</span>
+                                    </div>
+                                )}
+                                {order.delivered_at && (
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-500">Delivered</span>
+                                        <span className="text-emerald-600 font-medium">{order.delivered_at}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </SectionCard>
+                    )}
 
                     {/* Rider */}
                     <SectionCard title="Assigned Rider">
@@ -620,6 +755,14 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                     orderNumber={order.order_number}
                     onCancel={() => setShowOutOfStock(false)}
                     onConfirm={confirmOutOfStock}
+                />
+            )}
+
+            {showDeliveryConfirm && (
+                <DeliveryConfirmModal
+                    order={order}
+                    onCancel={() => setShowDeliveryConfirm(false)}
+                    onConfirm={confirmDelivery}
                 />
             )}
         </AdminLayout>

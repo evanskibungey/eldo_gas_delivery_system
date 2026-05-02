@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Events\OrderCancelledEvent;
 use App\Jobs\SendSmsJob;
+use App\Models\SystemSetting;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
 class SendOrderCancelledNotification implements ShouldQueue
@@ -20,7 +21,8 @@ class SendOrderCancelledNotification implements ShouldQueue
         }
 
         $reason  = $event->reason ?: 'No reason provided';
-        $message = "EldoGas: Order #{$order->order_number} has been cancelled. "
+        $appName = SystemSetting::get('app_name', 'EldoGas');
+        $message = "{$appName}: Order #{$order->order_number} has been cancelled. "
             . "Reason: {$reason}. "
             . "Contact us at +254 700 000000 for assistance.";
 

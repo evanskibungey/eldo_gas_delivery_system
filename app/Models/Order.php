@@ -33,6 +33,7 @@ class Order extends Model
         'delivery_notes',
         'rider_assigned_at',
         'picked_up_at',
+        'on_the_way_at',
         'delivered_at',
         'cancelled_at',
         'cancel_reason',
@@ -49,6 +50,7 @@ class Order extends Model
         return [
             'rider_assigned_at' => 'datetime',
             'picked_up_at'      => 'datetime',
+            'on_the_way_at'     => 'datetime',
             'delivered_at'      => 'datetime',
             'cancelled_at'      => 'datetime',
             'has_issue'         => 'boolean',

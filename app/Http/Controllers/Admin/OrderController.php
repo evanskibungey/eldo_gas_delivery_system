@@ -31,10 +31,13 @@ class OrderController extends Controller
             'orders'  => $this->orders->paginated($filters)->through(fn (Order $o) => $this->formatListRow($o)),
             'filters' => $filters,
             'counts'  => [
-                'pending'   => Order::where('status', 'pending')->count(),
-                'active'    => Order::whereIn('status', ['rider_assigned', 'picked_up', 'on_the_way'])->count(),
-                'delivered' => Order::where('status', 'delivered')->count(),
-                'cancelled' => Order::where('status', 'cancelled')->count(),
+                'pending'         => Order::where('status', 'pending')->count(),
+                'active'          => Order::whereIn('status', ['rider_assigned', 'picked_up', 'on_the_way', 'correction_in_progress'])->count(),
+                'rider_assigned'  => Order::where('status', 'rider_assigned')->count(),
+                'picked_up'       => Order::where('status', 'picked_up')->count(),
+                'on_the_way'      => Order::whereIn('status', ['on_the_way', 'correction_in_progress'])->count(),
+                'delivered'       => Order::where('status', 'delivered')->count(),
+                'cancelled'       => Order::where('status', 'cancelled')->count(),
             ],
         ]);
     }
@@ -76,10 +79,25 @@ class OrderController extends Controller
 
     public function updateStatus(UpdateOrderStatusRequest $request, Order $order): RedirectResponse
     {
-        $this->orders->advanceStatus($order, $request->validated('status'));
+        $data = $request->validated();
+
+        $this->orders->advanceStatus(
+            $order,
+            $data['status'],
+            $data['delivery_note'] ?? null,
+            (bool) ($data['payment_collected'] ?? false),
+        );
 
         return redirect()->route('admin.orders.show', $order)
             ->with('success', "Order #{$order->order_number} status updated.");
+    }
+
+    public function collectPayment(Order $order): RedirectResponse
+    {
+        $this->orders->collectPayment($order);
+
+        return redirect()->route('admin.orders.show', $order)
+            ->with('success', "Payment collected for order #{$order->order_number}.");
     }
 
     public function cancel(CancelOrderRequest $request, Order $order): RedirectResponse
@@ -139,11 +157,12 @@ class OrderController extends Controller
             'issue_resolved'    => $order->issue_resolved,
             'cancel_reason'     => $order->cancel_reason,
             'cancelled_by'      => $order->cancelled_by,
-            'rider_assigned_at'=> $order->rider_assigned_at?->format('d M H:i'),
-            'picked_up_at'     => $order->picked_up_at?->format('d M H:i'),
-            'delivered_at'     => $order->delivered_at?->format('d M H:i'),
-            'cancelled_at'     => $order->cancelled_at?->format('d M H:i'),
-            'created_at'       => $order->created_at->format('D, d M Y · H:i'),
+            'rider_assigned_at' => $order->rider_assigned_at?->format('d M H:i'),
+            'picked_up_at'      => $order->picked_up_at?->format('d M H:i'),
+            'on_the_way_at'     => $order->on_the_way_at?->format('d M H:i'),
+            'delivered_at'      => $order->delivered_at?->format('d M H:i'),
+            'cancelled_at'      => $order->cancelled_at?->format('d M H:i'),
+            'created_at'        => $order->created_at->format('D, d M Y · H:i'),
             'customer' => $order->customer ? [
                 'id'    => $order->customer->id,
                 'name'  => $order->customer->name,
@@ -167,12 +186,16 @@ class OrderController extends Controller
                 'actor_type' => $h->actor_type,
                 'at'         => $h->created_at?->format('d M H:i'),
             ]),
-            'can_assign'                  => in_array($order->status, ['pending']),
-            'can_reassign'               => in_array($order->status, ['rider_assigned', 'picked_up', 'on_the_way']),
-            'can_cancel'                 => ! in_array($order->status, ['delivered', 'cancelled']),
-            'can_report_out_of_stock'    => in_array($order->status, ['pending', 'rider_assigned']) && ! $order->has_issue,
-            'can_resolve_payment_dispute'=> $order->payment_status === 'disputed' && ! $order->issue_resolved,
-            'next_status'                => $this->nextStatus($order->status),
+            'can_assign'                  => $order->status === 'pending',
+            'can_reassign'                => in_array($order->status, ['rider_assigned', 'picked_up', 'on_the_way', 'correction_in_progress']),
+            'can_cancel'                  => ! in_array($order->status, ['delivered', 'cancelled']),
+            'can_report_out_of_stock'     => in_array($order->status, ['pending', 'rider_assigned']) && ! $order->has_issue,
+            'can_resolve_payment_dispute' => $order->payment_status === 'disputed' && ! $order->issue_resolved,
+            'can_resume_delivery'         => $order->status === 'correction_in_progress',
+            'can_collect_payment'         => $order->status === 'delivered'
+                                             && $order->payment_method === 'cash'
+                                             && $order->payment_status === 'pending',
+            'next_status'                 => $this->nextStatus($order->status),
         ];
     }
 
@@ -192,10 +215,11 @@ class OrderController extends Controller
     private function nextStatus(string $current): ?string
     {
         return match ($current) {
-            'rider_assigned' => 'picked_up',
-            'picked_up'      => 'on_the_way',
-            'on_the_way'     => 'delivered',
-            default          => null,
+            'rider_assigned'         => 'picked_up',
+            'picked_up'              => 'on_the_way',
+            'on_the_way'             => 'delivered',
+            'correction_in_progress' => null,
+            default                  => null,
         };
     }
 }

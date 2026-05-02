@@ -7,6 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -26,7 +27,8 @@ class SendOtpJob implements ShouldQueue
         $apiKey   = config('services.africastalking.api_key');
         $username = config('services.africastalking.username');
 
-        $message = "Your EldoGas code is: {$this->token}. Valid for 10 minutes. Do not share.";
+        $appName = SystemSetting::get('app_name', 'EldoGas');
+        $message = "Your {$appName} code is: {$this->token}. Valid for 10 minutes. Do not share.";
 
         if (! $apiKey) {
             Log::channel('single')->info("[OTP] {$this->phone} → {$this->token}");

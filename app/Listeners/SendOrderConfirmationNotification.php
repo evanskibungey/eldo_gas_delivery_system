@@ -4,6 +4,7 @@ namespace App\Listeners;
 
 use App\Events\OrderPlacedEvent;
 use App\Jobs\SendSmsJob;
+use App\Models\SystemSetting;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
 class SendOrderConfirmationNotification implements ShouldQueue
@@ -19,7 +20,8 @@ class SendOrderConfirmationNotification implements ShouldQueue
             return;
         }
 
-        $message = "EldoGas: Order #{$order->order_number} confirmed! "
+        $appName = SystemSetting::get('app_name', 'EldoGas');
+        $message = "{$appName}: Order #{$order->order_number} confirmed! "
             . "We are preparing your delivery. "
             . "Track your order in the app. Total: KES " . number_format($order->total_amount);
 

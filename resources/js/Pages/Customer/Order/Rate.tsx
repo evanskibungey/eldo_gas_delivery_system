@@ -23,7 +23,7 @@ export default function Rate({ order, rider }: Props) {
 
     return (
         <CustomerLayout title="Rate Your Order" showBack backHref={`/orders/${order.id}`}>
-            <div className="mx-auto max-w-sm px-4 py-10 flex flex-col items-center text-center">
+            <div className="mx-auto max-w-sm md:max-w-lg px-4 py-10 flex flex-col items-center text-center">
 
                 {rider?.avatar_url ? (
                     <img src={rider.avatar_url} alt={rider.name} className="h-20 w-20 rounded-full object-cover ring-4 ring-orange-100" />

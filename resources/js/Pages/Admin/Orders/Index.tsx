@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 import {
@@ -10,7 +10,7 @@ import { Input } from '@/Components/ui/input';
 import { cn } from '@/lib/utils';
 import type { OrderStatus } from '@/types/models';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface OrderRow {
     id:             number;
@@ -43,10 +43,18 @@ interface Paginated {
 interface Props {
     orders:  Paginated;
     filters: { status?: string; search?: string; date?: string };
-    counts:  { pending: number; active: number; delivered: number; cancelled: number };
+    counts:  {
+        pending:        number;
+        active:         number;
+        rider_assigned: number;
+        picked_up:      number;
+        on_the_way:     number;
+        delivered:      number;
+        cancelled:      number;
+    };
 }
 
-// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Config ────────────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<OrderStatus, { label: string; dot: string; chip: string }> = {
     pending:                 { label: 'Pending',        dot: 'bg-amber-400',   chip: 'border-amber-200   bg-amber-50   text-amber-700'   },
@@ -65,7 +73,7 @@ const PAYMENT_CHIP: Record<string, string> = {
     refunded:  'bg-slate-100  text-slate-500   border-slate-200',
 };
 
-// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sub-components ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: OrderStatus }) {
     const cfg = STATUS_CFG[status];
@@ -103,7 +111,33 @@ function TabBtn({ label, count, active, onClick }: {
     );
 }
 
-// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function SubTabBtn({ label, count, active, onClick }: {
+    label: string; count?: number; active: boolean; onClick: () => void;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            className={cn(
+                'inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors border',
+                active
+                    ? 'bg-slate-800 text-white border-slate-800'
+                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700',
+            )}
+        >
+            {label}
+            {count != null && count > 0 && (
+                <span className={cn(
+                    'flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[9px] font-bold',
+                    active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600',
+                )}>
+                    {count > 99 ? '99+' : count}
+                </span>
+            )}
+        </button>
+    );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function OrdersIndex({ orders, filters, counts }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -114,7 +148,6 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
         const channel = window.Echo.private('admin.orders');
 
         channel.listen('.order.placed', () => {
-            // Flash the tab/badge to alert admin, then reload the list
             setNewOrderFlash(true);
             router.reload({ only: ['orders', 'counts'] });
             setTimeout(() => setNewOrderFlash(false), 3000);
@@ -141,6 +174,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
 
     const activeTab = filters.status ?? 'all';
     const totalAll  = counts.pending + counts.active + counts.delivered + counts.cancelled;
+    const isActiveGroup = activeTab === 'active' || activeTab === 'rider_assigned' || activeTab === 'picked_up' || activeTab === 'on_the_way';
 
     return (
         <AdminLayout title="Orders" subtitle="Live order feed and dispatch management">
@@ -153,11 +187,11 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                 </div>
             )}
 
-            {/* Status tabs */}
-            <div className="mb-5 flex flex-wrap items-center gap-2">
+            {/* Primary status tabs */}
+            <div className="mb-3 flex flex-wrap items-center gap-2">
                 <TabBtn label="All"       count={totalAll}       active={activeTab === 'all'}       onClick={() => applyFilter()} />
                 <TabBtn label="Pending"   count={counts.pending} active={activeTab === 'pending'}   onClick={() => applyFilter('pending')} />
-                <TabBtn label="Active"    count={counts.active}  active={activeTab === 'active'}    onClick={() => applyFilter('active')} />
+                <TabBtn label="Active"    count={counts.active}  active={isActiveGroup}             onClick={() => applyFilter('active')} />
                 <TabBtn label="Delivered"                        active={activeTab === 'delivered'}  onClick={() => applyFilter('delivered')} />
                 <TabBtn label="Cancelled"                        active={activeTab === 'cancelled'}  onClick={() => applyFilter('cancelled')} />
 
@@ -178,6 +212,37 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                     </Button>
                 </div>
             </div>
+
+            {/* Active sub-tabs — only shown when Active group is selected */}
+            {isActiveGroup && (
+                <div className="mb-4 flex items-center gap-1.5 pl-1">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mr-1">Filter:</span>
+                    <SubTabBtn
+                        label="All Active"
+                        count={counts.active}
+                        active={activeTab === 'active'}
+                        onClick={() => applyFilter('active')}
+                    />
+                    <SubTabBtn
+                        label="Assigned"
+                        count={counts.rider_assigned}
+                        active={activeTab === 'rider_assigned'}
+                        onClick={() => applyFilter('rider_assigned')}
+                    />
+                    <SubTabBtn
+                        label="Picked Up"
+                        count={counts.picked_up}
+                        active={activeTab === 'picked_up'}
+                        onClick={() => applyFilter('picked_up')}
+                    />
+                    <SubTabBtn
+                        label="On the Way"
+                        count={counts.on_the_way}
+                        active={activeTab === 'on_the_way'}
+                        onClick={() => applyFilter('on_the_way')}
+                    />
+                </div>
+            )}
 
             {/* Table */}
             <div className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">

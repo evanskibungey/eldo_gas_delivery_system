@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\ReportOutOfStockAction;
 use App\Actions\ResolvePaymentDisputeAction;
+use App\Events\OrderStatusUpdatedEvent;
 use App\Events\PaymentDisputeEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
@@ -62,5 +63,33 @@ class OrderIssueController extends Controller
 
         return redirect()->route('admin.orders.show', $order)
             ->with('success', 'Payment dispute resolved.');
+    }
+
+    // Resume delivery after correction_in_progress
+    public function resolveCorrection(Order $order): RedirectResponse
+    {
+        if ($order->status !== 'correction_in_progress') {
+            return back()->with('error', 'Order is not awaiting a correction resolution.');
+        }
+
+        $order->update([
+            'status'         => 'on_the_way',
+            'has_issue'      => false,
+            'issue_resolved' => true,
+        ]);
+
+        event(new OrderStatusUpdatedEvent($order->fresh()));
+
+        OrderStatusHistory::create([
+            'order_id'   => $order->id,
+            'status'     => 'on_the_way',
+            'note'       => 'Issue resolved — delivery resumed',
+            'actor_type' => 'admin',
+            'actor_id'   => auth('admin')->id(),
+            'created_at' => now(),
+        ]);
+
+        return redirect()->route('admin.orders.show', $order)
+            ->with('success', 'Issue resolved. Delivery resumed.');
     }
 }

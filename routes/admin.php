@@ -56,11 +56,13 @@ Route::middleware('auth.admin')->group(function () {
     Route::post('orders/{order}/reassign', [\App\Http\Controllers\Admin\OrderController::class, 'reassign'])->name('orders.reassign');
     Route::post('orders/{order}/status', [\App\Http\Controllers\Admin\OrderController::class, 'updateStatus'])->name('orders.status');
     Route::post('orders/{order}/cancel', [\App\Http\Controllers\Admin\OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::post('orders/{order}/collect-payment', [\App\Http\Controllers\Admin\OrderController::class, 'collectPayment'])->name('orders.collect-payment');
 
     // Order issues (Phase 9)
     Route::post('orders/{order}/issues/out-of-stock',              [\App\Http\Controllers\Admin\OrderIssueController::class, 'outOfStock'])->name('orders.issues.out-of-stock');
     Route::post('orders/{order}/issues/payment-dispute',           [\App\Http\Controllers\Admin\OrderIssueController::class, 'flagPaymentDispute'])->name('orders.issues.payment-dispute');
     Route::post('orders/{order}/issues/payment-dispute/resolve',   [\App\Http\Controllers\Admin\OrderIssueController::class, 'resolvePaymentDispute'])->name('orders.issues.payment-dispute.resolve');
+    Route::post('orders/{order}/issues/resolve-correction',        [\App\Http\Controllers\Admin\OrderIssueController::class, 'resolveCorrection'])->name('orders.issues.resolve-correction');
 
     // Customers
     Route::get('customers', [\App\Http\Controllers\Admin\CustomerController::class, 'index'])->name('customers.index');
@@ -85,4 +87,12 @@ Route::middleware('auth.admin')->group(function () {
     // Dev OTP lookup — only active when AT_API_KEY is not configured
     Route::get('dev/otp', [\App\Http\Controllers\Admin\DevOtpController::class, 'show'])->name('dev.otp');
     Route::post('dev/otp/lookup', [\App\Http\Controllers\Admin\DevOtpController::class, 'lookup'])->name('dev.otp.lookup');
+
+    // Settings
+    Route::get('settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
+    Route::post('settings/general',    [\App\Http\Controllers\Admin\SettingsController::class, 'updateGeneral'])->name('settings.general');
+    Route::post('settings/shop-hours', [\App\Http\Controllers\Admin\SettingsController::class, 'updateShopHours'])->name('settings.shop-hours');
+    Route::post('settings/delivery',   [\App\Http\Controllers\Admin\SettingsController::class, 'updateDelivery'])->name('settings.delivery');
+    Route::post('settings/commission', [\App\Http\Controllers\Admin\SettingsController::class, 'updateCommission'])->name('settings.commission');
+    Route::post('settings/account',    [\App\Http\Controllers\Admin\SettingsController::class, 'updateAccount'])->name('settings.account');
 });

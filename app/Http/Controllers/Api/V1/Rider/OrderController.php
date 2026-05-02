@@ -4,11 +4,15 @@ namespace App\Http\Controllers\Api\V1\Rider;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderStatusHistory;
+use App\Services\Admin\StockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
+    public function __construct(private readonly StockService $stock) {}
+
     public function active(Request $request): JsonResponse
     {
         $rider = $request->user();
@@ -41,7 +45,8 @@ class OrderController extends Controller
         }
 
         $data = $request->validate([
-            'status' => 'required|in:picked_up,on_the_way,delivered',
+            'status'            => 'required|in:picked_up,on_the_way,delivered',
+            'payment_collected' => 'boolean',
         ]);
 
         $allowed = [
@@ -58,12 +63,26 @@ class OrderController extends Controller
 
         if ($data['status'] === 'picked_up') {
             $updates['picked_up_at'] = now();
+            $this->stock->autoDeductForOrder($order);
+        } elseif ($data['status'] === 'on_the_way') {
+            $updates['on_the_way_at'] = now();
         } elseif ($data['status'] === 'delivered') {
             $updates['delivered_at'] = now();
+
+            if (! empty($data['payment_collected']) && $order->payment_method === 'cash') {
+                $updates['payment_status'] = 'collected';
+            }
         }
 
         $order->update($updates);
-        $order->statusHistory()->create(['status' => $data['status'], 'changed_by' => 'rider']);
+
+        OrderStatusHistory::create([
+            'order_id'   => $order->id,
+            'status'     => $data['status'],
+            'actor_type' => 'rider',
+            'actor_id'   => $request->user()->id,
+            'created_at' => now(),
+        ]);
 
         if ($data['status'] === 'delivered') {
             event(new \App\Events\OrderDeliveredEvent($order->fresh()));

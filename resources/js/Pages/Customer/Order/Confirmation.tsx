@@ -32,7 +32,7 @@ export default function Confirmation({ order, mpesa_till }: Props) {
 
     return (
         <CustomerLayout title="Order Confirmed">
-            <div className="mx-auto max-w-sm px-4 py-8 flex flex-col items-center">
+            <div className="mx-auto max-w-sm md:max-w-lg px-4 py-8 flex flex-col items-center">
 
                 {/* Success icon */}
                 <div className="relative flex h-24 w-24 items-center justify-center">

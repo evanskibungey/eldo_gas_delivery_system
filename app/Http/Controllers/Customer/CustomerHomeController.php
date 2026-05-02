@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\SystemSetting;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -17,13 +18,13 @@ class CustomerHomeController extends Controller
             ->latest()
             ->first();
 
-        $openHour  = config('shop.open_hour');
-        $closeHour = config('shop.close_hour');
+        $openTime  = SystemSetting::get('shop_open_time',  '07:00');
+        $closeTime = SystemSetting::get('shop_close_time', '21:00');
 
         return Inertia::render('Customer/Home', [
-            'shopOpen'     => $this->isShopOpen(),
-            'shopOpensAt'  => sprintf('%d:00 %s', $openHour > 12 ? $openHour - 12 : $openHour, $openHour >= 12 ? 'PM' : 'AM'),
-            'shopClosesAt' => sprintf('%d:00 %s', $closeHour > 12 ? $closeHour - 12 : $closeHour, $closeHour >= 12 ? 'PM' : 'AM'),
+            'shopOpen'     => $this->isShopOpen($openTime, $closeTime),
+            'shopOpensAt'  => $this->formatTime($openTime),
+            'shopClosesAt' => $this->formatTime($closeTime),
             'lastOrder'    => $lastOrder ? [
                 'id'           => $lastOrder->id,
                 'status'       => $lastOrder->status,
@@ -35,12 +36,25 @@ class CustomerHomeController extends Controller
         ]);
     }
 
-    private function isShopOpen(): bool
+    private function isShopOpen(string $openTime, string $closeTime): bool
     {
-        $now   = Carbon::now(config('app.timezone', 'Africa/Nairobi'));
-        $open  = $now->copy()->setTime(config('shop.open_hour'), 0);
-        $close = $now->copy()->setTime(config('shop.close_hour'), 0);
+        $tz    = config('shop.timezone', 'Africa/Nairobi');
+        $now   = Carbon::now($tz);
+        [$oh, $om] = array_map('intval', explode(':', $openTime));
+        [$ch, $cm] = array_map('intval', explode(':', $closeTime));
+        $open  = $now->copy()->setTime($oh, $om);
+        $close = $now->copy()->setTime($ch, $cm);
 
         return $now->between($open, $close);
+    }
+
+    private function formatTime(string $time): string
+    {
+        [$hour, $minute] = array_map('intval', explode(':', $time));
+        $suffix = $hour >= 12 ? 'PM' : 'AM';
+        $h      = $hour > 12 ? $hour - 12 : ($hour === 0 ? 12 : $hour);
+        return $minute > 0
+            ? sprintf('%d:%02d %s', $h, $minute, $suffix)
+            : sprintf('%d:00 %s', $h, $suffix);
     }
 }

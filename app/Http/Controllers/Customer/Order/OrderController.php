@@ -12,6 +12,7 @@ use App\Models\CustomerAddress;
 use App\Models\CylinderSize;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
+use App\Models\SystemSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -30,6 +31,9 @@ class OrderController extends Controller
             ->with(['stockLevel', 'price', 'brands' => fn ($q) => $q->where('gas_brands.is_active', true)])
             ->get();
 
+        $feeMode    = SystemSetting::get('delivery_fee_mode', 'per_size');
+        $globalFee  = (float) SystemSetting::get('delivery_base_fee', '0.00');
+
         $sizes = $rawSizes->map(fn (CylinderSize $s) => [
             'id'            => $s->id,
             'name'          => $s->name,
@@ -38,7 +42,7 @@ class OrderController extends Controller
             'in_stock'      => ($s->stockLevel?->filled_count ?? 0) > 0,
             'swap_price'    => $s->price?->gas_refill_price,
             'new_price'     => ($s->price?->new_cylinder_price ?? 0) + ($s->price?->new_gas_fill_price ?? 0),
-            'delivery_fee'  => $s->price?->delivery_fee ?? 0,
+            'delivery_fee'  => $feeMode === 'per_size' ? ($s->price?->delivery_fee ?? 0) : $globalFee,
         ]);
 
         $brandsBySize = $rawSizes->mapWithKeys(fn (CylinderSize $s) => [

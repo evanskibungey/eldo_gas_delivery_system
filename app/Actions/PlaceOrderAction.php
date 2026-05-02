@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\OrderAddon;
 use App\Models\OrderStatusHistory;
 use App\Models\StockLevel;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\DB;
 
 class PlaceOrderAction
@@ -32,7 +33,11 @@ class PlaceOrderAction
             $isSwap        = $data['order_type'] === 'swap';
             $gasPrice      = $isSwap ? $price->gas_refill_price : $price->new_gas_fill_price;
             $cylinderPrice = $isSwap ? 0 : $price->new_cylinder_price;
-            $deliveryFee   = $price->delivery_fee;
+            $feeMode     = SystemSetting::get('delivery_fee_mode', 'per_size');
+            $deliveryFee = match ($feeMode) {
+                'flat_rate', 'per_km' => (float) SystemSetting::get('delivery_base_fee', '0.00'),
+                default               => $price->delivery_fee,
+            };
 
             // Addons — available for both swap and new_cylinder orders
             $addonItems  = ! empty($data['addon_ids'])

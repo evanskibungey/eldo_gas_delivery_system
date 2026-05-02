@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             CylinderPriceSeeder::class,
             StockLevelSeeder::class,
             AddonGroupSeeder::class,
+            SystemSettingSeeder::class,
         ]);
     }
 }
