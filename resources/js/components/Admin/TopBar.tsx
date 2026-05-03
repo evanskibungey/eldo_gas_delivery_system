@@ -15,8 +15,8 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-} from '@/Components/ui/dropdown-menu';
-import { Button } from '@/Components/ui/button';
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface Props {

@@ -1,6 +1,6 @@
 ﻿import { PropsWithChildren } from 'react';
 import { Flame } from 'lucide-react';
-import FlashMessage from '@/Components/Shared/FlashMessage';
+import FlashMessage from '@/components/Shared/FlashMessage';
 
 export default function GuestLayout({ children }: PropsWithChildren) {
     return (

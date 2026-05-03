@@ -2,9 +2,9 @@
 import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { User, Loader2 } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
-import { Input } from '@/Components/ui/input';
-import { Label } from '@/Components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 export default function SetName() {

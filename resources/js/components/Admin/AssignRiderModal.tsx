@@ -1,7 +1,7 @@
 ﻿import { router } from '@inertiajs/react';
 import { X, ShieldCheck, Star, Truck, UserCheck } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '@/Components/ui/button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface AvailableRider {

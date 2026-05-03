@@ -1,7 +1,7 @@
 ﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Star, Truck, ShieldCheck, ShieldAlert, ShieldOff, Phone } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface Order {

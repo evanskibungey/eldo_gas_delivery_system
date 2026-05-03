@@ -1,8 +1,8 @@
 ﻿import { router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapPin, Crosshair, Loader2, CheckCircle, Search, X } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
-import { Label } from '@/Components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import GuestLayout from '@/Layouts/GuestLayout';
 import CustomerLayout from '@/Layouts/CustomerLayout';

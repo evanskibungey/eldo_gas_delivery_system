@@ -1,7 +1,7 @@
 ﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, Layers } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 

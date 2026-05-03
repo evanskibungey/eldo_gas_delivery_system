@@ -1,11 +1,11 @@
 ﻿import { PropsWithChildren } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import { Flame, Star } from 'lucide-react';
-import BottomNav from '@/Components/Customer/BottomNav';
-import TopNav from '@/Components/Customer/TopNav';
-import Footer from '@/Components/Customer/Footer';
-import SosButton from '@/Components/Customer/SosButton';
-import FlashMessage from '@/Components/Shared/FlashMessage';
+import BottomNav from '@/components/Customer/BottomNav';
+import TopNav from '@/components/Customer/TopNav';
+import Footer from '@/components/Customer/Footer';
+import SosButton from '@/components/Customer/SosButton';
+import FlashMessage from '@/components/Shared/FlashMessage';
 
 interface Props extends PropsWithChildren {
     title?: string;

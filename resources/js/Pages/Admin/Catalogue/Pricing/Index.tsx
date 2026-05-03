@@ -1,7 +1,7 @@
 ﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link } from '@inertiajs/react';
 import { Pencil, Building2, Home, AlertCircle } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
+import { Button } from '@/components/ui/button';
 
 interface Price {
     gas_refill_price:   number;

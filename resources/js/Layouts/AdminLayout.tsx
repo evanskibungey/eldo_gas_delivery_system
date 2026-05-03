@@ -1,7 +1,7 @@
 ﻿import { PropsWithChildren } from 'react';
-import Sidebar from '@/Components/Admin/Sidebar';
-import TopBar from '@/Components/Admin/TopBar';
-import FlashMessage from '@/Components/Shared/FlashMessage';
+import Sidebar from '@/components/Admin/Sidebar';
+import TopBar from '@/components/Admin/TopBar';
+import FlashMessage from '@/components/Shared/FlashMessage';
 
 interface Props extends PropsWithChildren {
     title?: string;

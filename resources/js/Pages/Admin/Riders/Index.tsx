@@ -1,14 +1,14 @@
 ﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { Plus, Pencil, Eye, UserX, MoreHorizontal, ShieldCheck, ShieldAlert, Star, Users } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
-import { Input } from '@/Components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuSeparator, DropdownMenuTrigger,
-} from '@/Components/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 
 interface Rider {
     id:                  number;

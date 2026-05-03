@@ -1,5 +1,5 @@
 import AdminLayout from '@/Layouts/AdminLayout';
-import AssignRiderModal from '@/Components/Admin/AssignRiderModal';
+import AssignRiderModal from '@/components/Admin/AssignRiderModal';
 import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import {
@@ -8,7 +8,7 @@ import {
     XCircle, Truck, Clock, CreditCard, ChevronRight,
     UserPen, Ban, ArrowRight, Wrench, PlayCircle,
 } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { OrderStatus } from '@/types/models';
 

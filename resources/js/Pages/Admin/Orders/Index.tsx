@@ -5,8 +5,8 @@ import {
     Eye, RefreshCw, Package, Clock, AlertCircle,
     Search, ShoppingBag, ChevronLeft, ChevronRight,
 } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
-import { Input } from '@/Components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { OrderStatus } from '@/types/models';
 

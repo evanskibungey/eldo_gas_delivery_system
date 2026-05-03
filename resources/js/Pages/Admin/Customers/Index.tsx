@@ -1,8 +1,8 @@
 ﻿import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { Search, Eye, Users, Star, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
-import { Input } from '@/Components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 

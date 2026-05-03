@@ -1,9 +1,9 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import { useState } from 'react';
 import { Search, ShieldAlert, ClipboardCopy, CheckCheck, Phone } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
-import { Input } from '@/Components/ui/input';
-import { Label } from '@/Components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface Result {
     otp: string | null;

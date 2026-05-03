@@ -1,6 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import { Flame, Home, ShoppingBag, Star, User } from 'lucide-react';
-import SosButton from '@/Components/Customer/SosButton';
+import SosButton from '@/components/Customer/SosButton';
 import { cn } from '@/lib/utils';
 
 const tabs = [

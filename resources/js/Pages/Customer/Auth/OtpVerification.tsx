@@ -2,7 +2,7 @@
 import { router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, RotateCcw } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface Props {

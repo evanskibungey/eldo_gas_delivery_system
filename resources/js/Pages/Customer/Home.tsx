@@ -4,7 +4,7 @@ import {
     Flame, ShoppingBag, Clock, ChevronRight, AlertTriangle, Lightbulb,
     Zap, ShieldCheck, CreditCard,
 } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface LastOrder {
