@@ -22,14 +22,18 @@ export default function BottomNav() {
                             key={tab.href}
                             href={tab.href}
                             className={cn(
-                                'flex flex-1 flex-col items-center gap-1 py-2 text-xs font-medium transition-colors',
+                                'flex flex-1 flex-col items-center gap-0.5 pt-2 pb-1 text-xs font-medium transition-colors',
                                 active
                                     ? 'text-orange-500'
                                     : 'text-muted-foreground hover:text-foreground',
                             )}
                         >
                             <tab.icon className={cn('h-5 w-5', active && 'fill-orange-100')} />
-                            {tab.label}
+                            <span>{tab.label}</span>
+                            <span className={cn(
+                                'h-1 w-5 rounded-full transition-all duration-200',
+                                active ? 'bg-orange-500' : 'bg-transparent',
+                            )} />
                         </Link>
                     );
                 })}

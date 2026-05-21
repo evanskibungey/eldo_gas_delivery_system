@@ -81,11 +81,16 @@ export default function History({ orders }: Props) {
             <div className="mx-auto max-w-sm md:max-w-4xl px-4 py-4">
                 {orders.data.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <Package className="h-12 w-12 text-slate-300" />
-                        <p className="mt-3 text-sm font-medium text-slate-500">No orders yet</p>
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 mb-4">
+                            <Package className="h-8 w-8 text-orange-300" />
+                        </div>
+                        <p className="text-base font-semibold text-slate-700">No orders yet</p>
+                        <p className="mt-1 text-sm text-slate-400 max-w-xs">
+                            Your order history will appear here once you place your first order.
+                        </p>
                         <Link
                             href="/order/new"
-                            className="mt-4 rounded-xl bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-orange-600"
+                            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-orange-500/20 hover:bg-orange-600 transition-colors"
                         >
                             Place your first order
                         </Link>

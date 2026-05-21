@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import {
     MapPin, Crosshair, Loader2, ChevronDown, ChevronUp,
     AlertCircle, RefreshCcw, Package, Check,
-    StickyNote,
+    StickyNote, CheckCircle2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -382,6 +382,56 @@ export default function OrderBuilder({
                             </button>
                         ))}
                     </div>
+
+                    {/* ── Progress bar ────────────────────────────────────── */}
+                    {(() => {
+                        const steps = [
+                            { label: 'Size',    done: sizesDone },
+                            { label: 'Brand',   done: brandDone },
+                            { label: 'Address', done: addrDone  },
+                        ];
+                        const completed = steps.filter(s => s.done).length;
+                        const pct       = Math.round((completed / steps.length) * 100);
+                        return (
+                            <div className="rounded-2xl bg-white border border-slate-100 shadow-sm px-4 py-3">
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-xs font-medium text-slate-500">
+                                        {completed === steps.length
+                                            ? 'Ready to place order!'
+                                            : `${completed} of ${steps.length} required steps`}
+                                    </p>
+                                    {completed === steps.length && (
+                                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                    )}
+                                </div>
+                                <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                                    <div
+                                        className={cn(
+                                            'h-full rounded-full transition-all duration-500',
+                                            completed === steps.length ? 'bg-emerald-500' : 'bg-orange-500',
+                                        )}
+                                        style={{ width: `${pct}%` }}
+                                    />
+                                </div>
+                                <div className="flex justify-between mt-2">
+                                    {steps.map(s => (
+                                        <div key={s.label} className={cn(
+                                            'flex items-center gap-1 text-[10px] font-medium',
+                                            s.done ? 'text-emerald-600' : 'text-slate-400',
+                                        )}>
+                                            <div className={cn(
+                                                'h-3 w-3 rounded-full flex items-center justify-center',
+                                                s.done ? 'bg-emerald-500' : 'bg-slate-200',
+                                            )}>
+                                                {s.done && <Check className="h-2 w-2 text-white" strokeWidth={3} />}
+                                            </div>
+                                            {s.label}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
 
                     {/* ── 1. Cylinder size ────────────────────────────────── */}
                     <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">

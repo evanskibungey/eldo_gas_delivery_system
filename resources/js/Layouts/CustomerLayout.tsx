@@ -1,6 +1,6 @@
-﻿import { PropsWithChildren } from 'react';
+import { PropsWithChildren } from 'react';
 import { Link, usePage } from '@inertiajs/react';
-import { Flame, Star } from 'lucide-react';
+import { ArrowLeft, Flame, Star } from 'lucide-react';
 import BottomNav from '@/components/Customer/BottomNav';
 import TopNav from '@/components/Customer/TopNav';
 import Footer from '@/components/Customer/Footer';
@@ -28,7 +28,7 @@ export default function CustomerLayout({ children, title, showBack, backHref }: 
                             href={backHref}
                             className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
                         >
-                            â† Back
+                            <ArrowLeft className="h-4 w-4" /> Back
                         </Link>
                     ) : (
                         <>

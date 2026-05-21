@@ -27,6 +27,9 @@ class CustomerHomeController extends Controller
             'shopClosesAt' => $this->formatTime($closeTime),
             'lastOrder'    => $lastOrder ? [
                 'id'           => $lastOrder->id,
+                'order_type'   => $lastOrder->order_type,
+                'size_id'      => $lastOrder->size_id,
+                'brand_id'     => $lastOrder->brand_id,
                 'status'       => $lastOrder->status,
                 'size_label'   => $lastOrder->size?->name,
                 'brand_name'   => $lastOrder->brand?->name,
