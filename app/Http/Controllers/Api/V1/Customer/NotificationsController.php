@@ -18,21 +18,22 @@ class NotificationsController extends Controller
     {
         $customer = $request->user();
 
-        $notifications = NotificationLog::query()
+        $paginator = NotificationLog::query()
             ->where('recipient_type', 'customer')
             ->where('recipient_id', $customer->id)
             ->orderByDesc('created_at')
-            ->paginate(25)
-            ->through(fn (NotificationLog $n) => [
-                'id'         => $n->id,
-                'trigger'    => $n->trigger,
-                'channel'    => $n->channel,
-                'title'      => $n->title,
-                'message'    => $n->message,
-                'data'       => $n->data,
-                'created_at' => $n->created_at?->toIso8601String(),
-                'read_at'    => $n->read_at?->toIso8601String(),
-            ]);
+            ->paginate(25);
+
+        $items = $paginator->through(fn (NotificationLog $n) => [
+            'id'         => $n->id,
+            'trigger'    => $n->trigger,
+            'channel'    => $n->channel,
+            'title'      => $n->title,
+            'message'    => $n->message,
+            'data'       => $n->data,
+            'created_at' => $n->created_at?->toIso8601String(),
+            'read_at'    => $n->read_at?->toIso8601String(),
+        ])->items();
 
         $unread = NotificationLog::query()
             ->where('recipient_type', 'customer')
@@ -42,7 +43,13 @@ class NotificationsController extends Controller
 
         return response()->json([
             'unread' => $unread,
-        ] + $notifications->toArray());
+            'data'   => $items,
+            'meta'   => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'total'        => $paginator->total(),
+            ],
+        ]);
     }
 
     public function markAllRead(Request $request): JsonResponse

@@ -13,11 +13,12 @@ class ProfileController extends Controller
         $customer = $request->user();
 
         return response()->json([
-            'id'             => $customer->id,
-            'name'           => $customer->name,
-            'phone'          => $customer->phone,
-            'gaspoints'      => $customer->gaspoints_balance,
-            'referral_code'  => $customer->referral_code,
+            'id'               => $customer->id,
+            'name'             => $customer->name,
+            'phone'            => $customer->phone,
+            'gaspoints'        => $customer->gaspoints_balance,
+            'referral_code'    => $customer->referral_code,
+            'profile_complete' => ! empty($customer->name),
         ]);
     }
 

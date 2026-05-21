@@ -24,7 +24,7 @@ class OtpService
             'created_at' => now(),
         ]);
 
-        Log::info("[OTP] {$phone} → {$otp->token}");
+        Log::info("[OTP] Code dispatched to {$phone}");
 
         SendOtpJob::dispatch($phone, $otp->token);
 

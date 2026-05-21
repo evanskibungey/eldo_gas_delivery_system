@@ -10,21 +10,29 @@ class GasPointsController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $customer     = $request->user();
-        $transactions = $customer->gasPointsTransactions()
+        $customer = $request->user();
+        $paginator = $customer->gasPointsTransactions()
             ->latest()
-            ->paginate(20)
-            ->through(fn ($t) => [
-                'id'          => $t->id,
-                'type'        => $t->type,
-                'points'      => $t->points,
-                'description' => $t->description,
-                'created_at'  => $t->created_at->toIso8601String(),
-            ]);
+            ->paginate(20);
+
+        $items = $paginator->through(fn ($t) => [
+            'id'          => $t->id,
+            'type'        => $t->type,
+            'points'      => $t->points,
+            'description' => $t->description,
+            'created_at'  => $t->created_at->toIso8601String(),
+        ])->items();
 
         return response()->json([
             'balance'      => $customer->gaspoints_balance,
-            'transactions' => $transactions,
+            'transactions' => [
+                'data' => $items,
+                'meta' => [
+                    'current_page' => $paginator->currentPage(),
+                    'last_page'    => $paginator->lastPage(),
+                    'total'        => $paginator->total(),
+                ],
+            ],
         ]);
     }
 }
