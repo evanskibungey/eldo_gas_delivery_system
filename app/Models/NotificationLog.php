@@ -15,9 +15,12 @@ class NotificationLog extends Model
         'recipient_id',
         'channel',
         'trigger',
+        'title',
         'message',
+        'data',
         'sent_at',
         'failed_at',
+        'read_at',
         'error',
         'created_at',
     ];
@@ -25,8 +28,10 @@ class NotificationLog extends Model
     protected function casts(): array
     {
         return [
+            'data'       => 'array',
             'sent_at'    => 'datetime',
             'failed_at'  => 'datetime',
+            'read_at'    => 'datetime',
             'created_at' => 'datetime',
         ];
     }

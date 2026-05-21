@@ -32,20 +32,27 @@ class RiderTrackingService
             'location_updated_at' => now(),
         ]);
 
-        $activeOrder = $rider->orders()
+        // Pull every still-active order assigned to this rider so the
+        // event can fan out a copy to each `private-orders.{id}` channel
+        // — that's how the customer's Flutter tracking page gets live
+        // rider position updates.
+        $activeOrderIds = $rider->orders()
             ->whereNotIn('status', ['delivered', 'cancelled'])
-            ->latest()
-            ->first(['id']);
+            ->pluck('id')
+            ->all();
+
+        $primaryOrderId = $activeOrderIds[0] ?? null;
 
         event(new RiderLocationUpdated(
-            riderId:   $rider->id,
-            riderName: $rider->name,
-            lat:       (float) $data['lat'],
-            lng:       (float) $data['lng'],
-            status:    $this->deriveStatus($rider),
-            heading:   $data['heading'] ?? null,
-            orderId:   $activeOrder ? '#' . $activeOrder->id : null,
-            location:  $data['location'] ?? null,
+            riderId:           $rider->id,
+            riderName:         $rider->name,
+            lat:               (float) $data['lat'],
+            lng:               (float) $data['lng'],
+            status:            $this->deriveStatus($rider),
+            heading:           $data['heading'] ?? null,
+            orderId:           $primaryOrderId !== null ? '#' . $primaryOrderId : null,
+            location:          $data['location'] ?? null,
+            broadcastOrderIds: array_values($activeOrderIds),
         ));
     }
 

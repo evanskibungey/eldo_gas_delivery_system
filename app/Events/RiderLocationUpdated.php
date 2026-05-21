@@ -12,6 +12,13 @@ class RiderLocationUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    /**
+     * @param  list<int>  $broadcastOrderIds  IDs of any active orders this rider
+     *                                        is currently assigned to. Each one
+     *                                        gets its own private-orders.{id}
+     *                                        channel so the customer Flutter app
+     *                                        can render the live rider dot.
+     */
     public function __construct(
         public readonly int     $riderId,
         public readonly string  $riderName,
@@ -21,11 +28,16 @@ class RiderLocationUpdated implements ShouldBroadcast
         public readonly ?int    $heading,   // 0-359 degrees, null if stationary
         public readonly ?string $orderId,   // active order short ID e.g. '#1042'
         public readonly ?string $location,  // human-readable area e.g. 'Langas'
+        public readonly array   $broadcastOrderIds = [],
     ) {}
 
     public function broadcastOn(): array
     {
-        return [new PrivateChannel('admin.riders')];
+        $channels = [new PrivateChannel('admin.riders')];
+        foreach ($this->broadcastOrderIds as $id) {
+            $channels[] = new PrivateChannel("orders.{$id}");
+        }
+        return $channels;
     }
 
     /**

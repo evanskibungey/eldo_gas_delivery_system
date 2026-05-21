@@ -69,6 +69,12 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(\App\Events\OrderDeliveredEvent::class, \App\Listeners\AwardGasPointsOnDelivery::class);
         Event::listen(\App\Events\OrderDeliveredEvent::class, \App\Listeners\SendSafetyTipAfterDelivery::class);
 
+        // ── Push notifications (Sprint 9) ───────────────────────────────────
+        Event::listen(
+            \App\Events\OrderStatusUpdatedEvent::class,
+            \App\Listeners\SendCustomerOrderPush::class,
+        );
+
         // ── Rating events ───────────────────────────────────────────────────
         Event::listen(
             \App\Events\RatingSubmittedEvent::class,

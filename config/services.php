@@ -35,10 +35,9 @@ return [
         ],
     ],
 
-    'africastalking' => [
-        'api_key'   => env('AT_API_KEY'),
-        'username'  => env('AT_USERNAME', 'sandbox'),
-        'sender_id' => env('AT_SENDER_ID', 'EldoGas'),
+    'talksasa' => [
+        'api_token' => env('TALKSASA_API_TOKEN'),
+        'sender_id' => env('TALKSASA_SENDER_ID', 'EldoGas'),
     ],
 
 ];

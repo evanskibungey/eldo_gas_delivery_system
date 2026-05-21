@@ -19,7 +19,7 @@ class CatalogueController extends Controller
                 'name'         => $s->name,
                 'weight_kg'    => $s->weight_kg,
                 'is_commercial'=> $s->is_commercial,
-                'in_stock'     => ($s->stockLevel?->quantity ?? 0) > 0,
+                'in_stock'     => ($s->stockLevel?->filled_count ?? 0) > 0,
                 'prices'       => [
                     'refill'       => $s->price?->gas_refill_price,
                     'new_cylinder' => $s->price?->new_cylinder_price,

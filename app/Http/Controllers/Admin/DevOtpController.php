@@ -57,6 +57,6 @@ class DevOtpController extends Controller
 
     private function smsActive(): bool
     {
-        return ! empty(config('services.africastalking.api_key'));
+        return ! empty(config('services.talksasa.api_token'));
     }
 }

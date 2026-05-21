@@ -24,24 +24,32 @@ class SendOtpJob implements ShouldQueue
 
     public function handle(): void
     {
-        $apiKey   = config('services.africastalking.api_key');
-        $username = config('services.africastalking.username');
+        $apiToken = config('services.talksasa.api_token');
+        $appName  = SystemSetting::get('app_name', 'EldoGas');
+        $message  = "Your {$appName} code is: {$this->token}. Valid for 10 minutes. Do not share.";
 
-        $appName = SystemSetting::get('app_name', 'EldoGas');
-        $message = "Your {$appName} code is: {$this->token}. Valid for 10 minutes. Do not share.";
-
-        if (! $apiKey) {
+        if (! $apiToken) {
             Log::channel('single')->info("[OTP] {$this->phone} → {$this->token}");
             return;
         }
 
-        Http::withHeaders(['apiKey' => $apiKey, 'Accept' => 'application/json'])
-            ->asForm()
-            ->post('https://api.africastalking.com/version1/messaging', [
-                'username' => $username,
-                'to'       => $this->phone,
-                'message'  => $message,
-                'from'     => config('services.africastalking.sender_id'),
+        $response = Http::withToken($apiToken)
+            ->acceptJson()
+            ->post('https://bulksms.talksasa.com/api/v3/sms/send', [
+                'recipient' => $this->phone,
+                'sender_id' => config('services.talksasa.sender_id'),
+                'type'      => 'plain',
+                'message'   => $message,
             ]);
+
+        if (! $response->successful()) {
+            Log::error('[OTP] TalkSasa send failed', [
+                'phone'  => $this->phone,
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+
+            $this->fail("TalkSasa returned {$response->status()}");
+        }
     }
 }

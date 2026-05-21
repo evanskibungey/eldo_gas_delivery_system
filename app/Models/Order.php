@@ -25,6 +25,8 @@ class Order extends Model
         'cylinder_price',
         'delivery_fee',
         'addons_total',
+        'gaspoints_redeemed',
+        'gaspoints_discount',
         'total_amount',
         'payment_method',
         'payment_status',
@@ -58,11 +60,13 @@ class Order extends Model
             'delivery_lat'      => 'float',
             'delivery_lng'      => 'float',
             'safety_checklist'  => 'array',
-            'gas_price'         => 'integer',
-            'cylinder_price'    => 'integer',
-            'delivery_fee'      => 'integer',
-            'addons_total'      => 'integer',
-            'total_amount'      => 'integer',
+            'gas_price'           => 'integer',
+            'cylinder_price'      => 'integer',
+            'delivery_fee'        => 'integer',
+            'addons_total'        => 'integer',
+            'gaspoints_redeemed'  => 'integer',
+            'gaspoints_discount'  => 'integer',
+            'total_amount'        => 'integer',
         ];
     }
 

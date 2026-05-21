@@ -44,20 +44,24 @@ class OrderController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        $order->load(['size:id,name', 'brand:id,name', 'addons.addonItem', 'statusHistory', 'rider:id,name,phone,avg_rating,photo_path']);
+        $order->load(['size:id,name', 'brand:id,name', 'addons.addonItem', 'statusHistory', 'rider:id,name,phone,avg_rating,photo_path,is_safety_certified']);
 
         return response()->json([
             'id'             => $order->id,
             'order_number'   => $order->order_number,
             'order_type'     => $order->order_type,
             'status'         => $order->status,
+            'size_id'        => $order->size_id,
+            'brand_id'       => $order->brand_id,
             'size_name'      => $order->size?->name,
             'brand_name'     => $order->brand?->name,
-            'gas_price'      => $order->gas_price,
-            'cylinder_price' => $order->cylinder_price,
-            'delivery_fee'   => $order->delivery_fee,
-            'addons_total'   => $order->addons_total,
-            'total_amount'   => $order->total_amount,
+            'gas_price'           => $order->gas_price,
+            'cylinder_price'      => $order->cylinder_price,
+            'delivery_fee'        => $order->delivery_fee,
+            'addons_total'        => $order->addons_total,
+            'gaspoints_redeemed'  => $order->gaspoints_redeemed ?? 0,
+            'gaspoints_discount'  => $order->gaspoints_discount ?? 0,
+            'total_amount'        => $order->total_amount,
             'payment_method' => $order->payment_method,
             'delivery_lat'   => $order->delivery_lat,
             'delivery_lng'   => $order->delivery_lng,
@@ -66,15 +70,20 @@ class OrderController extends Controller
             'can_cancel'     => $order->canBeCancelledByCustomer(),
             'can_rate'       => $order->status === 'delivered' && ! $order->rating,
             'can_track'      => $order->isActive() && $order->rider_id,
-            'addons'         => $order->addons->map(fn ($a) => ['name' => $a->addonItem?->name, 'price' => $a->price]),
+            'addons'         => $order->addons->map(fn ($a) => [
+                'addon_item_id' => $a->addon_item_id,
+                'name'          => $a->addonItem?->name,
+                'price'         => $a->price,
+            ]),
             'history'        => $order->statusHistory->map(fn ($h) => ['status' => $h->status, 'at' => $h->created_at?->toIso8601String()]),
             'rider'          => $order->rider ? [
-                'name'       => $order->rider->name,
-                'phone'      => $order->rider->phone,
-                'avg_rating' => $order->rider->avg_rating,
-                'avatar_url' => $order->rider->avatar_url,
-                'lat'        => $order->rider->current_latitude,
-                'lng'        => $order->rider->current_longitude,
+                'name'                => $order->rider->name,
+                'phone'               => $order->rider->phone,
+                'avg_rating'          => $order->rider->avg_rating,
+                'avatar_url'          => $order->rider->avatar_url,
+                'lat'                 => $order->rider->current_latitude,
+                'lng'                 => $order->rider->current_longitude,
+                'is_safety_certified' => (bool) $order->rider->is_safety_certified,
             ] : null,
         ]);
     }
@@ -82,14 +91,15 @@ class OrderController extends Controller
     public function store(Request $request, PlaceOrderAction $action): JsonResponse
     {
         $input = $request->validate([
-            'order_type'     => 'required|in:swap,new_cylinder',
-            'size_id'        => 'required|integer|exists:cylinder_sizes,id',
-            'brand_id'       => 'required|integer|exists:gas_brands,id',
-            'address_id'     => 'required|integer|exists:customer_addresses,id',
-            'addon_ids'      => 'array',
-            'addon_ids.*'    => 'integer|exists:addon_items,id',
-            'payment_method' => 'required|in:cash,mpesa',
-            'delivery_notes' => 'nullable|string|max:255',
+            'order_type'        => 'required|in:swap,new_cylinder',
+            'size_id'           => 'required|integer|exists:cylinder_sizes,id',
+            'brand_id'          => 'required|integer|exists:gas_brands,id',
+            'address_id'        => 'required|integer|exists:customer_addresses,id',
+            'addon_ids'         => 'array',
+            'addon_ids.*'       => 'integer|exists:addon_items,id',
+            'payment_method'    => 'required|in:cash,mpesa',
+            'delivery_notes'    => 'nullable|string|max:255',
+            'redemption_points' => 'nullable|integer|in:0,500,1000,2000,5000',
         ]);
 
         $address = CustomerAddress::find($input['address_id']);
@@ -99,14 +109,15 @@ class OrderController extends Controller
         }
 
         $data = [
-            'order_type'     => $input['order_type'],
-            'size_id'        => $input['size_id'],
-            'brand_id'       => $input['brand_id'],
-            'addon_ids'      => $input['addon_ids'] ?? [],
-            'payment_method' => $input['payment_method'],
-            'delivery_lat'   => $address->latitude,
-            'delivery_lng'   => $address->longitude,
-            'delivery_notes' => $input['delivery_notes'] ?? null,
+            'order_type'        => $input['order_type'],
+            'size_id'           => $input['size_id'],
+            'brand_id'          => $input['brand_id'],
+            'addon_ids'         => $input['addon_ids'] ?? [],
+            'payment_method'    => $input['payment_method'],
+            'delivery_lat'      => $address->latitude,
+            'delivery_lng'      => $address->longitude,
+            'delivery_notes'    => $input['delivery_notes'] ?? null,
+            'redemption_points' => (int) ($input['redemption_points'] ?? 0),
         ];
 
         try {

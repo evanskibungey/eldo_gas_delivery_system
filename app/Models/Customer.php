@@ -61,6 +61,11 @@ class Customer extends Authenticatable
         return $this->hasMany(GasPointsTransaction::class);
     }
 
+    public function devices(): HasMany
+    {
+        return $this->hasMany(Device::class);
+    }
+
     public function defaultAddress(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(CustomerAddress::class)->where('is_default', true);
