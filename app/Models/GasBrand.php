@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
+
 
 class GasBrand extends Model
 {
@@ -31,7 +31,7 @@ class GasBrand extends Model
 
     public function getLogoUrlAttribute(): ?string
     {
-        return $this->logo_path ? Storage::url($this->logo_path) : null;
+        return $this->logo_path ? asset('storage/' . $this->logo_path) : null;
     }
 
     public function scopeActive(Builder $query): Builder
