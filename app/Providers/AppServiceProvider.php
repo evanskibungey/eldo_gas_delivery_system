@@ -5,8 +5,9 @@ namespace App\Providers;
 use App\Models\Order;
 use App\Policies\OrderPolicy;
 use App\Services\GasPointsService;
-use App\Services\Sms\AfricasTalkingSmsService;
 use App\Services\Sms\SmsServiceInterface;
+use App\Services\Sms\SmsTemplateService;
+use App\Services\Sms\TalkSasaSmsService;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -16,8 +17,11 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // SMS service — swap implementation here to switch providers
-        $this->app->singleton(SmsServiceInterface::class, AfricasTalkingSmsService::class);
+        // SMS service — TalkSasa is the active provider
+        $this->app->singleton(SmsServiceInterface::class, TalkSasaSmsService::class);
+
+        // SMS templates — singleton so SystemSetting is read once per request
+        $this->app->singleton(SmsTemplateService::class);
 
         // GasPoints service — singleton so state is consistent within a request
         $this->app->singleton(GasPointsService::class);
@@ -67,6 +71,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(\App\Events\OrderCancelledEvent::class, \App\Listeners\SendOrderCancelledNotification::class);
 
         Event::listen(\App\Events\OrderDeliveredEvent::class, \App\Listeners\AwardGasPointsOnDelivery::class);
+        Event::listen(\App\Events\OrderDeliveredEvent::class, \App\Listeners\SendDeliveryThankYou::class);
         Event::listen(\App\Events\OrderDeliveredEvent::class, \App\Listeners\SendSafetyTipAfterDelivery::class);
 
         // ── Push notifications (Sprint 9) ───────────────────────────────────

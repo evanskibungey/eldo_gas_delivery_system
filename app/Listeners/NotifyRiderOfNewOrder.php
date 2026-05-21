@@ -3,15 +3,29 @@
 namespace App\Listeners;
 
 use App\Events\RiderAssignedEvent;
-use Illuminate\Support\Facades\Log;
+use App\Jobs\SendSmsJob;
+use App\Services\Sms\SmsTemplateService;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
-class NotifyRiderOfNewOrder
+class NotifyRiderOfNewOrder implements ShouldQueue
 {
+    public string $queue = 'high';
+
     public function handle(RiderAssignedEvent $event): void
     {
-        // Real-time delivery is handled by RiderAssignedEvent broadcasting to
-        // private-rider.{riderId} via Reverb WebSocket (pusher_channels_flutter).
-        // This listener is reserved for FCM background push (Phase 2).
-        Log::info("[RIDER] Order #{$event->order->order_number} broadcast to rider.{$event->rider->id}");
+        $order = $event->order->load(['customer', 'size', 'brand']);
+        $rider = $event->rider;
+
+        if (! $rider->phone) {
+            return;
+        }
+
+        SendSmsJob::dispatch(
+            $rider->phone,
+            app(SmsTemplateService::class)->riderOrderDetails($order, $rider),
+            'rider_assigned',
+            'rider',
+            $rider->id,
+        );
     }
 }

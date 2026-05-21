@@ -3,8 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\Order;
-use App\Models\SystemSetting;
 use App\Services\Sms\SmsServiceInterface;
+use App\Services\Sms\SmsTemplateService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -13,12 +13,12 @@ class SafetyTipJob implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 3;
+    public int $tries  = 3;
     public int $backoff = 60;
 
     public function __construct(private readonly int $orderId) {}
 
-    public function handle(SmsServiceInterface $sms): void
+    public function handle(SmsServiceInterface $sms, SmsTemplateService $templates): void
     {
         $order = Order::with('customer')->find($this->orderId);
 
@@ -26,13 +26,8 @@ class SafetyTipJob implements ShouldQueue
             return;
         }
 
-        $phone   = $order->customer->phone;
-        $appName = SystemSetting::get('app_name', 'EldoGas');
-        $message = "Safety Tip from {$appName}: Smell gas? Do NOT switch on lights or appliances. "
-            . 'Open all windows, leave the building, and call 999 or 0800 723 723. '
-            . "Stay safe — {$appName} Team.";
-
-        $sent = $sms->send($phone, $message);
+        $phone = $order->customer->phone;
+        $sent  = $sms->send($phone, $templates->safetyTip());
 
         Log::info('[SafetyTip] Post-delivery safety tip', [
             'order_id'    => $this->orderId,

@@ -2,18 +2,18 @@
 
 namespace App\Listeners;
 
-use App\Events\OrderPlacedEvent;
+use App\Events\OrderDeliveredEvent;
 use App\Jobs\SendSmsJob;
 use App\Services\Sms\SmsTemplateService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 
-class SendOrderConfirmationNotification implements ShouldQueue
+class SendDeliveryThankYou implements ShouldQueue
 {
-    public string $queue = 'high';
+    public string $queue = 'default';
 
-    public function handle(OrderPlacedEvent $event): void
+    public function handle(OrderDeliveredEvent $event): void
     {
-        $order    = $event->order->load(['customer', 'size', 'brand']);
+        $order    = $event->order->load('customer');
         $customer = $order->customer;
 
         if (! $customer?->phone) {
@@ -22,8 +22,8 @@ class SendOrderConfirmationNotification implements ShouldQueue
 
         SendSmsJob::dispatch(
             $customer->phone,
-            app(SmsTemplateService::class)->orderConfirmation($order),
-            'order_placed',
+            app(SmsTemplateService::class)->deliveryThankYou($order),
+            'order_delivered',
             'customer',
             $customer->id,
         );
