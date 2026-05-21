@@ -18,6 +18,7 @@ class CylinderSize extends Model
         'sort_order',
         'is_commercial',
         'is_active',
+        'image_path',
     ];
 
     protected function casts(): array

@@ -23,7 +23,7 @@ class CatalogueService
             ->get();
     }
 
-    public function createSize(array $data): CylinderSize
+    public function createSize(array $data, ?UploadedFile $image = null): CylinderSize
     {
         return CylinderSize::create([
             'name'          => $data['name'],
@@ -31,23 +31,36 @@ class CatalogueService
             'sort_order'    => $data['sort_order'] ?? 0,
             'is_commercial' => $data['is_commercial'] ?? false,
             'is_active'     => $data['is_active'] ?? true,
+            'image_path'    => $image?->store('sizes', 'public'),
         ]);
     }
 
-    public function updateSize(CylinderSize $size, array $data): CylinderSize
+    public function updateSize(CylinderSize $size, array $data, ?UploadedFile $image = null): CylinderSize
     {
+        $imagePath = $size->image_path;
+
+        if ($image) {
+            if ($imagePath) Storage::disk('public')->delete($imagePath);
+            $imagePath = $image->store('sizes', 'public');
+        } elseif (!empty($data['remove_image'])) {
+            if ($imagePath) Storage::disk('public')->delete($imagePath);
+            $imagePath = null;
+        }
+
         $size->update([
             'name'          => $data['name'],
             'weight_kg'     => $data['weight_kg'],
             'sort_order'    => $data['sort_order'] ?? $size->sort_order,
             'is_commercial' => $data['is_commercial'] ?? false,
             'is_active'     => $data['is_active'] ?? $size->is_active,
+            'image_path'    => $imagePath,
         ]);
         return $size;
     }
 
     public function deleteSize(CylinderSize $size): void
     {
+        if ($size->image_path) Storage::disk('public')->delete($size->image_path);
         $size->delete();
     }
 

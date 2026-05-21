@@ -1,14 +1,14 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, ImagePlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 const schema = z.object({
     name:          z.string().min(1, 'Name is required').max(20),
@@ -26,16 +26,31 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export default function SizesCreate() {
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading]       = useState(false);
+    const [imageFile, setImageFile]   = useState<File | null>(null);
+    const [imagePreview, setPreview]  = useState<string | null>(null);
+    const fileInputRef                = useRef<HTMLInputElement>(null);
 
     const { register, handleSubmit, setError, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: { name: '', weight_kg: 0, sort_order: 0, is_commercial: false, is_active: true },
     });
 
+    function pickImage(file: File) {
+        setImageFile(file);
+        setPreview(URL.createObjectURL(file));
+    }
+
+    function clearImage() {
+        setImageFile(null);
+        setPreview(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+
     function onSubmit(data: FormData) {
         setLoading(true);
-        router.post('/admin/catalogue/sizes', data, {
+        router.post('/admin/catalogue/sizes', { ...data, image: imageFile ?? undefined } as never, {
+            forceFormData: true,
             onError: (errs) => {
                 setLoading(false);
                 Object.entries(errs).forEach(([f, m]) => setError(f as keyof FormData, { message: m as string }));
@@ -63,6 +78,51 @@ export default function SizesCreate() {
                     <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
                     <div className="p-6">
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+
+                            {/* ── Image upload ── */}
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Cylinder Image <span className="text-slate-400 font-normal">(optional)</span>
+                                </Label>
+
+                                {imagePreview ? (
+                                    <div className="mt-2 relative w-fit">
+                                        <img
+                                            src={imagePreview}
+                                            alt="Preview"
+                                            className="h-32 w-32 rounded-xl object-cover border border-slate-200 shadow-sm"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={clearImage}
+                                            className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600 transition-colors"
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="mt-2 flex h-32 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 transition-colors hover:border-orange-300 hover:bg-orange-50 hover:text-orange-500"
+                                    >
+                                        <ImagePlus className="h-5 w-5" />
+                                        <span className="text-sm">Click to upload image</span>
+                                    </button>
+                                )}
+
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const f = e.target.files?.[0];
+                                        if (f) pickImage(f);
+                                    }}
+                                />
+                                <p className="mt-1.5 text-xs text-slate-400">JPEG, PNG or WebP · max 2 MB</p>
+                            </div>
 
                             <div>
                                 <Label htmlFor="name" className="text-sm font-medium text-slate-700">Size Name</Label>

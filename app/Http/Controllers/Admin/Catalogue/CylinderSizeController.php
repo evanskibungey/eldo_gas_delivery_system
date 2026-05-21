@@ -27,6 +27,7 @@ class CylinderSizeController extends Controller
                 'is_active'     => $s->is_active,
                 'swap_price'    => $s->price?->gas_refill_price,
                 'stock'         => $s->stockLevel?->filled_count,
+                'image_url'     => $s->image_path ? asset('storage/' . $s->image_path) : null,
             ]),
         ]);
     }
@@ -38,7 +39,7 @@ class CylinderSizeController extends Controller
 
     public function store(StoreCylinderSizeRequest $request): RedirectResponse
     {
-        $size = $this->catalogue->createSize($request->validated());
+        $size = $this->catalogue->createSize($request->validated(), $request->file('image'));
 
         return redirect()->route('admin.catalogue.sizes.index')
             ->with('success', "{$size->name} cylinder size added.");
@@ -54,13 +55,14 @@ class CylinderSizeController extends Controller
                 'sort_order'    => $size->sort_order,
                 'is_commercial' => $size->is_commercial,
                 'is_active'     => $size->is_active,
+                'image_url'     => $size->image_path ? asset('storage/' . $size->image_path) : null,
             ],
         ]);
     }
 
     public function update(UpdateCylinderSizeRequest $request, CylinderSize $size): RedirectResponse
     {
-        $this->catalogue->updateSize($size, $request->validated());
+        $this->catalogue->updateSize($size, $request->validated(), $request->file('image'));
 
         return redirect()->route('admin.catalogue.sizes.index')
             ->with('success', "{$size->name} updated.");

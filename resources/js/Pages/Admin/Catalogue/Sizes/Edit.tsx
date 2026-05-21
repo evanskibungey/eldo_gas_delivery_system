@@ -1,19 +1,24 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, ImagePlus, X, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 interface Props {
     size: {
-        id: number; name: string; weight_kg: number;
-        sort_order: number; is_commercial: boolean; is_active: boolean;
+        id:            number;
+        name:          string;
+        weight_kg:     number;
+        sort_order:    number;
+        is_commercial: boolean;
+        is_active:     boolean;
+        image_url:     string | null;
     };
 }
 
@@ -33,7 +38,11 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export default function SizesEdit({ size }: Props) {
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading]       = useState(false);
+    const [imageFile, setImageFile]   = useState<File | null>(null);
+    const [preview, setPreview]       = useState<string | null>(size.image_url);
+    const [removeImage, setRemove]    = useState(false);
+    const fileInputRef                = useRef<HTMLInputElement>(null);
 
     const { register, handleSubmit, setError, formState: { errors } } = useForm<FormData>({
         resolver: zodResolver(schema),
@@ -43,15 +52,38 @@ export default function SizesEdit({ size }: Props) {
         },
     });
 
+    function pickImage(file: File) {
+        setImageFile(file);
+        setPreview(URL.createObjectURL(file));
+        setRemove(false);
+    }
+
+    function clearImage() {
+        setImageFile(null);
+        setPreview(null);
+        setRemove(true);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+
     function onSubmit(data: FormData) {
         setLoading(true);
-        router.put(`/admin/catalogue/sizes/${size.id}`, data, {
-            onError: (errs) => {
-                setLoading(false);
-                Object.entries(errs).forEach(([f, m]) => setError(f as keyof FormData, { message: m as string }));
+        router.post(
+            `/admin/catalogue/sizes/${size.id}`,
+            {
+                ...data,
+                _method:      'PUT',
+                image:        imageFile ?? undefined,
+                remove_image: removeImage ? 1 : 0,
+            } as never,
+            {
+                forceFormData: true,
+                onError: (errs) => {
+                    setLoading(false);
+                    Object.entries(errs).forEach(([f, m]) => setError(f as keyof FormData, { message: m as string }));
+                },
+                onFinish: () => setLoading(false),
             },
-            onFinish: () => setLoading(false),
-        });
+        );
     }
 
     const inputCls = (err?: { message?: string }) => cn(
@@ -73,6 +105,61 @@ export default function SizesEdit({ size }: Props) {
                     <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
                     <div className="p-6">
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+
+                            {/* ── Image upload ── */}
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Cylinder Image <span className="text-slate-400 font-normal">(optional)</span>
+                                </Label>
+
+                                {preview ? (
+                                    <div className="mt-2 flex items-end gap-3">
+                                        <div className="relative">
+                                            <img
+                                                src={preview}
+                                                alt="Preview"
+                                                className="h-32 w-32 rounded-xl object-cover border border-slate-200 shadow-sm"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={clearImage}
+                                                className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white shadow hover:bg-red-600 transition-colors"
+                                                title="Remove image"
+                                            >
+                                                <X className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                                        >
+                                            <RefreshCw className="h-3.5 w-3.5" /> Replace
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="mt-2 flex h-32 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 transition-colors hover:border-orange-300 hover:bg-orange-50 hover:text-orange-500"
+                                    >
+                                        <ImagePlus className="h-5 w-5" />
+                                        <span className="text-sm">Click to upload image</span>
+                                    </button>
+                                )}
+
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const f = e.target.files?.[0];
+                                        if (f) pickImage(f);
+                                    }}
+                                />
+                                <p className="mt-1.5 text-xs text-slate-400">JPEG, PNG or WebP · max 2 MB</p>
+                            </div>
 
                             <div>
                                 <Label htmlFor="name" className="text-sm font-medium text-slate-700">Size Name</Label>

@@ -19,6 +19,8 @@ class UpdateCylinderSizeRequest extends FormRequest
             'sort_order'    => ['integer', 'min:0'],
             'is_commercial' => ['boolean'],
             'is_active'     => ['boolean'],
+            'image'         => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'],
+            'remove_image'  => ['boolean'],
         ];
     }
 

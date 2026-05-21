@@ -18,6 +18,7 @@ interface Size {
     is_active:     boolean;
     swap_price:    number | null;
     stock:         number | null;
+    image_url:     string | null;
 }
 
 function DeleteDialog({ size, onCancel, onConfirm }: { size: Size; onCancel: () => void; onConfirm: () => void }) {
@@ -110,9 +111,17 @@ export default function SizesIndex({ sizes }: { sizes: Size[] }) {
                             <tr key={s.id} className="hover:bg-slate-50/50 transition-colors group">
                                 <td className="px-5 py-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 text-white font-bold text-xs shadow-sm shadow-orange-500/20">
-                                            {s.name}
-                                        </div>
+                                        {s.image_url ? (
+                                            <img
+                                                src={s.image_url}
+                                                alt={s.name}
+                                                className="h-10 w-10 rounded-lg object-cover border border-slate-100 shadow-sm"
+                                            />
+                                        ) : (
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 text-white font-bold text-xs shadow-sm shadow-orange-500/20 shrink-0">
+                                                {s.name}
+                                            </div>
+                                        )}
                                         <div>
                                             <p className="font-semibold text-slate-900">{s.name}</p>
                                             <p className="text-xs text-slate-400">{s.weight_kg} kg</p>
