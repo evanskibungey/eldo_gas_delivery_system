@@ -35,7 +35,7 @@ class SendOtpJob implements ShouldQueue
 
         $response = Http::withToken($apiToken)
             ->acceptJson()
-            ->post('https://bulksms.talksasa.com/api/v3/sms/send', [
+            ->post(config('services.talksasa.api_url'), [
                 'recipient' => $this->phone,
                 'sender_id' => config('services.talksasa.sender_id'),
                 'type'      => 'plain',

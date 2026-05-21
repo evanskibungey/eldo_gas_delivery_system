@@ -38,6 +38,7 @@ return [
     'talksasa' => [
         'api_token' => env('TALKSASA_API_TOKEN'),
         'sender_id' => env('TALKSASA_SENDER_ID', 'EldoGas'),
+        'api_url'   => env('TALKSASA_API_URL', 'https://bulksms.talksasa.com/api/v3/sms/send'),
     ],
 
 ];
