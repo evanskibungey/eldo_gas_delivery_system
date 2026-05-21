@@ -20,6 +20,7 @@ class CatalogueController extends Controller
                 'weight_kg'    => $s->weight_kg,
                 'is_commercial'=> $s->is_commercial,
                 'in_stock'     => ($s->stockLevel?->filled_count ?? 0) > 0,
+                'image_url'    => $s->image_path ? asset('storage/' . $s->image_path) : null,
                 'prices'       => [
                     'refill'       => $s->price?->gas_refill_price,
                     'new_cylinder' => $s->price?->new_cylinder_price,
