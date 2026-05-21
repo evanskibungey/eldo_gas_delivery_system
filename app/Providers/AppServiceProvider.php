@@ -9,7 +9,6 @@ use App\Services\Sms\SmsServiceInterface;
 use App\Services\Sms\SmsTemplateService;
 use App\Services\Sms\TalkSasaSmsService;
 use Illuminate\Support\Facades\Broadcast;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -61,76 +60,7 @@ class AppServiceProvider extends ServiceProvider
             });
         });
 
-        // ── Order lifecycle events ──────────────────────────────────────────
-        Event::listen(\App\Events\OrderPlacedEvent::class, \App\Listeners\SendOrderConfirmationNotification::class);
-        Event::listen(\App\Events\OrderPlacedEvent::class, \App\Listeners\AlertAdminNewOrder::class);
-
-        Event::listen(\App\Events\RiderAssignedEvent::class, \App\Listeners\SendRiderAssignedNotification::class);
-        Event::listen(\App\Events\RiderAssignedEvent::class, \App\Listeners\NotifyRiderOfNewOrder::class);
-
-        Event::listen(\App\Events\OrderCancelledEvent::class, \App\Listeners\SendOrderCancelledNotification::class);
-
-        Event::listen(\App\Events\OrderDeliveredEvent::class, \App\Listeners\AwardGasPointsOnDelivery::class);
-        Event::listen(\App\Events\OrderDeliveredEvent::class, \App\Listeners\SendDeliveryThankYou::class);
-        Event::listen(\App\Events\OrderDeliveredEvent::class, \App\Listeners\SendSafetyTipAfterDelivery::class);
-
-        // ── Push notifications (Sprint 9) ───────────────────────────────────
-        Event::listen(
-            \App\Events\OrderStatusUpdatedEvent::class,
-            \App\Listeners\SendCustomerOrderPush::class,
-        );
-
-        // ── Rating events ───────────────────────────────────────────────────
-        Event::listen(
-            \App\Events\RatingSubmittedEvent::class,
-            \App\Listeners\AwardGasPointsOnRating::class,
-        );
-
-        // ── Stock events ────────────────────────────────────────────────────
-        Event::listen(
-            \App\Events\LowStockAlertEvent::class,
-            \App\Listeners\HandleLowStockAlert::class,
-        );
-
-        Event::listen(
-            \App\Events\CriticalStockAlertEvent::class,
-            \App\Listeners\HandleCriticalStockAlert::class,
-        );
-
-        Event::listen(
-            \App\Events\StockDepletedEvent::class,
-            \App\Listeners\HandleStockDepleted::class,
-        );
-
-        Event::listen(
-            \App\Events\StockRestoredEvent::class,
-            \App\Listeners\HandleStockRestored::class,
-        );
-
-        // ── Exception / edge-case events ────────────────────────────────────
-        Event::listen(
-            \App\Events\OutOfStockExceptionEvent::class,
-            \App\Listeners\HandleOutOfStockException::class,
-        );
-
-        Event::listen(
-            \App\Events\WrongCylinderReportedEvent::class,
-            \App\Listeners\HandleWrongCylinder::class,
-        );
-
-        Event::listen(
-            \App\Events\DamagedCylinderReportedEvent::class,
-            \App\Listeners\HandleDamagedCylinder::class,
-        );
-
-        Event::listen(
-            \App\Events\RiderDelayAlertEvent::class,
-            \App\Listeners\HandleRiderDelayAlert::class,
-        );
-
-        Event::listen(
-            \App\Events\PaymentDisputeEvent::class,
-            \App\Listeners\HandlePaymentDispute::class,
-        );
+        // Event listeners are auto-discovered from app/Listeners via handle() type-hints.
+        // Do not register them manually here — that would cause each listener to fire twice.
     }
 }
