@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Auth\RiderAuthController;
 use App\Http\Controllers\Api\V1\Customer\AddressController;
 use App\Http\Controllers\Api\V1\Customer\CatalogueController;
 use App\Http\Controllers\Api\V1\Customer\DeviceController;
+use App\Http\Controllers\Api\V1\Customer\GamificationController;
 use App\Http\Controllers\Api\V1\Customer\GasPointsController;
 use App\Http\Controllers\Api\V1\Customer\HomeController;
 use App\Http\Controllers\Api\V1\Customer\IssueController;
@@ -78,8 +79,9 @@ Route::middleware('auth.api.customer')->group(function () {
     // SOS (Sprint 11)
     Route::post('sos/trigger', [ApiSosController::class, 'trigger']);
 
-    // Gas Points
-    Route::get('gaspoints', [GasPointsController::class, 'index']);
+    // Gas Points + Gamification (streaks, badges)
+    Route::get('gaspoints',    [GasPointsController::class,    'index']);
+    Route::get('gamification', [GamificationController::class, 'index']);
 });
 
 // ─── Rider Protected ─────────────────────────────────────────────────────────
