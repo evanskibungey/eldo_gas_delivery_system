@@ -33,6 +33,7 @@ class Order extends Model
         'delivery_lat',
         'delivery_lng',
         'delivery_notes',
+        'idempotency_key',
         'rider_assigned_at',
         'picked_up_at',
         'on_the_way_at',

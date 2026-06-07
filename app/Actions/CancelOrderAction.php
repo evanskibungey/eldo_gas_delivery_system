@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Events\OrderCancelledEvent;
+use App\Events\OrderStatusUpdatedEvent;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Services\Admin\StockService;
@@ -60,6 +61,8 @@ class CancelOrderAction
             }
         });
 
-        event(new OrderCancelledEvent($order, $reason));
+        $fresh = $order->fresh();
+        event(new OrderCancelledEvent($fresh, $reason));
+        event(new OrderStatusUpdatedEvent($fresh));
     }
 }

@@ -41,4 +41,11 @@ return [
         'api_url'   => env('TALKSASA_API_URL', 'https://bulksms.talksasa.com/api/v3/sms/send'),
     ],
 
+    'firebase' => [
+        // Legacy FCM server key fallback. Prefer OAuth2 service-account
+        // integration in production, but this key enables immediate
+        // push delivery in environments that still use legacy auth.
+        'server_key' => env('FIREBASE_SERVER_KEY'),
+    ],
+
 ];

@@ -6,7 +6,9 @@ use App\Actions\CancelOrderAction;
 use App\Actions\PlaceOrderAction;
 use App\Exceptions\OutOfStockException;
 use App\Http\Controllers\Controller;
+use App\Models\AddonItem;
 use App\Models\CustomerAddress;
+use App\Models\CylinderSize;
 use App\Models\Order;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,8 +22,9 @@ class OrderController extends Controller
             ->orders()
             ->with(['size:id,name', 'brand:id,name'])
             ->latest()
-            ->paginate(15)
-            ->through(fn (Order $o) => [
+            ->paginate(15);
+
+        $data = $orders->getCollection()->map(fn (Order $o) => [
                 'id'           => $o->id,
                 'order_number' => $o->order_number,
                 'status'       => $o->status,
@@ -33,9 +36,17 @@ class OrderController extends Controller
                 'can_cancel'   => $o->canBeCancelledByCustomer(),
                 'can_rate'     => $o->status === 'delivered' && ! $o->rating,
                 'can_track'    => $o->isActive() && $o->rider_id,
-            ]);
+            ])
+            ->values();
 
-        return response()->json($orders);
+        return response()->json([
+            'data' => $data,
+            'meta' => [
+                'current_page' => $orders->currentPage(),
+                'last_page'    => $orders->lastPage(),
+                'total'        => $orders->total(),
+            ],
+        ]);
     }
 
     public function show(Request $request, Order $order): JsonResponse
@@ -102,6 +113,35 @@ class OrderController extends Controller
             'redemption_points' => 'nullable|integer|in:0,500,1000,2000,5000',
         ]);
 
+        // Ensure the selected brand is available for the selected cylinder size.
+        $size = CylinderSize::with('brands:id')->find($input['size_id']);
+        if (! $size || ! $size->brands->contains('id', $input['brand_id'])) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors'  => ['brand_id' => ['Selected brand is not available for this cylinder size.']],
+            ], 422);
+        }
+
+        // Ensure every selected addon belongs to an active addon-group for this size.
+        $addonIds = $input['addon_ids'] ?? [];
+        if (! empty($addonIds)) {
+            $validAddonCount = AddonItem::query()
+                ->whereIn('id', $addonIds)
+                ->where('is_active', true)
+                ->whereHas('group', function ($q) use ($input) {
+                    $q->where('size_id', $input['size_id'])
+                        ->where('is_active', true);
+                })
+                ->count();
+
+            if ($validAddonCount !== count(array_unique($addonIds))) {
+                return response()->json([
+                    'message' => 'Validation failed.',
+                    'errors'  => ['addon_ids' => ['One or more selected add-ons are invalid for this cylinder size.']],
+                ], 422);
+            }
+        }
+
         $address = CustomerAddress::find($input['address_id']);
 
         if (! $address || $address->customer_id !== $request->user()->id) {
@@ -118,7 +158,15 @@ class OrderController extends Controller
             'delivery_lng'      => $address->longitude,
             'delivery_notes'    => $input['delivery_notes'] ?? null,
             'redemption_points' => (int) ($input['redemption_points'] ?? 0),
+            'idempotency_key'   => $request->header('Idempotency-Key'),
         ];
+
+        if (! empty($data['idempotency_key']) && strlen((string) $data['idempotency_key']) > 64) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors'  => ['idempotency_key' => ['Idempotency key must not be longer than 64 characters.']],
+            ], 422);
+        }
 
         try {
             $order = $action->execute($request->user(), $data);

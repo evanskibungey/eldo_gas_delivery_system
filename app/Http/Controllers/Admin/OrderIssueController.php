@@ -4,17 +4,18 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\ReportOutOfStockAction;
 use App\Actions\ResolvePaymentDisputeAction;
-use App\Events\OrderStatusUpdatedEvent;
 use App\Events\PaymentDisputeEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
+use App\Services\Admin\OrderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class OrderIssueController extends Controller
 {
-    // 9.1 — Admin marks order as out of stock (until Rider App — Phase 14)
+    // 9.1 - Admin marks order as out of stock
     public function outOfStock(Request $request, Order $order, ReportOutOfStockAction $action): RedirectResponse
     {
         $request->validate(['reason' => 'required|string|max:255']);
@@ -25,7 +26,7 @@ class OrderIssueController extends Controller
             ->with('success', 'Order cancelled as out of stock.');
     }
 
-    // 9.4 — Flag payment dispute (admin or via customer escalation)
+    // 9.4 - Flag payment dispute (admin or via customer escalation)
     public function flagPaymentDispute(Request $request, Order $order): RedirectResponse
     {
         if ($order->payment_status === 'disputed') {
@@ -54,7 +55,7 @@ class OrderIssueController extends Controller
             ->with('success', 'Payment dispute flagged.');
     }
 
-    // 9.4 — Admin resolves payment dispute
+    // 9.4 - Admin resolves payment dispute
     public function resolvePaymentDispute(Request $request, Order $order, ResolvePaymentDisputeAction $action): RedirectResponse
     {
         $request->validate(['resolution' => 'required|in:paid,refund']);
@@ -66,30 +67,16 @@ class OrderIssueController extends Controller
     }
 
     // Resume delivery after correction_in_progress
-    public function resolveCorrection(Order $order): RedirectResponse
+    public function resolveCorrection(Order $order, OrderService $orders): RedirectResponse
     {
-        if ($order->status !== 'correction_in_progress') {
-            return back()->with('error', 'Order is not awaiting a correction resolution.');
+        try {
+            $orders->resolveCorrection($order);
+        } catch (ValidationException $e) {
+            return back()->with('error', $e->getMessage());
         }
-
-        $order->update([
-            'status'         => 'on_the_way',
-            'has_issue'      => false,
-            'issue_resolved' => true,
-        ]);
-
-        event(new OrderStatusUpdatedEvent($order->fresh()));
-
-        OrderStatusHistory::create([
-            'order_id'   => $order->id,
-            'status'     => 'on_the_way',
-            'note'       => 'Issue resolved — delivery resumed',
-            'actor_type' => 'admin',
-            'actor_id'   => auth('admin')->id(),
-            'created_at' => now(),
-        ]);
 
         return redirect()->route('admin.orders.show', $order)
             ->with('success', 'Issue resolved. Delivery resumed.');
     }
 }
+

@@ -11,20 +11,16 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Fan-out FCM push for an order-status change. One job per order; the
- * job iterates the customer's active device tokens and dispatches a
- * separate FCM HTTP v1 request per token (or batches via topic, see
- * the TODO at the bottom).
+ * Fan-out push for an order-status change.
  *
- * The current implementation writes to `notifications_log` and logs
- * the payload at INFO level. To enable real push delivery in
- * production, install `kreait/laravel-firebase` and replace the
- * `// TODO: dispatch via Firebase` block with the actual SDK call.
- * The contract (payload shape, recipient lookup, write to the log)
- * stays the same — the only change is the wire send.
+ * Delivery strategy:
+ * - Always write to notifications_log for in-app inbox continuity.
+ * - Attempt real push via FCM legacy endpoint when FIREBASE_SERVER_KEY exists.
+ * - Fall back to structured logging when no key is configured.
  */
 class SendOrderStatusPushJob implements ShouldQueue
 {
@@ -139,33 +135,43 @@ class SendOrderStatusPushJob implements ShouldQueue
         ]);
     }
 
-    /**
-     * The actual wire send. Currently logs the payload — drop in the
-     * Firebase SDK call here for production:
-     *
-     *   use Kreait\Firebase\Messaging\CloudMessage;
-     *   use Kreait\Firebase\Messaging\Notification;
-     *   use Kreait\Laravel\Firebase\Facades\Firebase;
-     *
-     *   Firebase::messaging()->send(
-     *       CloudMessage::withTarget('token', $deviceToken)
-     *           ->withNotification(Notification::create($title, $body))
-     *           ->withData($data),
-     *   );
-     */
     private function sendToDevice(
         string $deviceToken,
         string $title,
         string $body,
         array  $data,
     ): void {
+        $serverKey = (string) config('services.firebase.server_key', '');
+        if ($serverKey !== '') {
+            $response = Http::timeout(10)
+                ->withHeaders([
+                    'Authorization' => 'key=' . $serverKey,
+                    'Content-Type'  => 'application/json',
+                ])
+                ->post('https://fcm.googleapis.com/fcm/send', [
+                    'to'           => $deviceToken,
+                    'priority'     => 'high',
+                    'notification' => [
+                        'title' => $title,
+                        'body'  => $body,
+                    ],
+                    'data'         => $data,
+                ]);
+
+            if ($response->successful()) {
+                return;
+            }
+
+            throw new \RuntimeException(
+                'FCM request failed: HTTP ' . $response->status() . ' ' . $response->body()
+            );
+        }
+
         Log::info('[push] would send', [
             'token' => substr($deviceToken, 0, 12) . '…',
             'title' => $title,
             'body'  => $body,
             'data'  => $data,
         ]);
-
-        // TODO: dispatch via Firebase (see method docblock).
     }
 }

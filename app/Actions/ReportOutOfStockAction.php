@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Events\OrderCancelledEvent;
+use App\Events\OrderStatusUpdatedEvent;
 use App\Events\OutOfStockExceptionEvent;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
@@ -43,7 +44,9 @@ class ReportOutOfStockAction
             ]);
         });
 
-        event(new OutOfStockExceptionEvent($order));
-        event(new OrderCancelledEvent($order, $reason));
+        $fresh = $order->fresh();
+        event(new OutOfStockExceptionEvent($fresh));
+        event(new OrderCancelledEvent($fresh, $reason));
+        event(new OrderStatusUpdatedEvent($fresh));
     }
 }

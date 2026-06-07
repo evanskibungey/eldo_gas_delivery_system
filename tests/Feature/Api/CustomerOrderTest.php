@@ -41,7 +41,7 @@ class CustomerOrderTest extends TestCase
 
         $this->authed()->getJson('/api/v1/orders')
             ->assertOk()
-            ->assertJsonPath('total', 3);
+            ->assertJsonPath('meta.total', 3);
     }
 
     // ── show ───────────────────────────────────────────────────────────────────
@@ -91,6 +91,43 @@ class CustomerOrderTest extends TestCase
 
         $response->assertCreated()->assertJsonStructure(['order_number', 'total_amount']);
         $this->assertDatabaseHas('orders', ['customer_id' => $this->customer->id, 'order_type' => 'swap']);
+    }
+
+    public function test_place_order_is_idempotent_for_same_key(): void
+    {
+        $size    = CylinderSize::factory()->create();
+        $brand   = GasBrand::factory()->create();
+        $address = CustomerAddress::factory()->create(['customer_id' => $this->customer->id]);
+
+        CylinderPrice::factory()->create([
+            'size_id'          => $size->id,
+            'gas_refill_price' => 1800,
+            'delivery_fee'     => 200,
+        ]);
+        StockLevel::factory()->create(['size_id' => $size->id, 'filled_count' => 10]);
+        $size->brands()->attach($brand->id);
+
+        $payload = [
+            'order_type'     => 'swap',
+            'size_id'        => $size->id,
+            'brand_id'       => $brand->id,
+            'address_id'     => $address->id,
+            'payment_method' => 'cash',
+        ];
+
+        $headers = ['Idempotency-Key' => 'order-test-key-123'];
+
+        $first = $this->authed()->withHeaders($headers)->postJson('/api/v1/orders', $payload);
+        $second = $this->authed()->withHeaders($headers)->postJson('/api/v1/orders', $payload);
+
+        $first->assertCreated();
+        $second->assertCreated();
+        $this->assertSame(
+            $first->json('order_id'),
+            $second->json('order_id'),
+            'Idempotent retries should return the same order',
+        );
+        $this->assertDatabaseCount('orders', 1);
     }
 
     public function test_order_fails_when_out_of_stock(): void

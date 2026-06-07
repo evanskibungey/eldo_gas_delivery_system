@@ -14,6 +14,7 @@ use App\Models\StockLevel;
 use App\Models\SystemSetting;
 use App\Services\GasPointsService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class PlaceOrderAction
@@ -31,6 +32,21 @@ class PlaceOrderAction
     public function execute(Customer $customer, array $data): Order
     {
         $redemptionPoints = (int) ($data['redemption_points'] ?? 0);
+        $idempotencyKey = isset($data['idempotency_key'])
+            ? trim((string) $data['idempotency_key'])
+            : null;
+
+        if ($idempotencyKey !== null && $idempotencyKey !== '') {
+            $existing = Order::query()
+                ->where('customer_id', $customer->id)
+                ->where('idempotency_key', $idempotencyKey)
+                ->latest('id')
+                ->first();
+
+            if ($existing) {
+                return $existing;
+            }
+        }
 
         // Validate redemption points before entering the transaction.
         if ($redemptionPoints > 0) {
@@ -50,7 +66,7 @@ class PlaceOrderAction
             }
         }
 
-        $order = DB::transaction(function () use ($customer, $data, $redemptionPoints) {
+        $order = DB::transaction(function () use ($customer, $data, $redemptionPoints, $idempotencyKey) {
             // Lock stock row and validate availability
             $stock = StockLevel::where('size_id', $data['size_id'])
                 ->lockForUpdate()
@@ -105,7 +121,7 @@ class PlaceOrderAction
             $total = max(0, $subtotal - $gaspointsDiscount);
 
             $order = Order::create([
-                'order_number'       => 'TEMP',
+                'order_number'       => 'TMP-' . Str::upper(Str::random(16)),
                 'customer_id'        => $customer->id,
                 'size_id'            => $data['size_id'],
                 'brand_id'           => $data['brand_id'],
@@ -122,6 +138,7 @@ class PlaceOrderAction
                 'delivery_lat'       => $data['delivery_lat'],
                 'delivery_lng'       => $data['delivery_lng'],
                 'delivery_notes'     => $data['delivery_notes'] ?? null,
+                'idempotency_key'    => $idempotencyKey,
             ]);
 
             // Stable, human-readable order number using auto-increment ID

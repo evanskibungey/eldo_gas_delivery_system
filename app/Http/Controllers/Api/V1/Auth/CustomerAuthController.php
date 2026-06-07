@@ -38,12 +38,25 @@ class CustomerAuthController extends Controller
             'phone' => 'required|string|max:20',
             'token' => 'required|string|size:4',
         ]);
+        $phone = $this->normalizePhone($data['phone']);
+        $verifyKey = 'api-otp-verify:' . $phone . ':' . $request->ip();
+
+        if (RateLimiter::tooManyAttempts($verifyKey, 10)) {
+            return response()->json([
+                'message' => 'Too many verification attempts. Try again in '
+                    . RateLimiter::availableIn($verifyKey) . ' seconds.',
+            ], 429);
+        }
+
+        RateLimiter::hit($verifyKey, 600);
 
         try {
-            $customer = $this->otp->verify($this->normalizePhone($data['phone']), $data['token']);
+            $customer = $this->otp->verify($phone, $data['token']);
         } catch (ValidationException $e) {
             return response()->json(['message' => $e->getMessage(), 'errors' => $e->errors()], 422);
         }
+
+        RateLimiter::clear($verifyKey);
 
         $token = $customer->createToken('mobile', ['customer'])->plainTextToken;
 

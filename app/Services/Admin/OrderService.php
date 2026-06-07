@@ -10,6 +10,7 @@ use App\Models\OrderStatusHistory;
 use App\Models\Rider;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class OrderService
@@ -29,13 +30,13 @@ class OrderService
             ->when($filters['search'] ?? null, function ($q, $v) {
                 $q->where(function ($q) use ($v) {
                     $q->where('order_number', 'like', "%{$v}%")
-                      ->orWhereHas('customer', fn ($q) => $q->where('name', 'like', "%{$v}%")
-                          ->orWhere('phone', 'like', "%{$v}%"));
+                        ->orWhereHas('customer', fn ($q) => $q->where('name', 'like', "%{$v}%")
+                            ->orWhere('phone', 'like', "%{$v}%"));
                 });
             })
             ->when($filters['date'] ?? null, fn ($q, $v) => $q->whereDate('created_at', $v))
             ->orderByRaw(
-                \Illuminate\Support\Facades\DB::getDriverName() === 'mysql'
+                DB::getDriverName() === 'mysql'
                     ? "FIELD(status, 'pending', 'rider_assigned', 'picked_up', 'on_the_way', 'correction_in_progress', 'delivered', 'cancelled')"
                     : "CASE status WHEN 'pending' THEN 1 WHEN 'rider_assigned' THEN 2 WHEN 'picked_up' THEN 3 WHEN 'on_the_way' THEN 4 WHEN 'correction_in_progress' THEN 5 WHEN 'delivered' THEN 6 ELSE 7 END"
             )
@@ -61,22 +62,26 @@ class OrderService
             ]);
         }
 
-        $order->update([
-            'rider_id'           => $rider->id,
-            'status'             => 'rider_assigned',
-            'rider_assigned_at'  => now(),
-        ]);
+        DB::transaction(function () use ($order, $rider): void {
+            $order->update([
+                'rider_id'          => $rider->id,
+                'status'            => 'rider_assigned',
+                'rider_assigned_at' => now(),
+            ]);
 
-        OrderStatusHistory::create([
-            'order_id'   => $order->id,
-            'status'     => 'rider_assigned',
-            'note'       => "Assigned to {$rider->name}",
-            'actor_type' => 'admin',
-            'actor_id'   => auth('admin')->id(),
-            'created_at' => now(),
-        ]);
+            OrderStatusHistory::create([
+                'order_id'   => $order->id,
+                'status'     => 'rider_assigned',
+                'note'       => "Assigned to {$rider->name}",
+                'actor_type' => 'admin',
+                'actor_id'   => auth('admin')->id(),
+                'created_at' => now(),
+            ]);
+        });
 
-        event(new RiderAssignedEvent($order, $rider));
+        $fresh = $order->fresh();
+        event(new RiderAssignedEvent($fresh, $rider));
+        event(new OrderStatusUpdatedEvent($fresh));
     }
 
     public function reassign(Order $order, Rider $rider, string $reason): void
@@ -87,8 +92,6 @@ class OrderService
             ]);
         }
 
-        // Only reset status to rider_assigned when the order hasn't yet left the shop.
-        // In-transit orders keep their current status so the timeline is preserved.
         $preserveStatus = in_array($order->status, ['picked_up', 'on_the_way', 'correction_in_progress']);
 
         $updates = [
@@ -100,18 +103,22 @@ class OrderService
             $updates['status'] = 'rider_assigned';
         }
 
-        $order->update($updates);
+        DB::transaction(function () use ($order, $updates, $rider, $reason): void {
+            $order->update($updates);
 
-        OrderStatusHistory::create([
-            'order_id'   => $order->id,
-            'status'     => $order->fresh()->status,
-            'note'       => "Reassigned to {$rider->name}. Reason: {$reason}",
-            'actor_type' => 'admin',
-            'actor_id'   => auth('admin')->id(),
-            'created_at' => now(),
-        ]);
+            OrderStatusHistory::create([
+                'order_id'   => $order->id,
+                'status'     => $order->fresh()->status,
+                'note'       => "Reassigned to {$rider->name}. Reason: {$reason}",
+                'actor_type' => 'admin',
+                'actor_id'   => auth('admin')->id(),
+                'created_at' => now(),
+            ]);
+        });
 
-        event(new RiderAssignedEvent($order, $rider));
+        $fresh = $order->fresh();
+        event(new RiderAssignedEvent($fresh, $rider));
+        event(new OrderStatusUpdatedEvent($fresh));
     }
 
     public function advanceStatus(
@@ -135,11 +142,11 @@ class OrderService
         }
 
         $updates = ['status' => $newStatus];
-        $note    = null;
+        $note = null;
 
         if ($newStatus === 'picked_up') {
             $updates['picked_up_at'] = now();
-            $note = 'Rider picked up from shop — stock deducted';
+            $note = 'Rider picked up from shop - stock deducted';
             $this->stock->autoDeductForOrder($order);
         }
 
@@ -158,22 +165,24 @@ class OrderService
             $this->updateRiderDeliveryCount($order);
         }
 
-        $order->update($updates);
+        DB::transaction(function () use ($order, $updates, $newStatus, $note): void {
+            $order->update($updates);
 
-        event(new OrderStatusUpdatedEvent($order->fresh()));
+            OrderStatusHistory::create([
+                'order_id'   => $order->id,
+                'status'     => $newStatus,
+                'note'       => $note,
+                'actor_type' => 'admin',
+                'actor_id'   => auth('admin')->id(),
+                'created_at' => now(),
+            ]);
+        });
 
+        $fresh = $order->fresh();
+        event(new OrderStatusUpdatedEvent($fresh));
         if ($newStatus === 'delivered') {
-            event(new OrderDeliveredEvent($order));
+            event(new OrderDeliveredEvent($fresh));
         }
-
-        OrderStatusHistory::create([
-            'order_id'   => $order->id,
-            'status'     => $newStatus,
-            'note'       => $note,
-            'actor_type' => 'admin',
-            'actor_id'   => auth('admin')->id(),
-            'created_at' => now(),
-        ]);
     }
 
     public function resolveCorrection(Order $order): void
@@ -184,22 +193,24 @@ class OrderService
             ]);
         }
 
-        $order->update([
-            'status'       => 'on_the_way',
-            'has_issue'    => false,
-            'issue_resolved' => true,
-        ]);
+        DB::transaction(function () use ($order): void {
+            $order->update([
+                'status'         => 'on_the_way',
+                'has_issue'      => false,
+                'issue_resolved' => true,
+            ]);
+
+            OrderStatusHistory::create([
+                'order_id'   => $order->id,
+                'status'     => 'on_the_way',
+                'note'       => 'Issue resolved - delivery resumed',
+                'actor_type' => 'admin',
+                'actor_id'   => auth('admin')->id(),
+                'created_at' => now(),
+            ]);
+        });
 
         event(new OrderStatusUpdatedEvent($order->fresh()));
-
-        OrderStatusHistory::create([
-            'order_id'   => $order->id,
-            'status'     => 'on_the_way',
-            'note'       => 'Issue resolved — delivery resumed',
-            'actor_type' => 'admin',
-            'actor_id'   => auth('admin')->id(),
-            'created_at' => now(),
-        ]);
     }
 
     public function collectPayment(Order $order): void
@@ -216,16 +227,20 @@ class OrderService
             ]);
         }
 
-        $order->update(['payment_status' => 'collected']);
+        DB::transaction(function () use ($order): void {
+            $order->update(['payment_status' => 'collected']);
 
-        OrderStatusHistory::create([
-            'order_id'   => $order->id,
-            'status'     => $order->status,
-            'note'       => 'Cash payment collected',
-            'actor_type' => 'admin',
-            'actor_id'   => auth('admin')->id(),
-            'created_at' => now(),
-        ]);
+            OrderStatusHistory::create([
+                'order_id'   => $order->id,
+                'status'     => $order->status,
+                'note'       => 'Cash payment collected',
+                'actor_type' => 'admin',
+                'actor_id'   => auth('admin')->id(),
+                'created_at' => now(),
+            ]);
+        });
+
+        event(new OrderStatusUpdatedEvent($order->fresh()));
     }
 
     public function pendingCount(): int
@@ -243,7 +258,7 @@ class OrderService
             ->where('status', 'delivered')
             ->count();
 
-        // +1 because the current order hasn't been saved as delivered yet
         $order->rider()->update(['total_deliveries' => $count + 1]);
     }
 }
+
