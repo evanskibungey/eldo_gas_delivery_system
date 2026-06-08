@@ -193,7 +193,6 @@ class OrderController extends Controller
             'can_resolve_payment_dispute' => $order->payment_status === 'disputed' && ! $order->issue_resolved,
             'can_resume_delivery'         => $order->status === 'correction_in_progress',
             'can_collect_payment'         => $order->status === 'delivered'
-                                             && $order->payment_method === 'cash'
                                              && $order->payment_status === 'pending',
             'next_status'                 => $this->nextStatus($order->status),
         ];

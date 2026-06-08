@@ -35,12 +35,18 @@ class RiderAssignedEvent implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'status'      => $this->order->status,
-            'rider_name'  => $this->rider->name,
-            'rider_phone' => $this->rider->phone,
-            'rider_lat'   => $this->rider->current_latitude,
-            'rider_lng'   => $this->rider->current_longitude,
-            'rider_rated' => $this->rider->avg_rating,
+            'order_id'            => $this->order->id,
+            'order_number'        => $this->order->order_number,
+            'status'              => $this->order->status,
+            'customer_name'       => $this->order->customer?->name,
+            'size_name'           => $this->order->size?->name,
+            'total_amount'        => $this->order->total_amount,
+            'acceptance_deadline' => $this->order->rider_acceptance_deadline?->toIso8601String(),
+            'rider_name'          => $this->rider->name,
+            'rider_phone'         => $this->rider->phone,
+            'rider_lat'           => $this->rider->current_latitude,
+            'rider_lng'           => $this->rider->current_longitude,
+            'rider_rated'         => $this->rider->avg_rating,
         ];
     }
 }

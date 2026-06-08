@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Rider;
 
 use App\Events\OrderDeliveredEvent;
+use App\Events\OrderPlacedEvent;
 use App\Events\OrderStatusUpdatedEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
-use App\Services\Admin\StockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +15,6 @@ use Illuminate\Support\Facades\Storage;
 
 class OrderController extends Controller
 {
-    public function __construct(private readonly StockService $stock) {}
-
     public function active(Request $request): JsonResponse
     {
         $rider = $request->user();
@@ -40,6 +38,67 @@ class OrderController extends Controller
         $order->load(['customer:id,name,phone', 'size:id,name', 'brand:id,name', 'addons.addonItem', 'statusHistory']);
 
         return response()->json($this->formatOrderDetail($order));
+    }
+
+    public function accept(Request $request, Order $order): JsonResponse
+    {
+        $rider = $request->user();
+
+        if ($order->rider_id !== $rider->id) {
+            return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        if ($order->status !== 'rider_assigned') {
+            return response()->json(['message' => 'Order is not awaiting acceptance.'], 422);
+        }
+
+        $order->update([
+            'rider_accepted_at'         => now(),
+            'rider_acceptance_deadline' => null,
+        ]);
+
+        event(new OrderStatusUpdatedEvent($order->fresh()));
+
+        return response()->json(['message' => 'Order accepted.']);
+    }
+
+    public function decline(Request $request, Order $order): JsonResponse
+    {
+        $rider = $request->user();
+
+        if ($order->rider_id !== $rider->id) {
+            return response()->json(['message' => 'Not found.'], 404);
+        }
+
+        if ($order->status !== 'rider_assigned') {
+            return response()->json(['message' => 'Order is not awaiting acceptance.'], 422);
+        }
+
+        $declinedRiderId = $rider->id;
+
+        DB::transaction(function () use ($order, $declinedRiderId): void {
+            $order->update([
+                'rider_id'                  => null,
+                'status'                    => 'pending',
+                'rider_assigned_at'         => null,
+                'rider_acceptance_deadline' => null,
+                'rider_accepted_at'         => null,
+            ]);
+
+            OrderStatusHistory::create([
+                'order_id'   => $order->id,
+                'status'     => 'pending',
+                'note'       => 'Rider declined — re-queued for assignment',
+                'actor_type' => 'rider',
+                'actor_id'   => $declinedRiderId,
+                'created_at' => now(),
+            ]);
+        });
+
+        // Re-run auto-assign, excluding the rider who just declined.
+        event(new OrderPlacedEvent($order->fresh(), [$declinedRiderId]));
+
+        return response()->json(['message' => 'Order declined.']);
     }
 
     public function updateStatus(Request $request, Order $order): JsonResponse
@@ -69,7 +128,6 @@ class OrderController extends Controller
 
             if ($data['status'] === 'picked_up') {
                 $updates['picked_up_at'] = now();
-                $this->stock->autoDeductForOrder($order);
             } elseif ($data['status'] === 'on_the_way') {
                 $updates['on_the_way_at'] = now();
             } elseif ($data['status'] === 'delivered') {

@@ -81,13 +81,14 @@ class OrderController extends Controller
         $lastOrder = $customer->orders()->latest()->first();
 
         return Inertia::render('Customer/Order/OrderBuilder', [
-            'sizes'           => $sizes->values(),
-            'brands_by_size'  => $brandsBySize,
-            'addons_by_size'  => $addonsBySize,
-            'addresses'       => $addresses->values(),
-            'default_address' => $customer->defaultAddress?->id,
-            'mpesa_till'      => env('MPESA_TILL_NUMBER', ''),
-            'prefill'         => $lastOrder ? [
+            'sizes'              => $sizes->values(),
+            'brands_by_size'     => $brandsBySize,
+            'addons_by_size'     => $addonsBySize,
+            'addresses'          => $addresses->values(),
+            'default_address'    => $customer->defaultAddress?->id,
+            'mpesa_till'         => env('MPESA_TILL_NUMBER', ''),
+            'gaspoints_balance'  => (int) $customer->gaspoints_balance,
+            'prefill'            => $lastOrder ? [
                 'order_type' => $lastOrder->order_type,
                 'size_id'    => $lastOrder->size_id,
                 'brand_id'   => $lastOrder->brand_id,
@@ -105,14 +106,15 @@ class OrderController extends Controller
         abort_unless($address->customer_id === auth('customer')->id(), 403);
 
         $data = [
-            'order_type'     => $input['order_type'],
-            'size_id'        => $input['size_id'],
-            'brand_id'       => $input['brand_id'],
-            'addon_ids'      => $input['addon_ids'] ?? [],
-            'payment_method' => $input['payment_method'],
-            'delivery_lat'   => $address->latitude,
-            'delivery_lng'   => $address->longitude,
-            'delivery_notes' => $input['delivery_notes'] ?? null,
+            'order_type'        => $input['order_type'],
+            'size_id'           => $input['size_id'],
+            'brand_id'          => $input['brand_id'],
+            'addon_ids'         => $input['addon_ids'] ?? [],
+            'payment_method'    => $input['payment_method'],
+            'delivery_lat'      => $address->latitude,
+            'delivery_lng'      => $address->longitude,
+            'delivery_notes'    => $input['delivery_notes'] ?? null,
+            'redemption_points' => (int) ($input['redemption_points'] ?? 0),
         ];
 
         try {

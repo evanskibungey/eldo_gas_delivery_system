@@ -175,8 +175,6 @@ class OrderService
 
         if ($newStatus === 'picked_up') {
             $updates['picked_up_at'] = now();
-            $note = 'Rider picked up from shop - stock deducted';
-            $this->stock->autoDeductForOrder($order);
         }
 
         if ($newStatus === 'on_the_way') {
@@ -259,10 +257,14 @@ class OrderService
         DB::transaction(function () use ($order): void {
             $order->update(['payment_status' => 'collected']);
 
+            $note = $order->payment_method === 'mpesa'
+                ? 'M-Pesa payment confirmed by admin'
+                : 'Cash payment collected';
+
             OrderStatusHistory::create([
                 'order_id'   => $order->id,
                 'status'     => $order->status,
-                'note'       => 'Cash payment collected',
+                'note'       => $note,
                 'actor_type' => 'admin',
                 'actor_id'   => auth('admin')->id(),
                 'created_at' => now(),

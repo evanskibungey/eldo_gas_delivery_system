@@ -142,8 +142,16 @@ function SubTabBtn({ label, count, active, onClick }: {
 export default function OrdersIndex({ orders, filters, counts }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [newOrderFlash, setNewOrderFlash] = useState(false);
+    const [wsConnected, setWsConnected] = useState(true);
 
-    // WebSocket: subscribe to admin.orders private channel for new order notifications
+    // Pending orders that have been waiting longer than 5 minutes need manual assignment.
+    const stalePendingCount = orders.data.filter(o =>
+        o.status === 'pending' &&
+        Date.now() - new Date(o.created_at).getTime() > 5 * 60 * 1000
+    ).length;
+
+    // WebSocket: subscribe to admin.orders private channel for new order notifications.
+    // Also track Pusher connection state so the polling fallback knows when to activate.
     useEffect(() => {
         const channel = window.Echo.private('admin.orders');
 
@@ -153,10 +161,31 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
             setTimeout(() => setNewOrderFlash(false), 3000);
         });
 
+        const pusher = window.Echo.connector?.pusher;
+        if (pusher) {
+            pusher.connection.bind('state_change', ({ current }: { current: string }) => {
+                setWsConnected(current === 'connected');
+            });
+            // Capture initial state in case we mount after a disconnect.
+            setWsConnected(pusher.connection.state === 'connected');
+        }
+
         return () => {
             window.Echo.leave('admin.orders');
         };
     }, []);
+
+    // Polling fallback: when WebSocket is disconnected, reload every 30 seconds
+    // so admins still see new orders without manual refresh.
+    useEffect(() => {
+        if (wsConnected) return;
+
+        const interval = setInterval(() => {
+            router.reload({ only: ['orders', 'counts'] });
+        }, 30_000);
+
+        return () => clearInterval(interval);
+    }, [wsConnected]);
 
     function applyFilter(status?: string) {
         router.get('/admin/orders', {
@@ -187,6 +216,24 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                 </div>
             )}
 
+            {/* Stale pending orders banner — shown when auto-assignment has found no rider */}
+            {stalePendingCount > 0 && (
+                <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                        <p className="text-sm font-semibold text-amber-800">
+                            {stalePendingCount} {stalePendingCount === 1 ? 'order needs' : 'orders need'} manual rider assignment
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => applyFilter('pending')}
+                        className="shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
+                    >
+                        View pending →
+                    </button>
+                </div>
+            )}
+
             {/* Primary status tabs */}
             <div className="mb-3 flex flex-wrap items-center gap-2">
                 <TabBtn label="All"       count={totalAll}       active={activeTab === 'all'}       onClick={() => applyFilter()} />
@@ -206,6 +253,12 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                             className="h-8 w-52 pl-8 border-slate-200 bg-white text-xs focus:border-orange-400 focus:ring-orange-400/20"
                         />
                     </div>
+                    {!wsConnected && (
+                        <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700">
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                            Live updates offline · polling every 30s
+                        </span>
+                    )}
                     <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
                         onClick={() => router.reload({ only: ['orders', 'counts'] })}>
                         <RefreshCw className="h-3 w-3" /> Refresh

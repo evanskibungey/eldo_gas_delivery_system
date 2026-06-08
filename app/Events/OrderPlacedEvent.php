@@ -14,7 +14,13 @@ class OrderPlacedEvent implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public readonly Order $order) {}
+    /**
+     * @param array<int> $excludeRiderIds Rider IDs that declined and must be skipped during re-assignment.
+     */
+    public function __construct(
+        public readonly Order $order,
+        public readonly array $excludeRiderIds = [],
+    ) {}
 
     public function broadcastOn(): array
     {

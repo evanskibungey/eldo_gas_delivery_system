@@ -12,6 +12,7 @@ use App\Models\OrderAddon;
 use App\Models\OrderStatusHistory;
 use App\Models\StockLevel;
 use App\Models\SystemSetting;
+use App\Services\Admin\StockService;
 use App\Services\GasPointsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -27,7 +28,10 @@ class PlaceOrderAction
         5000 => 500,
     ];
 
-    public function __construct(private readonly GasPointsService $gasPoints) {}
+    public function __construct(
+        private readonly GasPointsService $gasPoints,
+        private readonly StockService     $stock,
+    ) {}
 
     public function execute(Customer $customer, array $data): Order
     {
@@ -171,6 +175,10 @@ class PlaceOrderAction
                 'actor_id'   => $customer->id,
                 'created_at' => now(),
             ]);
+
+            // Deduct stock immediately so concurrent orders cannot oversell
+            // the same cylinder. The stock lock acquired above is still held.
+            $this->stock->deductForOrder($order);
 
             return $order;
         });

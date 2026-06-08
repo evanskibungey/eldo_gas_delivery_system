@@ -13,6 +13,7 @@ use App\Models\Order;
 use App\Services\ShopHoursService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
@@ -88,6 +89,10 @@ class OrderController extends Controller
                 'name'          => $a->addonItem?->name,
                 'price'         => $a->price,
             ]),
+            'delivery_photo_url'  => $order->delivery_photo_path
+                ? Storage::url($order->delivery_photo_path)
+                : null,
+            'estimated_minutes'  => $this->computeEtaMinutes($order),
             'history'        => $order->statusHistory->map(fn ($h) => ['status' => $h->status, 'at' => $h->created_at?->toIso8601String()]),
             'rider'          => $order->rider ? [
                 'name'                => $order->rider->name,
@@ -202,6 +207,33 @@ class OrderController extends Controller
             'order_number' => $order->order_number,
             'total_amount' => $order->total_amount,
         ], 201);
+    }
+
+    private function computeEtaMinutes(Order $order): ?int
+    {
+        if (! in_array($order->status, ['rider_assigned', 'picked_up', 'on_the_way'])) {
+            return null;
+        }
+
+        $rider = $order->rider;
+        if (! $rider || ! $rider->current_latitude || ! $rider->current_longitude) {
+            return null;
+        }
+
+        // Haversine distance in km
+        $lat1 = deg2rad((float) $rider->current_latitude);
+        $lat2 = deg2rad((float) $order->delivery_lat);
+        $dLat = $lat2 - $lat1;
+        $dLng = deg2rad((float) $order->delivery_lng - (float) $rider->current_longitude);
+        $a = sin($dLat / 2) ** 2 + cos($lat1) * cos($lat2) * sin($dLng / 2) ** 2;
+        $km = 6371 * 2 * asin(sqrt($a));
+
+        $speedKmh = (float) config('shop.delivery_avg_speed_kmh', 30);
+        if ($speedKmh <= 0) {
+            return null;
+        }
+
+        return max(1, (int) ceil($km / $speedKmh * 60));
     }
 
     public function cancel(Request $request, Order $order, CancelOrderAction $cancelOrder): JsonResponse

@@ -85,7 +85,7 @@ class StockService
             ->withQueryString();
     }
 
-    public function autoDeductForOrder(Order $order): void
+    public function deductForOrder(Order $order): void
     {
         $stock = StockLevel::where('size_id', $order->size_id)->lockForUpdate()->first();
 
@@ -118,7 +118,7 @@ class StockService
         }
     }
 
-    public function autoRestoreForOrder(Order $order): void
+    public function restoreForOrder(Order $order): void
     {
         $stock = StockLevel::where('size_id', $order->size_id)->lockForUpdate()->first();
 

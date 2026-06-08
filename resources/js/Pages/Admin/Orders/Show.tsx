@@ -397,7 +397,8 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                     size="sm" onClick={collectPayment}
                                     className="h-8 gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs shadow-sm"
                                 >
-                                    <CreditCard className="h-3.5 w-3.5" /> Mark Payment Collected
+                                    <CreditCard className="h-3.5 w-3.5" />
+                                    {order.payment_method === 'mpesa' ? 'Mark M-Pesa Paid' : 'Mark Cash Collected'}
                                 </Button>
                             )}
 

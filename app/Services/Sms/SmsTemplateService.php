@@ -72,6 +72,15 @@ class SmsTemplateService
     // ── Admin templates ───────────────────────────────────────────────────────
 
     /**
+     * Sent when auto-assignment finds no eligible rider for a new order.
+     */
+    public function adminNoRiderAvailable(Order $order): string
+    {
+        return "{$this->appName} ALERT: Order #{$order->order_number} could not be auto-assigned "
+            . "— no riders are available. Please assign a rider manually in the admin dashboard.";
+    }
+
+    /**
      * Sent to the shop manager when a new order is placed.
      */
     public function adminNewOrder(Order $order): string

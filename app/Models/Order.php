@@ -35,6 +35,8 @@ class Order extends Model
         'delivery_notes',
         'idempotency_key',
         'rider_assigned_at',
+        'rider_acceptance_deadline',
+        'rider_accepted_at',
         'picked_up_at',
         'on_the_way_at',
         'delivered_at',
@@ -47,13 +49,17 @@ class Order extends Model
         'issue_resolved',
         'safety_checklist',
         'delivery_photo_path',
+        'mpesa_checkout_request_id',
+        'mpesa_merchant_request_id',
     ];
 
     protected function casts(): array
     {
         return [
-            'rider_assigned_at' => 'datetime',
-            'picked_up_at'      => 'datetime',
+            'rider_assigned_at'         => 'datetime',
+            'rider_acceptance_deadline' => 'datetime',
+            'rider_accepted_at'         => 'datetime',
+            'picked_up_at'              => 'datetime',
             'on_the_way_at'     => 'datetime',
             'delivered_at'      => 'datetime',
             'cancelled_at'      => 'datetime',
@@ -140,5 +146,10 @@ class Order extends Model
     public function isReportableIssue(): bool
     {
         return ! in_array($this->status, ['delivered', 'cancelled']);
+    }
+
+    public function needsPaymentConfirmation(): bool
+    {
+        return $this->status === 'delivered' && $this->payment_status === 'pending';
     }
 }

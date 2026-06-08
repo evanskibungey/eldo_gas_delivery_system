@@ -27,10 +27,8 @@ class CancelOrderAction
         }
 
         DB::transaction(function () use ($order, $reason, $cancelledBy, $actorId) {
-            // Stock was deducted at picked_up — restore it on cancellation
-            if ($order->status === 'picked_up') {
-                $this->stock->autoRestoreForOrder($order);
-            }
+            // Stock is deducted at order placement — always restore on cancellation
+            $this->stock->restoreForOrder($order);
 
             $order->update([
                 'status'        => 'cancelled',

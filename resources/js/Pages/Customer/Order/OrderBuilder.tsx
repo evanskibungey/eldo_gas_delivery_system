@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import {
     MapPin, Crosshair, Loader2, ChevronDown, ChevronUp,
     AlertCircle, RefreshCcw, Package, Check,
-    StickyNote, CheckCircle2,
+    StickyNote, CheckCircle2, Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -48,14 +48,23 @@ interface Address {
 }
 
 interface Props {
-    sizes:           Size[];
-    brands_by_size:  Record<string, Brand[]>;
-    addons_by_size:  Record<string, AddonGroup[]>;
-    addresses:       Address[];
-    default_address: number | null;
-    mpesa_till:      string;
-    prefill:         { order_type: string; size_id: number; brand_id: number } | null;
+    sizes:              Size[];
+    brands_by_size:     Record<string, Brand[]>;
+    addons_by_size:     Record<string, AddonGroup[]>;
+    addresses:          Address[];
+    default_address:    number | null;
+    mpesa_till:         string;
+    gaspoints_balance:  number;
+    prefill:            { order_type: string; size_id: number; brand_id: number } | null;
 }
+
+// GasPoints redemption tiers (mirrors backend REDEMPTION_TIERS + Flutter client)
+const REDEMPTION_TIERS: [number, number][] = [
+    [500,  50],
+    [1000, 100],
+    [2000, 200],
+    [5000, 500],
+];
 
 const fmt = (n: number) => `KES ${n.toLocaleString()}`;
 
@@ -107,7 +116,7 @@ function ScrollRow({ children, className }: { children: React.ReactNode; classNa
 
 export default function OrderBuilder({
     sizes, brands_by_size, addons_by_size,
-    addresses: initialAddresses, default_address, mpesa_till, prefill,
+    addresses: initialAddresses, default_address, mpesa_till, gaspoints_balance, prefill,
 }: Props) {
     const [orderType,    setOrderType]    = useState<'swap' | 'new_cylinder'>(
         (prefill?.order_type as 'swap' | 'new_cylinder') ?? 'swap',
@@ -120,8 +129,9 @@ export default function OrderBuilder({
         default_address ?? (initialAddresses[0]?.id ?? null),
     );
     const [payMethod,    setPayMethod]    = useState('mpesa');
-    const [notes,        setNotes]        = useState('');
-    const [loading,      setLoading]      = useState(false);
+    const [notes,             setNotes]             = useState('');
+    const [redemptionPoints,  setRedemptionPoints]  = useState(0);
+    const [loading,           setLoading]           = useState(false);
     const [addonsOpen,   setAddonsOpen]   = useState(true);
     const [addrOpen,     setAddrOpen]     = useState(false);
     const [autoLocating, setAutoLocating] = useState(false);
@@ -142,7 +152,8 @@ export default function OrderBuilder({
         return addonIds.reduce((sum, id) => sum + (all.find(i => i.id === id)?.price ?? 0), 0);
     }, [addonIds, addonsForSize]);
 
-    const total = basePrice + deliveryFee + addonsTotal;
+    const gasPointsDiscount = REDEMPTION_TIERS.find(([pts]) => pts === redemptionPoints)?.[1] ?? 0;
+    const total = Math.max(0, basePrice + deliveryFee + addonsTotal - gasPointsDiscount);
 
     // Section completion states
     const sizesDone    = !! sizeId;
@@ -254,13 +265,14 @@ export default function OrderBuilder({
 
         setLoading(true);
         router.post('/order', {
-            order_type:     orderType,
-            size_id:        sizeId,
-            brand_id:       brandId,
-            addon_ids:      addonIds,
-            address_id:     addressId,
-            payment_method: payMethod,
-            delivery_notes: notes || null,
+            order_type:        orderType,
+            size_id:           sizeId,
+            brand_id:          brandId,
+            addon_ids:         addonIds,
+            address_id:        addressId,
+            payment_method:    payMethod,
+            delivery_notes:    notes || null,
+            redemption_points: redemptionPoints || null,
         }, {
             onError:  errs => { setErrors(errs); setLoading(false); },
             onFinish: ()   => setLoading(false),
@@ -741,6 +753,65 @@ export default function OrderBuilder({
                         )}
                     </div>
 
+                    {/* ── GasPoints redemption ─────────────────────────────── */}
+                    {gaspoints_balance >= 500 && (
+                        <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
+                                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                        GasPoints
+                                    </p>
+                                </div>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
+                                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                                    {gaspoints_balance.toLocaleString()} pts
+                                </span>
+                            </div>
+                            <p className="mb-2.5 text-xs text-slate-500">Redeem points for a discount on this order:</p>
+                            <div className="flex flex-wrap gap-2">
+                                {/* "None" option */}
+                                <button
+                                    type="button"
+                                    onClick={() => setRedemptionPoints(0)}
+                                    className={cn(
+                                        'rounded-xl border-2 px-3 py-2 text-xs font-semibold transition-all duration-150',
+                                        redemptionPoints === 0
+                                            ? 'border-orange-400 bg-orange-50 text-orange-700'
+                                            : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300',
+                                    )}
+                                >
+                                    None
+                                </button>
+                                {REDEMPTION_TIERS.filter(([pts]) => pts <= gaspoints_balance).map(([pts, kes]) => (
+                                    <button
+                                        key={pts}
+                                        type="button"
+                                        onClick={() => setRedemptionPoints(redemptionPoints === pts ? 0 : pts)}
+                                        className={cn(
+                                            'flex flex-col items-center rounded-xl border-2 px-3 py-2 transition-all duration-150',
+                                            redemptionPoints === pts
+                                                ? 'border-amber-400 bg-amber-50 shadow-sm'
+                                                : 'border-slate-200 bg-white hover:border-amber-200',
+                                        )}
+                                    >
+                                        <span className={cn('text-xs font-bold', redemptionPoints === pts ? 'text-amber-700' : 'text-slate-700')}>
+                                            −{fmt(kes)}
+                                        </span>
+                                        <span className={cn('text-[10px]', redemptionPoints === pts ? 'text-amber-500' : 'text-slate-400')}>
+                                            {pts.toLocaleString()} pts
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                            {redemptionPoints > 0 && (
+                                <p className="mt-2.5 text-xs font-medium text-amber-700">
+                                    Saving {fmt(gasPointsDiscount)} with {redemptionPoints.toLocaleString()} GasPoints
+                                </p>
+                            )}
+                        </div>
+                    )}
+
                     {/* ── Delivery note ─────────────────────────────────────── */}
                     <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
                         <div className="flex items-center gap-2 mb-2">
@@ -812,6 +883,15 @@ export default function OrderBuilder({
                                         <div className="flex justify-between text-slate-500">
                                             <span>Add-ons</span>
                                             <span>{fmt(addonsTotal)}</span>
+                                        </div>
+                                    )}
+                                    {gasPointsDiscount > 0 && (
+                                        <div className="flex justify-between text-amber-600 font-medium">
+                                            <span className="flex items-center gap-1">
+                                                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                                                GasPoints
+                                            </span>
+                                            <span>−{fmt(gasPointsDiscount)}</span>
                                         </div>
                                     )}
                                     <div className="flex justify-between border-t border-slate-100 pt-2.5 font-bold text-slate-800">
@@ -890,6 +970,11 @@ export default function OrderBuilder({
                                 </p>
                                 {addonsTotal > 0 && (
                                     <p className="text-[10px] text-slate-400">incl. {fmt(addonsTotal)} add-ons</p>
+                                )}
+                                {gasPointsDiscount > 0 && (
+                                    <p className="text-[10px] font-semibold text-amber-600">
+                                        −{fmt(gasPointsDiscount)} GasPoints discount
+                                    </p>
                                 )}
                             </>
                         ) : (

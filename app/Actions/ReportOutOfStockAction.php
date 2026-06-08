@@ -24,6 +24,9 @@ class ReportOutOfStockAction
         }
 
         DB::transaction(function () use ($order, $reason, $actorId) {
+            // Stock was deducted at placement — restore it so the cylinder is available again
+            $this->stock->restoreForOrder($order);
+
             $order->update([
                 'status'            => 'cancelled',
                 'has_issue'         => true,

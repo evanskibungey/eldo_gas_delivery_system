@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\CustomerAuthController;
+use App\Http\Controllers\Api\Webhooks\MpesaCallbackController;
 use App\Http\Controllers\Api\V1\Auth\RiderAuthController;
 use App\Http\Controllers\Api\V1\Customer\AddressController;
 use App\Http\Controllers\Api\V1\Customer\CatalogueController;
@@ -89,12 +90,17 @@ Route::middleware('auth.api.rider')->prefix('rider')->group(function () {
     Route::get('orders',                        [RiderOrderController::class, 'active']);
     Route::get('orders/{order}',                [RiderOrderController::class, 'show']);
     Route::put('orders/{order}/status',         [RiderOrderController::class, 'updateStatus']);
+    Route::post('orders/{order}/accept',        [RiderOrderController::class, 'accept']);
+    Route::post('orders/{order}/decline',       [RiderOrderController::class, 'decline']);
     Route::put('location',                      [LocationController::class, 'update']);
     Route::post('location/toggle-availability', [LocationController::class, 'toggleAvailability']);
     Route::get('profile',                       [RiderProfileController::class, 'show']);
     Route::get('earnings',                      [EarningsController::class, 'index']);
     Route::get('ratings',                       [RiderRatingController::class, 'index']);
 });
+
+// ─── M-Pesa Daraja Webhook (no auth — Safaricom calls this) ──────────────────
+Route::post('/webhooks/mpesa/callback', [MpesaCallbackController::class, 'handle']);
 
 // ─── Bearer-aware broadcast auth ──────────────────────────────────────────────
 // Pusher/Reverb private channel auth for API token users (rider & customer).

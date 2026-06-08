@@ -23,8 +23,9 @@ class PlaceOrderRequest extends FormRequest
             'addon_ids'      => ['nullable', 'array'],
             'addon_ids.*'    => ['exists:addon_items,id'],
             'address_id'     => ['required', 'exists:customer_addresses,id'],
-            'payment_method' => ['required', 'in:cash,mpesa'],
-            'delivery_notes' => ['nullable', 'string', 'max:500'],
+            'payment_method'    => ['required', 'in:cash,mpesa'],
+            'delivery_notes'    => ['nullable', 'string', 'max:500'],
+            'redemption_points' => ['nullable', 'integer', 'in:0,500,1000,2000,5000'],
         ];
     }
 
