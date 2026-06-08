@@ -9,6 +9,8 @@ use App\Models\CylinderSize;
 use App\Models\GasBrand;
 use App\Models\Order;
 use App\Models\StockLevel;
+use App\Models\SystemSetting;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -42,6 +44,26 @@ class CustomerOrderTest extends TestCase
         $this->authed()->getJson('/api/v1/orders')
             ->assertOk()
             ->assertJsonPath('meta.total', 3);
+    }
+
+    public function test_order_history_includes_can_reorder_flag(): void
+    {
+        $delivered = Order::factory()->delivered()->create(['customer_id' => $this->customer->id]);
+        $pending = Order::factory()->create([
+            'customer_id' => $this->customer->id,
+            'status' => 'pending',
+        ]);
+
+        $this->authed()->getJson('/api/v1/orders')
+            ->assertOk()
+            ->assertJsonFragment([
+                'id' => $delivered->id,
+                'can_reorder' => true,
+            ])
+            ->assertJsonFragment([
+                'id' => $pending->id,
+                'can_reorder' => false,
+            ]);
     }
 
     // ── show ───────────────────────────────────────────────────────────────────
@@ -91,6 +113,39 @@ class CustomerOrderTest extends TestCase
 
         $response->assertCreated()->assertJsonStructure(['order_number', 'total_amount']);
         $this->assertDatabaseHas('orders', ['customer_id' => $this->customer->id, 'order_type' => 'swap']);
+    }
+
+    public function test_customer_cannot_place_order_when_shop_is_closed(): void
+    {
+        SystemSetting::set('shop_open_time', '07:00');
+        SystemSetting::set('shop_close_time', '21:00');
+        $this->travelTo(Carbon::create(2026, 1, 1, 22, 0, 0, config('app.timezone')));
+
+        $size    = CylinderSize::factory()->create();
+        $brand   = GasBrand::factory()->create();
+        $address = CustomerAddress::factory()->create(['customer_id' => $this->customer->id]);
+
+        CylinderPrice::factory()->create([
+            'size_id'          => $size->id,
+            'gas_refill_price' => 1800,
+            'delivery_fee'     => 200,
+        ]);
+        StockLevel::factory()->create(['size_id' => $size->id, 'filled_count' => 10]);
+        $size->brands()->attach($brand->id);
+
+        $this->authed()->postJson('/api/v1/orders', [
+            'order_type'     => 'swap',
+            'size_id'        => $size->id,
+            'brand_id'       => $brand->id,
+            'address_id'     => $address->id,
+            'payment_method' => 'cash',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Shop is closed right now.')
+            ->assertJsonPath('shop_status.open', false);
+
+        $this->assertDatabaseCount('orders', 0);
+        $this->travelBack();
     }
 
     public function test_place_order_is_idempotent_for_same_key(): void

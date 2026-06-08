@@ -46,6 +46,7 @@ class Order extends Model
         'issue_description',
         'issue_resolved',
         'safety_checklist',
+        'delivery_photo_path',
     ];
 
     protected function casts(): array
@@ -129,6 +130,11 @@ class Order extends Model
     public function canBeCancelledByCustomer(): bool
     {
         return in_array($this->status, ['pending', 'rider_assigned']);
+    }
+
+    public function canBeReorderedByCustomer(): bool
+    {
+        return $this->status === 'delivered';
     }
 
     public function isReportableIssue(): bool

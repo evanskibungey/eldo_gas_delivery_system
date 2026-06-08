@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Api\V1\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\SystemSetting;
-use Carbon\Carbon;
+use App\Services\EtaService;
+use App\Services\ShopHoursService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,42 +17,25 @@ use Illuminate\Http\Request;
  */
 class HomeController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(Request $request, ShopHoursService $shopHours, EtaService $eta): JsonResponse
     {
         $customer = $request->user();
-
-        $openTime  = SystemSetting::get('shop_open_time',  '07:00');
-        $closeTime = SystemSetting::get('shop_close_time', '21:00');
         $till      = SystemSetting::get('mpesa_till_number') ?? config('services.mpesa.till_number');
-
-        $now = Carbon::now(config('app.timezone'));
-        [$openH, $openM]   = array_map('intval', explode(':', $openTime));
-        [$closeH, $closeM] = array_map('intval', explode(':', $closeTime));
-
-        $opensAtToday  = $now->copy()->setTime($openH, $openM);
-        $closesAtToday = $now->copy()->setTime($closeH, $closeM);
-
-        $isOpen = $now->betweenIncluded($opensAtToday, $closesAtToday);
-
-        $nextOpen = null;
-        if (! $isOpen) {
-            $nextOpen = $now->lessThan($opensAtToday)
-                ? $opensAtToday
-                : $opensAtToday->copy()->addDay();
-        }
+        $shopStatus = $shopHours->status();
 
         $lastOrder = Order::where('customer_id', $customer->id)
             ->with(['size:id,name', 'brand:id,name'])
             ->latest()
             ->first();
 
+        // Use the customer's last delivery address as a distance hint for ETA.
+        $etaMinutes = $eta->estimate(
+            $lastOrder?->delivery_lat,
+            $lastOrder?->delivery_lng,
+        );
+
         return response()->json([
-            'shop_status' => [
-                'open'       => $isOpen,
-                'opens_at'   => $openTime,
-                'closes_at'  => $closeTime,
-                'next_open'  => $nextOpen?->toIso8601String(),
-            ],
+            'shop_status' => $shopStatus,
             'customer' => [
                 'name'      => $customer->name,
                 'gaspoints' => (int) $customer->gaspoints_balance,
@@ -64,11 +48,10 @@ class HomeController extends Controller
                 'size_name'    => $lastOrder->size?->name,
                 'brand_name'   => $lastOrder->brand?->name,
                 'total_amount' => (int) $lastOrder->total_amount,
-                'can_reorder'  => $lastOrder->status === 'delivered',
+                'can_reorder'  => $lastOrder->canBeReorderedByCustomer(),
                 'created_at'   => $lastOrder->created_at?->toIso8601String(),
             ] : null,
-            // Static window for now. Future: compute per-area from rider load.
-            'eta_minutes' => 25,
+            'eta_minutes' => $etaMinutes,
             'payment' => [
                 'mpesa_till_number' => $till !== null && $till !== '' ? (string) $till : null,
             ],

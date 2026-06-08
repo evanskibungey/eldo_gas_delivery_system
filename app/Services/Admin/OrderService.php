@@ -63,8 +63,28 @@ class OrderService
         }
 
         DB::transaction(function () use ($order, $rider): void {
+            // Pessimistic lock prevents two admins assigning the same rider
+            // to different orders in the same instant.
+            $locked = Rider::lockForUpdate()->find($rider->id);
+
+            if (! $locked || ! $locked->is_active || ! $locked->is_available) {
+                throw ValidationException::withMessages([
+                    'rider_id' => 'This rider is no longer available.',
+                ]);
+            }
+
+            $hasActive = $locked->orders()
+                ->whereIn('status', ['rider_assigned', 'picked_up', 'on_the_way'])
+                ->exists();
+
+            if ($hasActive) {
+                throw ValidationException::withMessages([
+                    'rider_id' => 'This rider already has an active order.',
+                ]);
+            }
+
             $order->update([
-                'rider_id'          => $rider->id,
+                'rider_id'          => $locked->id,
                 'status'            => 'rider_assigned',
                 'rider_assigned_at' => now(),
             ]);
@@ -72,7 +92,7 @@ class OrderService
             OrderStatusHistory::create([
                 'order_id'   => $order->id,
                 'status'     => 'rider_assigned',
-                'note'       => "Assigned to {$rider->name}",
+                'note'       => "Assigned to {$locked->name}",
                 'actor_type' => 'admin',
                 'actor_id'   => auth('admin')->id(),
                 'created_at' => now(),
@@ -94,22 +114,31 @@ class OrderService
 
         $preserveStatus = in_array($order->status, ['picked_up', 'on_the_way', 'correction_in_progress']);
 
-        $updates = [
-            'rider_id'          => $rider->id,
-            'rider_assigned_at' => now(),
-        ];
+        DB::transaction(function () use ($order, $rider, $reason, $preserveStatus): void {
+            // Lock the new rider to prevent concurrent double-assignment.
+            $locked = Rider::lockForUpdate()->find($rider->id);
 
-        if (! $preserveStatus) {
-            $updates['status'] = 'rider_assigned';
-        }
+            if (! $locked || ! $locked->is_active) {
+                throw ValidationException::withMessages([
+                    'rider_id' => 'The selected rider is not active.',
+                ]);
+            }
 
-        DB::transaction(function () use ($order, $updates, $rider, $reason): void {
+            $updates = [
+                'rider_id'          => $locked->id,
+                'rider_assigned_at' => now(),
+            ];
+
+            if (! $preserveStatus) {
+                $updates['status'] = 'rider_assigned';
+            }
+
             $order->update($updates);
 
             OrderStatusHistory::create([
                 'order_id'   => $order->id,
                 'status'     => $order->fresh()->status,
-                'note'       => "Reassigned to {$rider->name}. Reason: {$reason}",
+                'note'       => "Reassigned to {$locked->name}. Reason: {$reason}",
                 'actor_type' => 'admin',
                 'actor_id'   => auth('admin')->id(),
                 'created_at' => now(),

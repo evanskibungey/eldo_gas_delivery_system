@@ -10,6 +10,7 @@ use App\Models\AddonItem;
 use App\Models\CustomerAddress;
 use App\Models\CylinderSize;
 use App\Models\Order;
+use App\Services\ShopHoursService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -33,6 +34,7 @@ class OrderController extends Controller
                 'brand_name'   => $o->brand?->name,
                 'total_amount' => $o->total_amount,
                 'created_at'   => $o->created_at->toIso8601String(),
+                'can_reorder'  => $o->canBeReorderedByCustomer(),
                 'can_cancel'   => $o->canBeCancelledByCustomer(),
                 'can_rate'     => $o->status === 'delivered' && ! $o->rating,
                 'can_track'    => $o->isActive() && $o->rider_id,
@@ -99,7 +101,7 @@ class OrderController extends Controller
         ]);
     }
 
-    public function store(Request $request, PlaceOrderAction $action): JsonResponse
+    public function store(Request $request, PlaceOrderAction $action, ShopHoursService $shopHours): JsonResponse
     {
         $input = $request->validate([
             'order_type'        => 'required|in:swap,new_cylinder',
@@ -112,6 +114,24 @@ class OrderController extends Controller
             'delivery_notes'    => 'nullable|string|max:255',
             'redemption_points' => 'nullable|integer|in:0,500,1000,2000,5000',
         ]);
+
+        if (! $shopHours->isOpen()) {
+            $shopStatus = $shopHours->status();
+
+            return response()->json([
+                'message' => 'Shop is closed right now.',
+                'errors' => [
+                    'shop_status' => [
+                        sprintf(
+                            'Orders can only be placed between %s and %s.',
+                            $shopStatus['opens_at'],
+                            $shopStatus['closes_at'],
+                        ),
+                    ],
+                ],
+                'shop_status' => $shopStatus,
+            ], 422);
+        }
 
         // Ensure the selected brand is available for the selected cylinder size.
         $size = CylinderSize::with('brands:id')->find($input['size_id']);

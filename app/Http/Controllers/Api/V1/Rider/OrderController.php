@@ -11,6 +11,7 @@ use App\Services\Admin\StockService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class OrderController extends Controller
 {
@@ -50,6 +51,7 @@ class OrderController extends Controller
         $data = $request->validate([
             'status'            => 'required|in:picked_up,on_the_way,delivered',
             'payment_collected' => 'boolean',
+            'delivery_photo'    => 'nullable|image|max:5120',
         ]);
 
         $allowed = [
@@ -75,6 +77,11 @@ class OrderController extends Controller
 
                 if (! empty($data['payment_collected']) && $order->payment_method === 'cash') {
                     $updates['payment_status'] = 'collected';
+                }
+
+                if ($request->hasFile('delivery_photo')) {
+                    $updates['delivery_photo_path'] = $request->file('delivery_photo')
+                        ->store("delivery_photos/{$order->id}", 'public');
                 }
             }
 
@@ -119,9 +126,12 @@ class OrderController extends Controller
     private function formatOrderDetail(Order $o): array
     {
         return array_merge($this->formatOrder($o), [
-            'brand_name'   => $o->brand?->name,
-            'addons'       => $o->addons->map(fn ($a) => ['name' => $a->addonItem?->name, 'price' => $a->price]),
-            'history'      => $o->statusHistory->map(fn ($h) => ['status' => $h->status, 'at' => $h->created_at?->toIso8601String()]),
+            'brand_name'          => $o->brand?->name,
+            'addons'              => $o->addons->map(fn ($a) => ['name' => $a->addonItem?->name, 'price' => $a->price]),
+            'history'             => $o->statusHistory->map(fn ($h) => ['status' => $h->status, 'at' => $h->created_at?->toIso8601String()]),
+            'delivery_photo_url'  => $o->delivery_photo_path
+                ? Storage::url($o->delivery_photo_path)
+                : null,
         ]);
     }
 }
