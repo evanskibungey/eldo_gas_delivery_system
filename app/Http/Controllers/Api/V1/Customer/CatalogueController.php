@@ -27,7 +27,14 @@ class CatalogueController extends Controller
                     'new_gas_fill' => $s->price?->new_gas_fill_price,
                     'delivery_fee' => $s->price?->delivery_fee,
                 ],
-                'brands'       => $s->brands->map(fn ($b) => ['id' => $b->id, 'name' => $b->name, 'logo_url' => $b->logo_url ?? null]),
+                'brands'       => $s->brands->map(fn ($b) => [
+                    'id'        => $b->id,
+                    'name'      => $b->name,
+                    'logo_url'  => $b->logo_url ?? null,
+                    'image_url' => $b->pivot->image_path
+                        ? asset('storage/' . $b->pivot->image_path)
+                        : ($b->logo_url ?? null),
+                ]),
                 'addon_groups' => $s->addonGroups->map(fn ($g) => [
                     'id'             => $g->id,
                     'name'           => $g->name,

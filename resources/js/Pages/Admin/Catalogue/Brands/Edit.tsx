@@ -1,6 +1,6 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
-import { ArrowLeft, Loader2, Upload, X } from 'lucide-react';
+import { ArrowLeft, ImageOff, Loader2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,14 @@ import { cn } from '@/lib/utils';
 import { useState, useRef } from 'react';
 
 interface Props {
-    brand: { id: number; name: string; logo_url: string | null; is_active: boolean; size_ids: number[] };
+    brand: {
+        id: number;
+        name: string;
+        logo_url: string | null;
+        is_active: boolean;
+        size_ids: number[];
+        size_images: Record<number, string | null>;
+    };
     sizes: { id: number; name: string }[];
 }
 
@@ -24,11 +31,25 @@ export default function BrandsEdit({ brand, sizes }: Props) {
     const [selectedSizes, setSelectedSizes] = useState<number[]>(brand.size_ids.map(Number));
     const [logoFile, setLogoFile]           = useState<File | null>(null);
     const [logoPreview, setLogoPreview]     = useState<string | null>(brand.logo_url);
+    const [sizeImages, setSizeImages]       = useState<Record<number, File>>({});
+    // seed from existing pivot images; keys must be numbers
+    const [sizePreviews, setSizePreviews]   = useState<Record<number, string | null>>(
+        Object.fromEntries(Object.entries(brand.size_images).map(([k, v]) => [Number(k), v]))
+    );
+    const [removeSizeImages, setRemoveSizeImages] = useState<number[]>([]);
     const [errors, setErrors]               = useState<Record<string, string>>({});
-    const fileRef                           = useRef<HTMLInputElement>(null);
+    const logoRef                           = useRef<HTMLInputElement>(null);
 
     function toggleSize(id: number) {
-        setSelectedSizes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+        setSelectedSizes(prev => {
+            if (prev.includes(id)) {
+                setSizeImages(p => { const n = { ...p }; delete n[id]; return n; });
+                setSizePreviews(p => { const n = { ...p }; delete n[id]; return n; });
+                setRemoveSizeImages(p => p.filter(x => x !== id));
+                return prev.filter(x => x !== id);
+            }
+            return [...prev, id];
+        });
     }
 
     function handleLogo(e: React.ChangeEvent<HTMLInputElement>) {
@@ -36,6 +57,24 @@ export default function BrandsEdit({ brand, sizes }: Props) {
         if (!file) return;
         setLogoFile(file);
         setLogoPreview(URL.createObjectURL(file));
+    }
+
+    function handleSizeImage(sizeId: number, e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setSizeImages(p => ({ ...p, [sizeId]: file }));
+        setSizePreviews(p => ({ ...p, [sizeId]: URL.createObjectURL(file) }));
+        setRemoveSizeImages(p => p.filter(id => id !== sizeId));
+        e.target.value = '';
+    }
+
+    function clearSizeImage(sizeId: number) {
+        setSizeImages(p => { const n = { ...p }; delete n[sizeId]; return n; });
+        setSizePreviews(p => ({ ...p, [sizeId]: null }));
+        // only mark for removal if it had a server-side image
+        if (brand.size_images[sizeId]) {
+            setRemoveSizeImages(p => [...p.filter(id => id !== sizeId), sizeId]);
+        }
     }
 
     function onSubmit(e: React.FormEvent) {
@@ -47,12 +86,16 @@ export default function BrandsEdit({ brand, sizes }: Props) {
         fd.append('is_active', isActive ? '1' : '0');
         selectedSizes.forEach(id => fd.append('size_ids[]', String(id)));
         if (logoFile) fd.append('logo', logoFile);
+        Object.entries(sizeImages).forEach(([sizeId, file]) => fd.append(`size_images[${sizeId}]`, file));
+        removeSizeImages.forEach(id => fd.append('remove_size_images[]', String(id)));
 
         router.post(`/admin/catalogue/brands/${brand.id}`, fd, {
             onError: (errs) => { setLoading(false); setErrors(errs as Record<string, string>); },
             onFinish: () => setLoading(false),
         });
     }
+
+    const selectedSizeObjects = sizes.filter(s => selectedSizes.includes(s.id));
 
     return (
         <AdminLayout title={`Edit ${brand.name}`} subtitle="Update brand details and availability">
@@ -68,6 +111,7 @@ export default function BrandsEdit({ brand, sizes }: Props) {
                     <div className="p-6">
                         <form onSubmit={onSubmit} className="space-y-5">
 
+                            {/* Brand name */}
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">Brand Name</Label>
                                 <Input
@@ -78,12 +122,13 @@ export default function BrandsEdit({ brand, sizes }: Props) {
                                 <FieldError message={errors.name} />
                             </div>
 
+                            {/* Brand logo */}
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">
                                     Brand Logo <span className="text-slate-400 font-normal">(optional)</span>
                                 </Label>
                                 <div
-                                    onClick={() => fileRef.current?.click()}
+                                    onClick={() => logoRef.current?.click()}
                                     className="mt-1.5 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 p-6 transition-colors hover:border-orange-300 hover:bg-orange-50/30"
                                 >
                                     {logoPreview ? (
@@ -105,9 +150,10 @@ export default function BrandsEdit({ brand, sizes }: Props) {
                                         </>
                                     )}
                                 </div>
-                                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogo} className="hidden" />
+                                <input ref={logoRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogo} className="hidden" />
                             </div>
 
+                            {/* Available in sizes */}
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">Available In</Label>
                                 <p className="mt-0.5 mb-2 text-xs text-slate-400">Select which cylinder sizes this brand is sold in.</p>
@@ -134,6 +180,56 @@ export default function BrandsEdit({ brand, sizes }: Props) {
                                 </div>
                             </div>
 
+                            {/* Per-size cylinder images */}
+                            {selectedSizeObjects.length > 0 && (
+                                <div>
+                                    <Label className="text-sm font-medium text-slate-700">Cylinder Images per Size</Label>
+                                    <p className="mt-0.5 mb-3 text-xs text-slate-400">
+                                        Upload the specific cylinder photo for each size. Customers will see this image when selecting that size.
+                                    </p>
+                                    <div className="space-y-2">
+                                        {selectedSizeObjects.map(s => (
+                                            <div key={s.id} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+                                                <span className="w-10 shrink-0 text-center text-xs font-semibold text-slate-600 bg-slate-200 rounded px-1.5 py-0.5">
+                                                    {s.name}
+                                                </span>
+                                                {sizePreviews[s.id] ? (
+                                                    <div className="relative">
+                                                        <img
+                                                            src={sizePreviews[s.id]!}
+                                                            alt={s.name}
+                                                            className="h-12 w-12 rounded-md object-contain border border-slate-200 bg-white"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => clearSizeImage(s.id)}
+                                                            className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white shadow"
+                                                        >
+                                                            <X className="h-2.5 w-2.5" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-dashed border-slate-300 bg-white">
+                                                        <ImageOff className="h-4 w-4 text-slate-300" />
+                                                    </div>
+                                                )}
+                                                <label className="flex cursor-pointer items-center gap-1.5 text-xs text-orange-600 hover:text-orange-700 font-medium">
+                                                    <Upload className="h-3.5 w-3.5" />
+                                                    {sizePreviews[s.id] ? 'Replace' : 'Upload'}
+                                                    <input
+                                                        type="file"
+                                                        accept="image/jpeg,image/png,image/webp"
+                                                        onChange={e => handleSizeImage(s.id, e)}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Active toggle */}
                             <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
                                 <input id="is_active" type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="h-4 w-4 rounded border-slate-300 accent-orange-500" />
                                 <Label htmlFor="is_active" className="text-sm font-normal text-slate-600 cursor-pointer">Active — visible in ordering flow</Label>

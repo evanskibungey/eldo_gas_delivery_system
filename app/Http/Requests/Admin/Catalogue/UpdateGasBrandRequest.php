@@ -14,11 +14,15 @@ class UpdateGasBrandRequest extends FormRequest
         $brandId = $this->route('brand')?->id;
 
         return [
-            'name'      => ['required', 'string', 'max:100', Rule::unique('gas_brands', 'name')->ignore($brandId)],
-            'logo'      => ['nullable', 'image', 'max:5120', 'mimes:jpg,jpeg,png,webp'],
-            'size_ids'  => ['array'],
-            'size_ids.*'=> ['exists:cylinder_sizes,id'],
-            'is_active' => ['boolean'],
+            'name'                  => ['required', 'string', 'max:100', Rule::unique('gas_brands', 'name')->ignore($brandId)],
+            'logo'                  => ['nullable', 'image', 'max:5120', 'mimes:jpg,jpeg,png,webp'],
+            'size_ids'              => ['array'],
+            'size_ids.*'            => ['exists:cylinder_sizes,id'],
+            'size_images'           => ['array'],
+            'size_images.*'         => ['nullable', 'image', 'max:2048', 'mimes:jpg,jpeg,png,webp'],
+            'remove_size_images'    => ['array'],
+            'remove_size_images.*'  => ['integer'],
+            'is_active'             => ['boolean'],
         ];
     }
 

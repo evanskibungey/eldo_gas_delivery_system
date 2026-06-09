@@ -37,7 +37,11 @@ class GasBrandController extends Controller
 
     public function store(StoreGasBrandRequest $request): RedirectResponse
     {
-        $brand = $this->catalogue->createBrand($request->validated(), $request->file('logo'));
+        $brand = $this->catalogue->createBrand(
+            $request->validated(),
+            $request->file('logo'),
+            $request->file('size_images') ?? [],
+        );
 
         return redirect()->route('admin.catalogue.brands.index')
             ->with('success', "{$brand->name} brand added.");
@@ -45,13 +49,18 @@ class GasBrandController extends Controller
 
     public function edit(GasBrand $brand): Response
     {
+        $brand->load('sizes');
+
         return Inertia::render('Admin/Catalogue/Brands/Edit', [
             'brand' => [
-                'id'        => $brand->id,
-                'name'      => $brand->name,
-                'logo_url'  => $brand->logo_url,
-                'is_active' => $brand->is_active,
-                'size_ids'  => $brand->sizes->pluck('id'),
+                'id'           => $brand->id,
+                'name'         => $brand->name,
+                'logo_url'     => $brand->logo_url,
+                'is_active'    => $brand->is_active,
+                'size_ids'     => $brand->sizes->pluck('id'),
+                'size_images'  => $brand->sizes->mapWithKeys(fn ($s) => [
+                    $s->id => $s->pivot->image_path ? asset('storage/' . $s->pivot->image_path) : null,
+                ]),
             ],
             'sizes' => $this->catalogue->allSizes()->map(fn ($s) => ['id' => $s->id, 'name' => $s->name]),
         ]);
@@ -59,7 +68,13 @@ class GasBrandController extends Controller
 
     public function update(UpdateGasBrandRequest $request, GasBrand $brand): RedirectResponse
     {
-        $this->catalogue->updateBrand($brand, $request->validated(), $request->file('logo'));
+        $this->catalogue->updateBrand(
+            $brand,
+            $request->validated(),
+            $request->file('logo'),
+            $request->file('size_images') ?? [],
+            $request->input('remove_size_images', []),
+        );
 
         return redirect()->route('admin.catalogue.brands.index')
             ->with('success', "{$brand->name} updated.");

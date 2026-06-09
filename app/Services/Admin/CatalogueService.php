@@ -71,7 +71,7 @@ class CatalogueService
         return GasBrand::with('sizes')->orderBy('name')->get();
     }
 
-    public function createBrand(array $data, ?UploadedFile $logo = null): GasBrand
+    public function createBrand(array $data, ?UploadedFile $logo = null, array $sizeImages = []): GasBrand
     {
         $brand = GasBrand::create([
             'name'      => $data['name'],
@@ -79,12 +79,21 @@ class CatalogueService
             'is_active' => $data['is_active'] ?? true,
         ]);
 
-        $brand->sizes()->sync($data['size_ids'] ?? []);
+        $syncData = [];
+        foreach ($data['size_ids'] ?? [] as $sizeId) {
+            $sizeId = (int) $sizeId;
+            $syncData[$sizeId] = [
+                'image_path' => isset($sizeImages[$sizeId])
+                    ? $sizeImages[$sizeId]->store('brand_sizes', 'public')
+                    : null,
+            ];
+        }
+        $brand->sizes()->sync($syncData);
 
         return $brand;
     }
 
-    public function updateBrand(GasBrand $brand, array $data, ?UploadedFile $logo = null): GasBrand
+    public function updateBrand(GasBrand $brand, array $data, ?UploadedFile $logo = null, array $sizeImages = [], array $removeSizeImages = []): GasBrand
     {
         $logoPath = $brand->logo_path;
 
@@ -99,7 +108,34 @@ class CatalogueService
             'is_active' => $data['is_active'] ?? $brand->is_active,
         ]);
 
-        $brand->sizes()->sync($data['size_ids'] ?? []);
+        // Map existing pivot images keyed by size ID
+        $existing = $brand->sizes->keyBy('id')->map(fn ($s) => $s->pivot->image_path);
+
+        $newSizeIds = array_map('intval', $data['size_ids'] ?? []);
+
+        // Delete pivot images for sizes being detached
+        foreach ($existing as $sizeId => $imagePath) {
+            if (! in_array((int) $sizeId, $newSizeIds) && $imagePath) {
+                Storage::disk('public')->delete($imagePath);
+            }
+        }
+
+        $syncData = [];
+        foreach ($newSizeIds as $sizeId) {
+            $imagePath = $existing[$sizeId] ?? null;
+
+            if (isset($sizeImages[$sizeId])) {
+                if ($imagePath) Storage::disk('public')->delete($imagePath);
+                $imagePath = $sizeImages[$sizeId]->store('brand_sizes', 'public');
+            } elseif (in_array($sizeId, $removeSizeImages) && $imagePath) {
+                Storage::disk('public')->delete($imagePath);
+                $imagePath = null;
+            }
+
+            $syncData[$sizeId] = ['image_path' => $imagePath];
+        }
+
+        $brand->sizes()->sync($syncData);
 
         return $brand;
     }
@@ -107,6 +143,13 @@ class CatalogueService
     public function deleteBrand(GasBrand $brand): void
     {
         if ($brand->logo_path) Storage::disk('public')->delete($brand->logo_path);
+
+        foreach ($brand->sizes as $size) {
+            if ($size->pivot->image_path) {
+                Storage::disk('public')->delete($size->pivot->image_path);
+            }
+        }
+
         $brand->delete();
     }
 

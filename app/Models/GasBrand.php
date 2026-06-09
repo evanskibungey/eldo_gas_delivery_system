@@ -26,7 +26,8 @@ class GasBrand extends Model
 
     public function sizes(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsToMany(CylinderSize::class, 'brand_size_availability', 'brand_id', 'size_id');
+        return $this->belongsToMany(CylinderSize::class, 'brand_size_availability', 'brand_id', 'size_id')
+            ->withPivot('image_path');
     }
 
     public function getLogoUrlAttribute(): ?string

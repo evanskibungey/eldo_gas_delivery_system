@@ -47,7 +47,8 @@ class CylinderSize extends Model
 
     public function brands(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
-        return $this->belongsToMany(GasBrand::class, 'brand_size_availability', 'size_id', 'brand_id');
+        return $this->belongsToMany(GasBrand::class, 'brand_size_availability', 'size_id', 'brand_id')
+            ->withPivot('image_path');
     }
 
     public function scopeActive(Builder $query): Builder
