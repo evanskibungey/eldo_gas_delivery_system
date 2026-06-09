@@ -119,8 +119,6 @@ class CatalogueService
 
     public function updatePrice(CylinderSize $size, array $data): CylinderPrice
     {
-        $old = $size->price?->toArray() ?? [];
-
         $price = CylinderPrice::updateOrCreate(
             ['size_id' => $size->id],
             [
@@ -131,12 +129,6 @@ class CatalogueService
                 'updated_by'         => Auth::guard('admin')->id(),
             ]
         );
-
-        activity('catalogue')
-            ->causedBy(Auth::guard('admin')->user())
-            ->performedOn($price)
-            ->withProperties(['old' => $old, 'new' => $price->fresh()->toArray()])
-            ->log("Price updated for {$size->name}");
 
         return $price;
     }
