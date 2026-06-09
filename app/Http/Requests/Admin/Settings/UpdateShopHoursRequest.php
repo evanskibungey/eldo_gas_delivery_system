@@ -10,9 +10,16 @@ class UpdateShopHoursRequest extends FormRequest
 
     public function rules(): array
     {
+        $alwaysOpen = $this->boolean('always_open');
+
         return [
-            'shop_open_time'  => ['required', 'date_format:H:i'],
-            'shop_close_time' => ['required', 'date_format:H:i', 'after:shop_open_time'],
+            'always_open'    => ['required', 'boolean'],
+            'shop_open_time' => $alwaysOpen
+                ? ['nullable']
+                : ['required', 'date_format:H:i'],
+            'shop_close_time' => $alwaysOpen
+                ? ['nullable']
+                : ['required', 'date_format:H:i', 'after:shop_open_time'],
         ];
     }
 

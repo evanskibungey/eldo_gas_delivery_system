@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 
 interface SystemSettings {
     app_name:            string;
+    shop_always_open:    string;
     shop_open_time:      string;
     shop_close_time:     string;
     delivery_fee_mode:   'per_size' | 'flat_rate' | 'per_km';
@@ -172,6 +173,7 @@ function GeneralTab({ settings }: { settings: SystemSettings }) {
 
 function ShopHoursTab({ settings }: { settings: SystemSettings }) {
     const { data, setData, post, processing, errors } = useForm({
+        always_open:     settings.shop_always_open === '1',
         shop_open_time:  settings.shop_open_time,
         shop_close_time: settings.shop_close_time,
     });
@@ -187,30 +189,72 @@ function ShopHoursTab({ settings }: { settings: SystemSettings }) {
             description="Set the hours during which customers can place orders."
         >
             <form onSubmit={submit} className="space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                    <Field label="Opening Time" error={errors.shop_open_time}>
-                        <Input
-                            type="time"
-                            value={data.shop_open_time}
-                            onChange={e => setData('shop_open_time', e.target.value)}
-                            error={!!errors.shop_open_time}
-                        />
-                    </Field>
-                    <Field label="Closing Time" error={errors.shop_close_time}>
-                        <Input
-                            type="time"
-                            value={data.shop_close_time}
-                            onChange={e => setData('shop_close_time', e.target.value)}
-                            error={!!errors.shop_close_time}
-                        />
-                    </Field>
-                </div>
+
+                {/* 24/7 toggle */}
+                <label className={cn(
+                    'flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-4 transition-colors',
+                    data.always_open
+                        ? 'border-orange-300 bg-orange-50'
+                        : 'border-slate-200 bg-white',
+                )}>
+                    <div>
+                        <p className="text-sm font-semibold text-slate-800">Open 24/7</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                            Customers can place orders at any time of day or night.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={data.always_open}
+                        onClick={() => setData('always_open', !data.always_open)}
+                        className={cn(
+                            'relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none',
+                            data.always_open ? 'bg-orange-500' : 'bg-slate-200',
+                        )}
+                    >
+                        <span className={cn(
+                            'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform',
+                            data.always_open ? 'translate-x-5' : 'translate-x-0',
+                        )} />
+                    </button>
+                </label>
+
+                {/* Time pickers — hidden when 24/7 is on */}
+                {!data.always_open && (
+                    <div className="grid grid-cols-2 gap-4">
+                        <Field label="Opening Time" error={errors.shop_open_time}>
+                            <Input
+                                type="time"
+                                value={data.shop_open_time}
+                                onChange={e => setData('shop_open_time', e.target.value)}
+                                error={!!errors.shop_open_time}
+                            />
+                        </Field>
+                        <Field label="Closing Time" error={errors.shop_close_time}>
+                            <Input
+                                type="time"
+                                value={data.shop_close_time}
+                                onChange={e => setData('shop_close_time', e.target.value)}
+                                error={!!errors.shop_close_time}
+                            />
+                        </Field>
+                    </div>
+                )}
+
                 <div className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-500">
-                    Shop is shown as <span className="font-semibold text-slate-700">Open</span> between{' '}
-                    <span className="font-mono font-semibold text-slate-700">{data.shop_open_time}</span> and{' '}
-                    <span className="font-mono font-semibold text-slate-700">{data.shop_close_time}</span>{' '}
-                    (Africa/Nairobi time). Customers cannot place orders outside these hours.
+                    {data.always_open ? (
+                        <>Shop is <span className="font-semibold text-slate-700">always open</span> — customers can place orders 24 hours a day, 7 days a week.</>
+                    ) : (
+                        <>
+                            Shop is shown as <span className="font-semibold text-slate-700">Open</span> between{' '}
+                            <span className="font-mono font-semibold text-slate-700">{data.shop_open_time}</span> and{' '}
+                            <span className="font-mono font-semibold text-slate-700">{data.shop_close_time}</span>{' '}
+                            (Africa/Nairobi time). Customers cannot place orders outside these hours.
+                        </>
+                    )}
                 </div>
+
                 <div className="flex justify-end pt-2">
                     <SaveButton processing={processing} />
                 </div>

@@ -12,6 +12,7 @@ class SettingsService
     {
         $keys = [
             'app_name',
+            'shop_always_open',
             'shop_open_time',
             'shop_close_time',
             'delivery_fee_mode',
@@ -26,6 +27,7 @@ class SettingsService
 
         return array_merge([
             'app_name'            => 'EldoGas',
+            'shop_always_open'    => '1',
             'shop_open_time'      => '07:00',
             'shop_close_time'     => '21:00',
             'delivery_fee_mode'   => 'per_size',
@@ -44,8 +46,13 @@ class SettingsService
 
     public function updateShopHours(array $data): void
     {
-        SystemSetting::set('shop_open_time',  $data['shop_open_time']);
-        SystemSetting::set('shop_close_time', $data['shop_close_time']);
+        $alwaysOpen = (bool) ($data['always_open'] ?? false);
+        SystemSetting::set('shop_always_open', $alwaysOpen ? '1' : '0');
+
+        if (! $alwaysOpen) {
+            SystemSetting::set('shop_open_time',  $data['shop_open_time']);
+            SystemSetting::set('shop_close_time', $data['shop_close_time']);
+        }
     }
 
     public function updateDelivery(array $data): void

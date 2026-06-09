@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Rider;
 
 use App\Http\Controllers\Controller;
+use App\Models\SystemSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -37,6 +38,11 @@ class ProfileController extends Controller
             'is_active'           => $rider->is_active,
             'today_earnings'      => $todayEarnings,
             'today_deliveries'    => $todayDeliveries,
+            'shop_status'         => [
+                'always_open' => (bool) SystemSetting::get('shop_always_open', '1'),
+                'opens_at'    => SystemSetting::get('shop_open_time',  '07:00'),
+                'closes_at'   => SystemSetting::get('shop_close_time', '21:00'),
+            ],
         ]);
     }
 }

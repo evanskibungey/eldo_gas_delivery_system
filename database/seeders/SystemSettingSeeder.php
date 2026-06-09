@@ -11,6 +11,7 @@ class SystemSettingSeeder extends Seeder
     {
         $defaults = [
             'app_name'            => 'EldoGas',
+            'shop_always_open'    => '1',
             'shop_open_time'      => '07:00',
             'shop_close_time'     => '21:00',
             'delivery_fee_mode'   => 'per_size',

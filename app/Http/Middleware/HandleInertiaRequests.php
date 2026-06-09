@@ -23,8 +23,9 @@ class HandleInertiaRequests extends Middleware
 
             'app_name'   => fn () => SystemSetting::get('app_name', config('app.name')),
             'shop_hours' => fn () => [
-                'open'  => SystemSetting::get('shop_open_time',  '07:00'),
-                'close' => SystemSetting::get('shop_close_time', '21:00'),
+                'open'        => SystemSetting::get('shop_open_time',  '07:00'),
+                'close'       => SystemSetting::get('shop_close_time', '21:00'),
+                'always_open' => (bool) SystemSetting::get('shop_always_open', '1'),
             ],
 
             'auth' => [
