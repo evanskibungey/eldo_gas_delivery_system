@@ -13,6 +13,7 @@ use App\Models\Order;
 use App\Services\ShopHoursService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -22,25 +23,49 @@ class OrderController extends Controller
     {
         $orders = $request->user()
             ->orders()
-            ->with(['size:id,name', 'brand:id,name'])
+            ->with(['size:id,name', 'brand:id,name,logo_path'])
             ->latest()
             ->paginate(15);
 
-        $data = $orders->getCollection()->map(fn (Order $o) => [
-                'id'           => $o->id,
-                'order_number' => $o->order_number,
-                'status'       => $o->status,
-                'order_type'   => $o->order_type,
-                'size_name'    => $o->size?->name,
-                'brand_name'   => $o->brand?->name,
-                'total_amount' => $o->total_amount,
-                'created_at'   => $o->created_at->toIso8601String(),
-                'can_reorder'  => $o->canBeReorderedByCustomer(),
-                'can_cancel'   => $o->canBeCancelledByCustomer(),
-                'can_rate'     => $o->status === 'delivered' && ! $o->rating,
-                'can_track'    => $o->isActive() && $o->rider_id,
-            ])
-            ->values();
+        $collection = $orders->getCollection();
+
+        // Batch-fetch pivot images for all orders on this page in one query.
+        $brandIds = $collection->pluck('brand_id')->filter()->unique()->values()->all();
+        $sizeIds  = $collection->pluck('size_id')->filter()->unique()->values()->all();
+        $pivotImages = [];
+        if (! empty($brandIds) && ! empty($sizeIds)) {
+            DB::table('brand_size_availability')
+                ->whereIn('brand_id', $brandIds)
+                ->whereIn('size_id', $sizeIds)
+                ->select(['brand_id', 'size_id', 'image_path'])
+                ->get()
+                ->each(function ($row) use (&$pivotImages) {
+                    $pivotImages[$row->brand_id . '_' . $row->size_id] = $row->image_path;
+                });
+        }
+
+        $data = $collection->map(function (Order $o) use ($pivotImages) {
+            $pivotPath     = $pivotImages[$o->brand_id . '_' . $o->size_id] ?? null;
+            $brandLogoUrl  = $pivotPath
+                ? asset('storage/' . $pivotPath)
+                : $o->brand?->logo_url;
+
+            return [
+                'id'             => $o->id,
+                'order_number'   => $o->order_number,
+                'status'         => $o->status,
+                'order_type'     => $o->order_type,
+                'size_name'      => $o->size?->name,
+                'brand_name'     => $o->brand?->name,
+                'brand_logo_url' => $brandLogoUrl,
+                'total_amount'   => $o->total_amount,
+                'created_at'     => $o->created_at->toIso8601String(),
+                'can_reorder'    => $o->canBeReorderedByCustomer(),
+                'can_cancel'     => $o->canBeCancelledByCustomer(),
+                'can_rate'       => $o->status === 'delivered' && ! $o->rating,
+                'can_track'      => $o->isActive() && $o->rider_id,
+            ];
+        })->values();
 
         return response()->json([
             'data' => $data,
@@ -58,7 +83,18 @@ class OrderController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        $order->load(['size:id,name', 'brand:id,name', 'addons.addonItem', 'statusHistory', 'rider:id,name,phone,avg_rating,photo_path,is_safety_certified']);
+        $order->load(['size:id,name', 'brand:id,name,logo_path', 'addons.addonItem', 'statusHistory', 'rider:id,name,phone,avg_rating,photo_path,is_safety_certified']);
+
+        $pivotPath = null;
+        if ($order->brand_id && $order->size_id) {
+            $pivotPath = DB::table('brand_size_availability')
+                ->where('brand_id', $order->brand_id)
+                ->where('size_id', $order->size_id)
+                ->value('image_path');
+        }
+        $brandLogoUrl = $pivotPath
+            ? asset('storage/' . $pivotPath)
+            : $order->brand?->logo_url;
 
         return response()->json([
             'id'             => $order->id,
@@ -69,6 +105,7 @@ class OrderController extends Controller
             'brand_id'       => $order->brand_id,
             'size_name'      => $order->size?->name,
             'brand_name'     => $order->brand?->name,
+            'brand_logo_url' => $brandLogoUrl,
             'gas_price'           => $order->gas_price,
             'cylinder_price'      => $order->cylinder_price,
             'delivery_fee'        => $order->delivery_fee,

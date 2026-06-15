@@ -9,6 +9,7 @@ use App\Services\EtaService;
 use App\Services\ShopHoursService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Aggregator endpoint consumed by the Flutter customer Home screen.
@@ -24,9 +25,22 @@ class HomeController extends Controller
         $shopStatus = $shopHours->status();
 
         $lastOrder = Order::where('customer_id', $customer->id)
-            ->with(['size:id,name', 'brand:id,name'])
+            ->with(['size:id,name', 'brand:id,name,logo_path'])
             ->latest()
             ->first();
+
+        $brandLogoUrl = null;
+        if ($lastOrder && $lastOrder->brand_id && $lastOrder->size_id) {
+            $pivotPath = DB::table('brand_size_availability')
+                ->where('brand_id', $lastOrder->brand_id)
+                ->where('size_id', $lastOrder->size_id)
+                ->value('image_path');
+            $brandLogoUrl = $pivotPath
+                ? asset('storage/' . $pivotPath)
+                : $lastOrder->brand?->logo_url;
+        } elseif ($lastOrder?->brand) {
+            $brandLogoUrl = $lastOrder->brand->logo_url;
+        }
 
         // Use the customer's last delivery address as a distance hint for ETA.
         $etaMinutes = $eta->estimate(
@@ -45,11 +59,12 @@ class HomeController extends Controller
                 'order_number' => $lastOrder->order_number,
                 'status'       => $lastOrder->status,
                 'order_type'   => $lastOrder->order_type,
-                'size_name'    => $lastOrder->size?->name,
-                'brand_name'   => $lastOrder->brand?->name,
-                'total_amount' => (int) $lastOrder->total_amount,
-                'can_reorder'  => $lastOrder->canBeReorderedByCustomer(),
-                'created_at'   => $lastOrder->created_at?->toIso8601String(),
+                'size_name'      => $lastOrder->size?->name,
+                'brand_name'     => $lastOrder->brand?->name,
+                'brand_logo_url' => $brandLogoUrl,
+                'total_amount'   => (int) $lastOrder->total_amount,
+                'can_reorder'    => $lastOrder->canBeReorderedByCustomer(),
+                'created_at'     => $lastOrder->created_at?->toIso8601String(),
             ] : null,
             'eta_minutes' => $etaMinutes,
             'payment' => [
