@@ -29,6 +29,12 @@ class HomeController extends Controller
             ->latest()
             ->first();
 
+        $lastDeliveredOrder = Order::where('customer_id', $customer->id)
+            ->where('status', 'delivered')
+            ->with(['size:id,name', 'brand:id,name,logo_path'])
+            ->latest()
+            ->first();
+
         $brandLogoUrl = null;
         if ($lastOrder && $lastOrder->brand_id && $lastOrder->size_id) {
             $pivotPath = DB::table('brand_size_availability')
@@ -40,6 +46,19 @@ class HomeController extends Controller
                 : $lastOrder->brand?->logo_url;
         } elseif ($lastOrder?->brand) {
             $brandLogoUrl = $lastOrder->brand->logo_url;
+        }
+
+        $deliveredBrandLogoUrl = null;
+        if ($lastDeliveredOrder && $lastDeliveredOrder->brand_id && $lastDeliveredOrder->size_id) {
+            $pivotPath = DB::table('brand_size_availability')
+                ->where('brand_id', $lastDeliveredOrder->brand_id)
+                ->where('size_id', $lastDeliveredOrder->size_id)
+                ->value('image_path');
+            $deliveredBrandLogoUrl = $pivotPath
+                ? asset('storage/' . $pivotPath)
+                : $lastDeliveredOrder->brand?->logo_url;
+        } elseif ($lastDeliveredOrder?->brand) {
+            $deliveredBrandLogoUrl = $lastDeliveredOrder->brand->logo_url;
         }
 
         // Use the customer's last delivery address as a distance hint for ETA.
@@ -65,6 +84,18 @@ class HomeController extends Controller
                 'total_amount'   => (int) $lastOrder->total_amount,
                 'can_reorder'    => $lastOrder->canBeReorderedByCustomer(),
                 'created_at'     => $lastOrder->created_at?->toIso8601String(),
+            ] : null,
+            'last_delivered_order' => $lastDeliveredOrder ? [
+                'id'           => $lastDeliveredOrder->id,
+                'order_number' => $lastDeliveredOrder->order_number,
+                'status'       => $lastDeliveredOrder->status,
+                'order_type'   => $lastDeliveredOrder->order_type,
+                'size_name'      => $lastDeliveredOrder->size?->name,
+                'brand_name'     => $lastDeliveredOrder->brand?->name,
+                'brand_logo_url' => $deliveredBrandLogoUrl,
+                'total_amount'   => (int) $lastDeliveredOrder->total_amount,
+                'can_reorder'    => $lastDeliveredOrder->canBeReorderedByCustomer(),
+                'created_at'     => $lastDeliveredOrder->created_at?->toIso8601String(),
             ] : null,
             'eta_minutes' => $etaMinutes,
             'payment' => [
