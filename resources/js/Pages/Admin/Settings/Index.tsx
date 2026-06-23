@@ -9,23 +9,40 @@ import {
     Check,
     AlertCircle,
     ChevronRight,
+    Gift,
+    Plus,
+    Trash2,
 } from 'lucide-react';
 import { useState, FormEvent } from 'react';
 import { cn } from '@/lib/utils';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+interface RedemptionTier {
+    points: number;
+    kes:    number;
+}
+
 interface SystemSettings {
-    app_name:            string;
-    shop_always_open:    string;
-    shop_open_time:      string;
-    shop_close_time:     string;
-    delivery_fee_mode:   'per_size' | 'flat_rate' | 'per_km';
-    delivery_base_fee:   string;
-    delivery_per_km_fee: string;
-    shop_lat:            string;
-    shop_lng:            string;
-    commission_rate:     string;
+    app_name:                            string;
+    shop_always_open:                    string;
+    shop_open_time:                      string;
+    shop_close_time:                     string;
+    delivery_fee_mode:                   'per_size' | 'flat_rate' | 'per_km';
+    delivery_base_fee:                   string;
+    delivery_per_km_fee:                 string;
+    shop_lat:                            string;
+    shop_lng:                            string;
+    commission_rate:                     string;
+    gaspoints_enabled:                   string;
+    gaspoints_earn_new_cylinder:         string;
+    gaspoints_earn_swap:                 string;
+    gaspoints_earn_large_cylinder:       string;
+    gaspoints_earn_welcome:              string;
+    gaspoints_earn_review:               string;
+    gaspoints_earn_referral:             string;
+    gaspoints_earn_referral_third_order: string;
+    gaspoints_redemption_tiers:          RedemptionTier[];
 }
 
 interface Account {
@@ -45,6 +62,7 @@ const TABS = [
     { id: 'shop',      label: 'Shop Hours',     icon: Clock    },
     { id: 'delivery',  label: 'Delivery',       icon: Truck    },
     { id: 'commission',label: 'Commission',     icon: Percent  },
+    { id: 'points',    label: 'GasPoints',      icon: Gift     },
     { id: 'account',   label: 'My Account',     icon: User     },
 ] as const;
 
@@ -438,6 +456,202 @@ function CommissionTab({ settings }: { settings: SystemSettings }) {
     );
 }
 
+function PointsTab({ settings }: { settings: SystemSettings }) {
+    const { data, setData, post, processing, errors } = useForm({
+        gaspoints_enabled:                   settings.gaspoints_enabled === '1',
+        gaspoints_earn_new_cylinder:         settings.gaspoints_earn_new_cylinder,
+        gaspoints_earn_swap:                 settings.gaspoints_earn_swap,
+        gaspoints_earn_large_cylinder:       settings.gaspoints_earn_large_cylinder,
+        gaspoints_earn_welcome:              settings.gaspoints_earn_welcome,
+        gaspoints_earn_review:               settings.gaspoints_earn_review,
+        gaspoints_earn_referral:             settings.gaspoints_earn_referral,
+        gaspoints_earn_referral_third_order: settings.gaspoints_earn_referral_third_order,
+        gaspoints_redemption_tiers:          settings.gaspoints_redemption_tiers,
+    });
+
+    function submit(e: FormEvent) {
+        e.preventDefault();
+        post('/admin/settings/points');
+    }
+
+    function updateTier(index: number, field: keyof RedemptionTier, value: string) {
+        const next = [...data.gaspoints_redemption_tiers];
+        next[index] = { ...next[index], [field]: Number(value) || 0 };
+        setData('gaspoints_redemption_tiers', next);
+    }
+
+    function addTier() {
+        setData('gaspoints_redemption_tiers', [...data.gaspoints_redemption_tiers, { points: 0, kes: 0 }]);
+    }
+
+    function removeTier(index: number) {
+        setData('gaspoints_redemption_tiers', data.gaspoints_redemption_tiers.filter((_, i) => i !== index));
+    }
+
+    const tierErrors = errors as Record<string, string>;
+
+    return (
+        <SectionCard
+            title="GasPoints Loyalty Program"
+            description="Control how customers earn and redeem GasPoints."
+        >
+            <form onSubmit={submit} className="space-y-6">
+
+                {/* Enable / disable toggle */}
+                <label className={cn(
+                    'flex cursor-pointer items-center justify-between gap-3 rounded-lg border p-4 transition-colors',
+                    data.gaspoints_enabled ? 'border-orange-300 bg-orange-50' : 'border-slate-200 bg-white',
+                )}>
+                    <div>
+                        <p className="text-sm font-semibold text-slate-800">GasPoints Enabled</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                            When off, customers stop earning new points and cannot redeem at checkout. Existing balances are unaffected.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={data.gaspoints_enabled}
+                        onClick={() => setData('gaspoints_enabled', !data.gaspoints_enabled)}
+                        className={cn(
+                            'relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none',
+                            data.gaspoints_enabled ? 'bg-orange-500' : 'bg-slate-200',
+                        )}
+                    >
+                        <span className={cn(
+                            'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform',
+                            data.gaspoints_enabled ? 'translate-x-5' : 'translate-x-0',
+                        )} />
+                    </button>
+                </label>
+
+                {/* Earn rates */}
+                <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Earn Rates (points)</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Field label="New Cylinder Order" error={errors.gaspoints_earn_new_cylinder}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_earn_new_cylinder}
+                                onChange={e => setData('gaspoints_earn_new_cylinder', e.target.value)}
+                                error={!!errors.gaspoints_earn_new_cylinder}
+                            />
+                        </Field>
+                        <Field label="Swap / Refill Order" error={errors.gaspoints_earn_swap}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_earn_swap}
+                                onChange={e => setData('gaspoints_earn_swap', e.target.value)}
+                                error={!!errors.gaspoints_earn_swap}
+                            />
+                        </Field>
+                        <Field label="Large Cylinder (25kg/50kg) Bonus" error={errors.gaspoints_earn_large_cylinder}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_earn_large_cylinder}
+                                onChange={e => setData('gaspoints_earn_large_cylinder', e.target.value)}
+                                error={!!errors.gaspoints_earn_large_cylinder}
+                            />
+                        </Field>
+                        <Field label="Welcome Bonus (first order)" error={errors.gaspoints_earn_welcome}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_earn_welcome}
+                                onChange={e => setData('gaspoints_earn_welcome', e.target.value)}
+                                error={!!errors.gaspoints_earn_welcome}
+                            />
+                        </Field>
+                        <Field label="Review Bonus" error={errors.gaspoints_earn_review}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_earn_review}
+                                onChange={e => setData('gaspoints_earn_review', e.target.value)}
+                                error={!!errors.gaspoints_earn_review}
+                            />
+                        </Field>
+                        <Field label="Referral Bonus (friend's 1st order)" error={errors.gaspoints_earn_referral}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_earn_referral}
+                                onChange={e => setData('gaspoints_earn_referral', e.target.value)}
+                                error={!!errors.gaspoints_earn_referral}
+                            />
+                        </Field>
+                        <Field label="Referral Loyalty Bonus (friend's 3rd order)" error={errors.gaspoints_earn_referral_third_order}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_earn_referral_third_order}
+                                onChange={e => setData('gaspoints_earn_referral_third_order', e.target.value)}
+                                error={!!errors.gaspoints_earn_referral_third_order}
+                            />
+                        </Field>
+                    </div>
+                </div>
+
+                {/* Redemption tiers */}
+                <div>
+                    <div className="mb-2 flex items-center justify-between">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Redemption Tiers</p>
+                        <button
+                            type="button"
+                            onClick={addTier}
+                            className="flex items-center gap-1 text-xs font-medium text-orange-600 hover:text-orange-700"
+                        >
+                            <Plus className="h-3.5 w-3.5" /> Add Tier
+                        </button>
+                    </div>
+                    {typeof tierErrors.gaspoints_redemption_tiers === 'string' && (
+                        <p className="mb-2 flex items-center gap-1 text-xs text-red-500">
+                            <AlertCircle className="h-3 w-3" />{tierErrors.gaspoints_redemption_tiers}
+                        </p>
+                    )}
+                    <div className="space-y-2">
+                        {data.gaspoints_redemption_tiers.map((tier, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                                <div className="flex-1">
+                                    <Input
+                                        type="number" min="1" step="1"
+                                        placeholder="Points"
+                                        value={tier.points || ''}
+                                        onChange={e => updateTier(i, 'points', e.target.value)}
+                                        error={!!tierErrors[`gaspoints_redemption_tiers.${i}.points`]}
+                                    />
+                                </div>
+                                <span className="text-xs text-slate-400">pts =</span>
+                                <div className="flex-1">
+                                    <Input
+                                        type="number" min="1" step="1"
+                                        placeholder="KES"
+                                        value={tier.kes || ''}
+                                        onChange={e => updateTier(i, 'kes', e.target.value)}
+                                        error={!!tierErrors[`gaspoints_redemption_tiers.${i}.kes`]}
+                                    />
+                                </div>
+                                <span className="text-xs text-slate-400">KES</span>
+                                <button
+                                    type="button"
+                                    onClick={() => removeTier(i)}
+                                    disabled={data.gaspoints_redemption_tiers.length <= 1}
+                                    className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    <p className="mt-2 text-xs text-slate-400">
+                        Customers can redeem these exact point amounts as a KES discount at checkout. Each tier must use a unique point value.
+                    </p>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                    <SaveButton processing={processing} />
+                </div>
+            </form>
+        </SectionCard>
+    );
+}
+
 function AccountTab({ account }: { account: Account }) {
     const { data, setData, post, processing, errors } = useForm({
         name:                  account.name,
@@ -564,6 +778,7 @@ export default function SettingsIndex({ settings, account }: Props) {
                         {activeTab === 'shop'       && <ShopHoursTab  settings={settings} />}
                         {activeTab === 'delivery'   && <DeliveryTab   settings={settings} />}
                         {activeTab === 'commission' && <CommissionTab settings={settings} />}
+                        {activeTab === 'points'     && <PointsTab     settings={settings} />}
                         {activeTab === 'account'    && <AccountTab    account={account}   />}
                     </div>
 

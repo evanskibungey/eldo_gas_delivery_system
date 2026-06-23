@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Customer;
 use App\Models\GasPointsTransaction;
 use App\Models\Order;
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -12,6 +13,66 @@ class GasPointsService
 {
     // Configurable milestone thresholds
     private array $milestones = [500, 1000, 2000, 5000];
+
+    private const REDEMPTION_TIERS_DEFAULT = [500 => 50, 1000 => 100, 2000 => 200, 5000 => 500];
+
+    public function isEnabled(): bool
+    {
+        return SystemSetting::get('gaspoints_enabled', '1') === '1';
+    }
+
+    private function rate(string $key, int $default): int
+    {
+        return (int) SystemSetting::get($key, (string) $default);
+    }
+
+    /**
+     * Admin-configurable points-to-KES redemption map: [points => kes].
+     * Single source of truth — used by checkout validation and by the
+     * customer-facing config endpoint/pages.
+     */
+    public function redemptionTiersMap(): array
+    {
+        $json  = SystemSetting::get('gaspoints_redemption_tiers');
+        $tiers = $json ? json_decode($json, true) : null;
+
+        return is_array($tiers) && ! empty($tiers) ? $tiers : self::REDEMPTION_TIERS_DEFAULT;
+    }
+
+    /**
+     * Full GasPoints configuration for clients (web + Flutter): whether the
+     * program is active, current earn rates, and redemption tiers with
+     * positional labels/descriptions for display.
+     */
+    public function config(): array
+    {
+        $tierLabels = ['Bronze', 'Silver', 'Gold', 'Platinum'];
+
+        $tiers = collect($this->redemptionTiersMap())
+            ->map(fn ($kes, $points) => ['points' => (int) $points, 'kes' => (int) $kes])
+            ->values()
+            ->sortBy('points')
+            ->values()
+            ->map(fn ($tier, $i) => $tier + [
+                'label'       => $tierLabels[$i] ?? ('Tier ' . ($i + 1)),
+                'description' => "KES {$tier['kes']} off your next order",
+            ])
+            ->all();
+
+        return [
+            'enabled' => $this->isEnabled(),
+            'earn_rates' => [
+                'new_cylinder'         => $this->rate('gaspoints_earn_new_cylinder', 150),
+                'swap'                 => $this->rate('gaspoints_earn_swap', 100),
+                'large_cylinder'       => $this->rate('gaspoints_earn_large_cylinder', 200),
+                'welcome'              => $this->rate('gaspoints_earn_welcome', 250),
+                'review'               => $this->rate('gaspoints_earn_review', 25),
+                'referral'             => $this->rate('gaspoints_earn_referral', 250),
+                'referral_third_order' => $this->rate('gaspoints_earn_referral_third_order', 100),
+            ],
+            'redemption_tiers' => $tiers,
+        ];
+    }
 
     /**
      * Award points to a customer.
@@ -89,6 +150,10 @@ class GasPointsService
      */
     public function awardForOrder(Order $order): void
     {
+        if (! $this->isEnabled()) {
+            return;
+        }
+
         $customer = $order->customer;
         if (! $customer) {
             return;
@@ -96,18 +161,22 @@ class GasPointsService
 
         // Large commercial cylinders get flat bonus
         if (in_array($order->size?->name, ['25kg', '50kg'])) {
-            $this->award($customer, 200, 'earned', "Delivery bonus — {$order->size->name} order #{$order->order_number}", $order->id);
+            $points = $this->rate('gaspoints_earn_large_cylinder', 200);
+            $this->award($customer, $points, 'earned', "Delivery bonus — {$order->size->name} order #{$order->order_number}", $order->id);
             return;
         }
 
         // First order welcome bonus
         $isFirst = $customer->orders()->where('status', 'delivered')->where('id', '!=', $order->id)->doesntExist();
         if ($isFirst) {
-            $this->award($customer, 250, 'bonus', "Welcome bonus — first order #{$order->order_number}", $order->id);
+            $points = $this->rate('gaspoints_earn_welcome', 250);
+            $this->award($customer, $points, 'bonus', "Welcome bonus — first order #{$order->order_number}", $order->id);
             return;
         }
 
-        $points = $order->order_type === 'new_cylinder' ? 150 : 100;
+        $points = $order->order_type === 'new_cylinder'
+            ? $this->rate('gaspoints_earn_new_cylinder', 150)
+            : $this->rate('gaspoints_earn_swap', 100);
         $label  = $order->order_type === 'new_cylinder' ? 'New cylinder' : 'Gas refill';
         $this->award($customer, $points, 'earned', "{$label} — order #{$order->order_number}", $order->id);
     }
@@ -117,12 +186,17 @@ class GasPointsService
      */
     public function awardForRating(Order $order): void
     {
+        if (! $this->isEnabled()) {
+            return;
+        }
+
         $customer = $order->customer;
         if (! $customer) {
             return;
         }
 
-        $this->award($customer, 25, 'earned', "Review bonus — order #{$order->order_number}", $order->id);
+        $points = $this->rate('gaspoints_earn_review', 25);
+        $this->award($customer, $points, 'earned', "Review bonus — order #{$order->order_number}", $order->id);
     }
 
     /**
@@ -130,7 +204,12 @@ class GasPointsService
      */
     public function awardReferralBonus(Customer $referrer, Customer $newCustomer): void
     {
-        $this->award($referrer, 250, 'referral', "Referral bonus — {$newCustomer->name} placed their first order");
+        if (! $this->isEnabled()) {
+            return;
+        }
+
+        $points = $this->rate('gaspoints_earn_referral', 250);
+        $this->award($referrer, $points, 'referral', "Referral bonus — {$newCustomer->name} placed their first order");
     }
 
     /**
@@ -138,7 +217,12 @@ class GasPointsService
      */
     public function awardReferralThirdOrderBonus(Customer $referrer, Customer $friend): void
     {
-        $this->award($referrer, 100, 'referral_bonus', "Referral loyalty bonus — {$friend->name}'s 3rd order");
+        if (! $this->isEnabled()) {
+            return;
+        }
+
+        $points = $this->rate('gaspoints_earn_referral_third_order', 100);
+        $this->award($referrer, $points, 'referral_bonus', "Referral loyalty bonus — {$friend->name}'s 3rd order");
     }
 
     /**

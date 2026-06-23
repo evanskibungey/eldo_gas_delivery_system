@@ -4,10 +4,13 @@ namespace App\Services\Admin;
 
 use App\Models\Admin;
 use App\Models\SystemSetting;
+use App\Services\GasPointsService;
 use Illuminate\Support\Facades\Auth;
 
 class SettingsService
 {
+    public function __construct(private readonly GasPointsService $gasPoints) {}
+
     public function getAll(): array
     {
         $keys = [
@@ -21,22 +24,54 @@ class SettingsService
             'shop_lat',
             'shop_lng',
             'commission_rate',
+            'gaspoints_enabled',
+            'gaspoints_earn_new_cylinder',
+            'gaspoints_earn_swap',
+            'gaspoints_earn_large_cylinder',
+            'gaspoints_earn_welcome',
+            'gaspoints_earn_review',
+            'gaspoints_earn_referral',
+            'gaspoints_earn_referral_third_order',
+            'gaspoints_redemption_tiers',
         ];
 
         $stored = SystemSetting::getMany($keys);
 
-        return array_merge([
-            'app_name'            => 'EldoGas',
-            'shop_always_open'    => '1',
-            'shop_open_time'      => '07:00',
-            'shop_close_time'     => '21:00',
-            'delivery_fee_mode'   => 'per_size',
-            'delivery_base_fee'   => '0.00',
-            'delivery_per_km_fee' => '0.00',
-            'shop_lat'            => '',
-            'shop_lng'            => '',
-            'commission_rate'     => '10.00',
+        $merged = array_merge([
+            'app_name'                            => 'EldoGas',
+            'shop_always_open'                     => '1',
+            'shop_open_time'                       => '07:00',
+            'shop_close_time'                       => '21:00',
+            'delivery_fee_mode'                    => 'per_size',
+            'delivery_base_fee'                    => '0.00',
+            'delivery_per_km_fee'                  => '0.00',
+            'shop_lat'                              => '',
+            'shop_lng'                              => '',
+            'commission_rate'                       => '10.00',
+            'gaspoints_enabled'                     => '1',
+            'gaspoints_earn_new_cylinder'           => '150',
+            'gaspoints_earn_swap'                   => '100',
+            'gaspoints_earn_large_cylinder'         => '200',
+            'gaspoints_earn_welcome'                => '250',
+            'gaspoints_earn_review'                 => '25',
+            'gaspoints_earn_referral'               => '250',
+            'gaspoints_earn_referral_third_order'   => '100',
+            'gaspoints_redemption_tiers'             => json_encode($this->gasPoints->redemptionTiersMap()),
         ], $stored);
+
+        $tiers = json_decode((string) $merged['gaspoints_redemption_tiers'], true);
+        if (! is_array($tiers) || empty($tiers)) {
+            $tiers = $this->gasPoints->redemptionTiersMap();
+        }
+
+        $merged['gaspoints_redemption_tiers'] = collect($tiers)
+            ->map(fn ($kes, $points) => ['points' => (int) $points, 'kes' => (int) $kes])
+            ->values()
+            ->sortBy('points')
+            ->values()
+            ->all();
+
+        return $merged;
     }
 
     public function updateGeneral(array $data): void
@@ -67,6 +102,25 @@ class SettingsService
     public function updateCommission(array $data): void
     {
         SystemSetting::set('commission_rate', $data['commission_rate']);
+    }
+
+    public function updatePoints(array $data): void
+    {
+        SystemSetting::set('gaspoints_enabled', ! empty($data['gaspoints_enabled']) ? '1' : '0');
+        SystemSetting::set('gaspoints_earn_new_cylinder', (string) $data['gaspoints_earn_new_cylinder']);
+        SystemSetting::set('gaspoints_earn_swap', (string) $data['gaspoints_earn_swap']);
+        SystemSetting::set('gaspoints_earn_large_cylinder', (string) $data['gaspoints_earn_large_cylinder']);
+        SystemSetting::set('gaspoints_earn_welcome', (string) $data['gaspoints_earn_welcome']);
+        SystemSetting::set('gaspoints_earn_review', (string) $data['gaspoints_earn_review']);
+        SystemSetting::set('gaspoints_earn_referral', (string) $data['gaspoints_earn_referral']);
+        SystemSetting::set('gaspoints_earn_referral_third_order', (string) $data['gaspoints_earn_referral_third_order']);
+
+        $tiers = collect($data['gaspoints_redemption_tiers'])
+            ->mapWithKeys(fn ($tier) => [(int) $tier['points'] => (int) $tier['kes']])
+            ->sortKeys()
+            ->all();
+
+        SystemSetting::set('gaspoints_redemption_tiers', json_encode($tiers));
     }
 
     public function updateAccount(array $data): void

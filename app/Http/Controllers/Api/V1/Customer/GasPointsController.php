@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Api\V1\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Services\GasPointsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class GasPointsController extends Controller
 {
+    public function __construct(private readonly GasPointsService $gasPoints) {}
+
     public function index(Request $request): JsonResponse
     {
         $customer = $request->user();
@@ -33,6 +36,7 @@ class GasPointsController extends Controller
                     'total'        => $paginator->total(),
                 ],
             ],
+            'settings' => $this->gasPoints->config(),
         ]);
     }
 }

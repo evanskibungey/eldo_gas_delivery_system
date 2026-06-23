@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Customer\GasPoints;
 
 use App\Http\Controllers\Controller;
 use App\Models\GasPointsTransaction;
+use App\Services\GasPointsService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class GasPointsController extends Controller
 {
+    public function __construct(private readonly GasPointsService $gasPoints) {}
+
     public function index(Request $request): Response
     {
         $customer = auth('customer')->user();
@@ -29,12 +32,12 @@ class GasPointsController extends Controller
 
         $referralCount = \App\Models\Customer::where('referred_by', $customer->id)->count();
 
-        $tiers = [
-            ['label' => 'Bronze',   'threshold' => 500,   'description' => 'KES 50 off your next order'],
-            ['label' => 'Silver',   'threshold' => 1000,  'description' => 'KES 100 off your next order'],
-            ['label' => 'Gold',     'threshold' => 2000,  'description' => 'KES 200 off your next order'],
-            ['label' => 'Platinum', 'threshold' => 5000,  'description' => 'KES 500 off your next order'],
-        ];
+        $config = $this->gasPoints->config();
+        $tiers  = array_map(fn ($tier) => [
+            'label'       => $tier['label'],
+            'threshold'   => $tier['points'],
+            'description' => $tier['description'],
+        ], $config['redemption_tiers']);
 
         $currentBalance = (int) $customer->gaspoints_balance;
         $nextTier = null;
@@ -53,6 +56,7 @@ class GasPointsController extends Controller
             'nextTier'      => $nextTier,
             'referralCode'  => $customer->referral_code,
             'referralCount' => $referralCount,
+            'earnRates'     => $config['earn_rates'],
         ]);
     }
 }

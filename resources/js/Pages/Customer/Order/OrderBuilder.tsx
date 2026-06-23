@@ -47,24 +47,23 @@ interface Address {
     is_default:  boolean;
 }
 
-interface Props {
-    sizes:              Size[];
-    brands_by_size:     Record<string, Brand[]>;
-    addons_by_size:     Record<string, AddonGroup[]>;
-    addresses:          Address[];
-    default_address:    number | null;
-    mpesa_till:         string;
-    gaspoints_balance:  number;
-    prefill:            { order_type: string; size_id: number; brand_id: number } | null;
+interface RedemptionTier {
+    points: number;
+    kes:    number;
 }
 
-// GasPoints redemption tiers (mirrors backend REDEMPTION_TIERS + Flutter client)
-const REDEMPTION_TIERS: [number, number][] = [
-    [500,  50],
-    [1000, 100],
-    [2000, 200],
-    [5000, 500],
-];
+interface Props {
+    sizes:                       Size[];
+    brands_by_size:              Record<string, Brand[]>;
+    addons_by_size:              Record<string, AddonGroup[]>;
+    addresses:                   Address[];
+    default_address:             number | null;
+    mpesa_till:                  string;
+    gaspoints_balance:           number;
+    gaspoints_enabled:           boolean;
+    gaspoints_redemption_tiers:  RedemptionTier[];
+    prefill:                     { order_type: string; size_id: number; brand_id: number } | null;
+}
 
 const fmt = (n: number) => `KES ${n.toLocaleString()}`;
 
@@ -116,7 +115,8 @@ function ScrollRow({ children, className }: { children: React.ReactNode; classNa
 
 export default function OrderBuilder({
     sizes, brands_by_size, addons_by_size,
-    addresses: initialAddresses, default_address, mpesa_till, gaspoints_balance, prefill,
+    addresses: initialAddresses, default_address, mpesa_till, gaspoints_balance,
+    gaspoints_enabled, gaspoints_redemption_tiers, prefill,
 }: Props) {
     const [orderType,    setOrderType]    = useState<'swap' | 'new_cylinder'>(
         (prefill?.order_type as 'swap' | 'new_cylinder') ?? 'swap',
@@ -152,7 +152,7 @@ export default function OrderBuilder({
         return addonIds.reduce((sum, id) => sum + (all.find(i => i.id === id)?.price ?? 0), 0);
     }, [addonIds, addonsForSize]);
 
-    const gasPointsDiscount = REDEMPTION_TIERS.find(([pts]) => pts === redemptionPoints)?.[1] ?? 0;
+    const gasPointsDiscount = gaspoints_redemption_tiers.find(t => t.points === redemptionPoints)?.kes ?? 0;
     const total = Math.max(0, basePrice + deliveryFee + addonsTotal - gasPointsDiscount);
 
     // Section completion states
@@ -754,7 +754,8 @@ export default function OrderBuilder({
                     </div>
 
                     {/* ── GasPoints redemption ─────────────────────────────── */}
-                    {gaspoints_balance >= 500 && (
+                    {gaspoints_enabled && gaspoints_redemption_tiers.length > 0
+                        && gaspoints_balance >= gaspoints_redemption_tiers[0].points && (
                         <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-2">
@@ -783,7 +784,7 @@ export default function OrderBuilder({
                                 >
                                     None
                                 </button>
-                                {REDEMPTION_TIERS.filter(([pts]) => pts <= gaspoints_balance).map(([pts, kes]) => (
+                                {gaspoints_redemption_tiers.filter(t => t.points <= gaspoints_balance).map(({ points: pts, kes }) => (
                                     <button
                                         key={pts}
                                         type="button"

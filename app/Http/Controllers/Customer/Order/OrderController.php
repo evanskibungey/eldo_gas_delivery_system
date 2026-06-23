@@ -13,6 +13,7 @@ use App\Models\CylinderSize;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\SystemSetting;
+use App\Services\GasPointsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -21,6 +22,8 @@ use Inertia\Response;
 
 class OrderController extends Controller
 {
+    public function __construct(private readonly GasPointsService $gasPoints) {}
+
     // ── Single-page order builder ────────────────────────────────────────────
 
     public function build(): Response
@@ -79,15 +82,21 @@ class OrderController extends Controller
         ]);
 
         $lastOrder = $customer->orders()->latest()->first();
+        $pointsConfig = $this->gasPoints->config();
 
         return Inertia::render('Customer/Order/OrderBuilder', [
-            'sizes'              => $sizes->values(),
-            'brands_by_size'     => $brandsBySize,
-            'addons_by_size'     => $addonsBySize,
-            'addresses'          => $addresses->values(),
-            'default_address'    => $customer->defaultAddress?->id,
-            'mpesa_till'         => env('MPESA_TILL_NUMBER', ''),
-            'gaspoints_balance'  => (int) $customer->gaspoints_balance,
+            'sizes'                       => $sizes->values(),
+            'brands_by_size'              => $brandsBySize,
+            'addons_by_size'              => $addonsBySize,
+            'addresses'                   => $addresses->values(),
+            'default_address'             => $customer->defaultAddress?->id,
+            'mpesa_till'                  => env('MPESA_TILL_NUMBER', ''),
+            'gaspoints_balance'           => (int) $customer->gaspoints_balance,
+            'gaspoints_enabled'           => $pointsConfig['enabled'],
+            'gaspoints_redemption_tiers'  => array_map(fn ($tier) => [
+                'points' => $tier['points'],
+                'kes'    => $tier['kes'],
+            ], $pointsConfig['redemption_tiers']),
             'prefill'            => $lastOrder ? [
                 'order_type' => $lastOrder->order_type,
                 'size_id'    => $lastOrder->size_id,

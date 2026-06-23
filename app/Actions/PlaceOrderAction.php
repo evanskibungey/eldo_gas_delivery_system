@@ -20,14 +20,6 @@ use Illuminate\Validation\ValidationException;
 
 class PlaceOrderAction
 {
-    // Points-to-KES redemption map — mirrors RedemptionTier in Flutter client.
-    private const REDEMPTION_TIERS = [
-        500  => 50,
-        1000 => 100,
-        2000 => 200,
-        5000 => 500,
-    ];
-
     public function __construct(
         private readonly GasPointsService $gasPoints,
         private readonly StockService     $stock,
@@ -54,7 +46,13 @@ class PlaceOrderAction
 
         // Validate redemption points before entering the transaction.
         if ($redemptionPoints > 0) {
-            if (! array_key_exists($redemptionPoints, self::REDEMPTION_TIERS)) {
+            if (! $this->gasPoints->isEnabled()) {
+                throw ValidationException::withMessages([
+                    'redemption_points' => ['GasPoints redemption is currently unavailable.'],
+                ]);
+            }
+
+            if (! array_key_exists($redemptionPoints, $this->gasPoints->redemptionTiersMap())) {
                 throw ValidationException::withMessages([
                     'redemption_points' => ['Invalid redemption amount.'],
                 ]);
@@ -113,7 +111,7 @@ class PlaceOrderAction
                     ]);
                 }
 
-                $gaspointsDiscount = self::REDEMPTION_TIERS[$redemptionPoints];
+                $gaspointsDiscount = $this->gasPoints->redemptionTiersMap()[$redemptionPoints];
                 $this->gasPoints->redeem(
                     $lockedCustomer,
                     $redemptionPoints,

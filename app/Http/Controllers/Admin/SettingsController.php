@@ -7,6 +7,7 @@ use App\Http\Requests\Admin\Settings\UpdateAccountRequest;
 use App\Http\Requests\Admin\Settings\UpdateCommissionRequest;
 use App\Http\Requests\Admin\Settings\UpdateDeliveryRequest;
 use App\Http\Requests\Admin\Settings\UpdateGeneralRequest;
+use App\Http\Requests\Admin\Settings\UpdatePointsRequest;
 use App\Http\Requests\Admin\Settings\UpdateShopHoursRequest;
 use App\Services\Admin\SettingsService;
 use Illuminate\Http\RedirectResponse;
@@ -58,5 +59,12 @@ class SettingsController extends Controller
         $this->settings->updateAccount($request->validated());
 
         return back()->with('success', 'Account updated.');
+    }
+
+    public function updatePoints(UpdatePointsRequest $request): RedirectResponse
+    {
+        $this->settings->updatePoints($request->validated());
+
+        return back()->with('success', 'GasPoints settings saved.');
     }
 }

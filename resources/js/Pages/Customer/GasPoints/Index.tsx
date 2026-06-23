@@ -34,6 +34,16 @@ interface Paginated {
     prev_page_url: string | null;
 }
 
+interface EarnRates {
+    new_cylinder:         number;
+    swap:                 number;
+    large_cylinder:       number;
+    welcome:               number;
+    review:                number;
+    referral:               number;
+    referral_third_order:  number;
+}
+
 interface Props {
     balance:       number;
     transactions:  Paginated;
@@ -41,6 +51,7 @@ interface Props {
     nextTier:      NextTier | null;
     referralCode:  string;
     referralCount: number;
+    earnRates:     EarnRates;
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -149,7 +160,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function GasPointsIndex({
-    balance, transactions, tiers, nextTier, referralCode, referralCount,
+    balance, transactions, tiers, nextTier, referralCode, referralCount, earnRates,
 }: Props) {
     const [copied, setCopied] = useState(false);
 
@@ -214,7 +225,7 @@ export default function GasPointsIndex({
                         <h2 className="text-sm font-bold text-slate-900">Refer Friends & Earn</h2>
                     </div>
                     <p className="text-xs text-slate-600 mb-3">
-                        Earn <span className="font-semibold text-orange-600">250 points</span> when a friend places their first order
+                        Earn <span className="font-semibold text-orange-600">{earnRates.referral} points</span> when a friend places their first order
                         using your code. They get a <span className="font-semibold">welcome bonus</span> too!
                     </p>
                     <div className="flex items-center gap-2 mb-3">
