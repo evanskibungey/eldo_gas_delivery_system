@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\Rider;
 use App\Services\Admin\OrderService;
 use App\Support\OrderLifecycle;
+use App\Support\Utf8Sanitizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -33,8 +34,8 @@ class OrderController extends Controller
         ));
 
         return Inertia::render('Admin/Orders/Index', [
-            'orders' => $this->orders->paginated($filters)->through(fn (Order $order) => $this->formatListRow($order)),
-            'filters' => $filters,
+            'orders' => $this->orders->paginated($filters)->through(fn (Order $order) => $this->sanitize($this->formatListRow($order))),
+            'filters' => $this->sanitize($filters),
             'counts' => [
                 'pending' => Order::where('status', OrderLifecycle::STATUS_PENDING)->count(),
                 'active' => Order::whereIn('status', $activeDispatchStatuses)->count(),
@@ -59,8 +60,8 @@ class OrderController extends Controller
         ]);
 
         return Inertia::render('Admin/Orders/Show', [
-            'order' => $this->formatDetail($order),
-            'availableRiders' => $this->formatAvailableRiders(),
+            'order' => $this->sanitize($this->formatDetail($order)),
+            'availableRiders' => $this->sanitize($this->formatAvailableRiders()),
         ]);
     }
 
@@ -170,7 +171,7 @@ class OrderController extends Controller
             'on_the_way_at' => $order->on_the_way_at?->format('d M H:i'),
             'delivered_at' => $order->delivered_at?->format('d M H:i'),
             'cancelled_at' => $order->cancelled_at?->format('d M H:i'),
-            'created_at' => $order->created_at->format('D, d M Y · H:i'),
+            'created_at' => $order->created_at->format('D, d M Y Â· H:i'),
             'customer' => $order->customer ? [
                 'id' => $order->customer->id,
                 'name' => $order->customer->name,
@@ -217,5 +218,10 @@ class OrderController extends Controller
             'total_deliveries' => $rider->total_deliveries,
             'is_safety_certified' => $rider->is_safety_certified,
         ])->values()->all();
+    }
+
+    private function sanitize(mixed $value): mixed
+    {
+        return Utf8Sanitizer::clean($value);
     }
 }
