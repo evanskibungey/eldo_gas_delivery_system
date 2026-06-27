@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\OrderLifecycle;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -56,25 +57,25 @@ class Order extends Model
     protected function casts(): array
     {
         return [
-            'rider_assigned_at'         => 'datetime',
+            'rider_assigned_at' => 'datetime',
             'rider_acceptance_deadline' => 'datetime',
-            'rider_accepted_at'         => 'datetime',
-            'picked_up_at'              => 'datetime',
-            'on_the_way_at'     => 'datetime',
-            'delivered_at'      => 'datetime',
-            'cancelled_at'      => 'datetime',
-            'has_issue'         => 'boolean',
-            'issue_resolved'    => 'boolean',
-            'delivery_lat'      => 'float',
-            'delivery_lng'      => 'float',
-            'safety_checklist'  => 'array',
-            'gas_price'           => 'integer',
-            'cylinder_price'      => 'integer',
-            'delivery_fee'        => 'integer',
-            'addons_total'        => 'integer',
-            'gaspoints_redeemed'  => 'integer',
-            'gaspoints_discount'  => 'integer',
-            'total_amount'        => 'integer',
+            'rider_accepted_at' => 'datetime',
+            'picked_up_at' => 'datetime',
+            'on_the_way_at' => 'datetime',
+            'delivered_at' => 'datetime',
+            'cancelled_at' => 'datetime',
+            'has_issue' => 'boolean',
+            'issue_resolved' => 'boolean',
+            'delivery_lat' => 'float',
+            'delivery_lng' => 'float',
+            'safety_checklist' => 'array',
+            'gas_price' => 'integer',
+            'cylinder_price' => 'integer',
+            'delivery_fee' => 'integer',
+            'addons_total' => 'integer',
+            'gaspoints_redeemed' => 'integer',
+            'gaspoints_discount' => 'integer',
+            'total_amount' => 'integer',
         ];
     }
 
@@ -95,7 +96,7 @@ class Order extends Model
 
     public function brand(): BelongsTo
     {
-        return $this->belongsTo(GasBrand::class, 'brand_id');
+        return $this->belongsTo(GasBrand::class);
     }
 
     public function addons(): HasMany
@@ -120,7 +121,7 @@ class Order extends Model
 
     public function scopeActive(Builder $query): Builder
     {
-        return $query->whereNotIn('status', ['delivered', 'cancelled']);
+        return $query->whereIn('status', OrderLifecycle::activeStatuses());
     }
 
     public function scopeByStatus(Builder $query, string $status): Builder
@@ -130,26 +131,26 @@ class Order extends Model
 
     public function isActive(): bool
     {
-        return ! in_array($this->status, ['delivered', 'cancelled']);
+        return OrderLifecycle::isActive($this->status);
     }
 
     public function canBeCancelledByCustomer(): bool
     {
-        return in_array($this->status, ['pending', 'rider_assigned']);
+        return OrderLifecycle::canCustomerCancel($this->status);
     }
 
     public function canBeReorderedByCustomer(): bool
     {
-        return $this->status === 'delivered';
+        return $this->status === OrderLifecycle::STATUS_DELIVERED;
     }
 
     public function isReportableIssue(): bool
     {
-        return ! in_array($this->status, ['delivered', 'cancelled']);
+        return OrderLifecycle::isActive($this->status);
     }
 
     public function needsPaymentConfirmation(): bool
     {
-        return $this->status === 'delivered' && $this->payment_status === 'pending';
+        return $this->status === OrderLifecycle::STATUS_DELIVERED && $this->payment_status === 'pending';
     }
 }

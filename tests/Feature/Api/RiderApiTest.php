@@ -22,18 +22,14 @@ class RiderApiTest extends TestCase
         $this->token = $this->rider->createToken('rider-mobile')->plainTextToken;
     }
 
-    // ── auth ───────────────────────────────────────────────────────────────────
-
     public function test_rider_otp_request_rejected_for_unknown_phone(): void
     {
-        $this->postJson('/api/v1/rider/auth/request-otp', ['phone' => '0700000000'])
-            ->assertUnprocessable();
+        $this->postJson('/api/v1/rider/auth/request-otp', ['phone' => '0700000000'])->assertUnprocessable();
     }
 
     public function test_rider_otp_request_accepted_for_known_active_rider(): void
     {
-        $this->postJson('/api/v1/rider/auth/request-otp', ['phone' => $this->rider->phone])
-            ->assertOk();
+        $this->postJson('/api/v1/rider/auth/request-otp', ['phone' => $this->rider->phone])->assertOk();
 
         $this->assertDatabaseHas('otp_tokens', ['phone' => $this->rider->phone]);
     }
@@ -42,30 +38,39 @@ class RiderApiTest extends TestCase
     {
         OtpToken::factory()->create(['phone' => $this->rider->phone, 'token' => '9999']);
 
-        $response = $this->postJson('/api/v1/rider/auth/verify-otp', [
+        $this->postJson('/api/v1/rider/auth/verify-otp', [
             'phone' => $this->rider->phone,
             'token' => '9999',
-        ]);
-
-        $response->assertOk()
-            ->assertJsonStructure(['access_token', 'token_type', 'rider']);
+        ])
+            ->assertOk()
+            ->assertJsonStructure(['access_token', 'token_type', 'expires_at', 'rider']);
     }
 
     public function test_inactive_rider_cannot_request_otp(): void
     {
         $inactive = Rider::factory()->inactive()->create();
 
-        $this->postJson('/api/v1/rider/auth/request-otp', ['phone' => $inactive->phone])
-            ->assertUnprocessable();
+        $this->postJson('/api/v1/rider/auth/request-otp', ['phone' => $inactive->phone])->assertUnprocessable();
     }
 
-    // ── orders ─────────────────────────────────────────────────────────────────
+    public function test_rider_can_logout_from_all_devices(): void
+    {
+        $token = $this->rider->createToken('secondary-device')->plainTextToken;
+        $this->rider->createToken('tertiary-device');
+
+        $this->withToken($token)
+            ->postJson('/api/v1/rider/auth/logout-all')
+            ->assertOk()
+            ->assertJson(['message' => 'Logged out from all devices.']);
+
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+    }
 
     public function test_rider_can_list_active_orders(): void
     {
         Order::factory()->withRider()->create(['rider_id' => $this->rider->id]);
         Order::factory()->delivered()->create(['rider_id' => $this->rider->id]);
-        Order::factory()->withRider()->create(); // another rider
+        Order::factory()->withRider()->create();
 
         $response = $this->withToken($this->token)->getJson('/api/v1/rider/orders');
 
@@ -86,17 +91,14 @@ class RiderApiTest extends TestCase
     {
         $order = Order::factory()->withRider()->create();
 
-        $this->withToken($this->token)->getJson("/api/v1/rider/orders/{$order->id}")
-            ->assertNotFound();
+        $this->withToken($this->token)->getJson("/api/v1/rider/orders/{$order->id}")->assertNotFound();
     }
-
-    // ── status update ──────────────────────────────────────────────────────────
 
     public function test_rider_can_advance_order_status(): void
     {
         $order = Order::factory()->create([
             'rider_id' => $this->rider->id,
-            'status'   => 'rider_assigned',
+            'status' => 'rider_assigned',
         ]);
 
         $this->withToken($this->token)->putJson("/api/v1/rider/orders/{$order->id}/status", [
@@ -110,26 +112,47 @@ class RiderApiTest extends TestCase
     {
         $order = Order::factory()->create([
             'rider_id' => $this->rider->id,
-            'status'   => 'rider_assigned',
+            'status' => 'rider_assigned',
         ]);
 
         $this->withToken($this->token)->putJson("/api/v1/rider/orders/{$order->id}/status", [
-            'status' => 'delivered', // skipping picked_up and on_the_way
+            'status' => 'delivered',
         ])->assertUnprocessable();
     }
 
-    // ── location ───────────────────────────────────────────────────────────────
+    public function test_rider_can_mark_cash_payment_collected_on_delivery(): void
+    {
+        $order = Order::factory()->create([
+            'rider_id' => $this->rider->id,
+            'status' => 'on_the_way',
+            'payment_method' => 'cash',
+            'payment_status' => 'pending',
+        ]);
+
+        $this->withToken($this->token)->putJson("/api/v1/rider/orders/{$order->id}/status", [
+            'status' => 'delivered',
+            'payment_collected' => true,
+        ])
+            ->assertOk()
+            ->assertJsonPath('payment_status', 'collected');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'delivered',
+            'payment_status' => 'collected',
+        ]);
+    }
 
     public function test_rider_can_update_location(): void
     {
         $this->withToken($this->token)->putJson('/api/v1/rider/location', [
-            'latitude'  => -0.2833,
+            'latitude' => -0.2833,
             'longitude' => 35.2697,
-            'heading'   => 90.0,
+            'heading' => 90.0,
         ])->assertOk();
 
         $this->assertDatabaseHas('riders', [
-            'id'               => $this->rider->id,
+            'id' => $this->rider->id,
             'current_latitude' => -0.2833,
         ]);
     }
@@ -144,15 +167,11 @@ class RiderApiTest extends TestCase
         $this->assertDatabaseHas('riders', ['id' => $this->rider->id, 'is_available' => false]);
     }
 
-    // ── unauthenticated ────────────────────────────────────────────────────────
-
     public function test_rider_endpoints_require_rider_token(): void
     {
-        // Customer token should not work on rider endpoints
-        $customer      = \App\Models\Customer::factory()->create();
+        $customer = \App\Models\Customer::factory()->create();
         $customerToken = $customer->createToken('mobile')->plainTextToken;
 
-        $this->withToken($customerToken)->getJson('/api/v1/rider/orders')
-            ->assertUnauthorized();
+        $this->withToken($customerToken)->getJson('/api/v1/rider/orders')->assertUnauthorized();
     }
 }

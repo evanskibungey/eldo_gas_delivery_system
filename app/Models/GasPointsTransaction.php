@@ -7,24 +7,34 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GasPointsTransaction extends Model
 {
+    protected $table = 'gaspoints_transactions';
+
     public $timestamps = false;
 
     protected $fillable = [
         'customer_id',
         'order_id',
+        'reward_key',
         'type',
+        'event_code',
         'points',
+        'remaining_points',
         'balance_after',
         'description',
         'created_at',
+        'expires_at',
+        'expired_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'points'       => 'integer',
+            'points' => 'integer',
+            'remaining_points' => 'integer',
             'balance_after' => 'integer',
-            'created_at'   => 'datetime',
+            'created_at' => 'datetime',
+            'expires_at' => 'datetime',
+            'expired_at' => 'datetime',
         ];
     }
 

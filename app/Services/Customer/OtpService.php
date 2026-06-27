@@ -14,18 +14,16 @@ class OtpService
     {
         OtpToken::where('phone', $phone)->whereNull('used_at')->delete();
 
-        // Longer window in dev (no real SMS) so the rider has time to check the panel.
         $expiryMinutes = empty(config('services.talksasa.api_token')) ? 30 : 10;
 
         $otp = OtpToken::create([
-            'phone'      => $phone,
-            'token'      => str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT),
+            'phone' => $phone,
+            'token' => str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT),
             'expires_at' => now()->addMinutes($expiryMinutes),
             'created_at' => now(),
         ]);
 
         Log::info("[OTP] Code dispatched to {$phone}");
-
         SendOtpJob::dispatch($phone, $otp->token);
 
         return $otp;
@@ -51,17 +49,31 @@ class OtpService
         $customer = Customer::firstOrCreate(
             ['phone' => $phone],
             [
-                'name'              => '',
+                'name' => '',
                 'phone_verified_at' => now(),
-                'referral_code'     => $this->uniqueReferralCode(),
+                'referral_code' => $this->uniqueReferralCode(),
+                'is_active' => true,
             ]
         );
 
-        if (! $customer->phone_verified_at) {
-            $customer->update(['phone_verified_at' => now()]);
+        if (! $customer->is_active) {
+            throw ValidationException::withMessages([
+                'phone' => 'Your account is currently inactive. Please contact support.',
+            ]);
         }
 
-        return $customer;
+        $updates = [];
+        if (! $customer->phone_verified_at) {
+            $updates['phone_verified_at'] = now();
+        }
+        if (! $customer->referral_code) {
+            $updates['referral_code'] = $this->uniqueReferralCode();
+        }
+        if ($updates !== []) {
+            $customer->update($updates);
+        }
+
+        return $customer->fresh();
     }
 
     private function uniqueReferralCode(): string

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Customer\GasPoints;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
 use App\Models\GasPointsTransaction;
 use App\Services\GasPointsService;
 use Illuminate\Http\Request;
@@ -20,22 +21,25 @@ class GasPointsController extends Controller
         $transactions = GasPointsTransaction::where('customer_id', $customer->id)
             ->orderByDesc('created_at')
             ->paginate(20)
-            ->through(fn ($t) => [
-                'id'          => $t->id,
-                'type'        => $t->type,
-                'points'      => $t->points,
-                'balance_after' => $t->balance_after,
-                'description' => $t->description,
-                'order_id'    => $t->order_id,
-                'created_at'  => $t->created_at->format('d M Y, g:i A'),
+            ->through(fn (GasPointsTransaction $transaction) => [
+                'id' => $transaction->id,
+                'type' => $transaction->type,
+                'event_code' => $transaction->event_code,
+                'points' => $transaction->points,
+                'balance_after' => $transaction->balance_after,
+                'remaining_points' => $transaction->remaining_points,
+                'description' => $transaction->description,
+                'order_id' => $transaction->order_id,
+                'expires_at' => $transaction->expires_at?->toDateString(),
+                'expired_at' => $transaction->expired_at?->toDateString(),
+                'created_at' => $transaction->created_at->format('d M Y, g:i A'),
             ]);
 
-        $referralCount = \App\Models\Customer::where('referred_by', $customer->id)->count();
-
+        $referralCount = Customer::where('referred_by', $customer->id)->count();
         $config = $this->gasPoints->config();
-        $tiers  = array_map(fn ($tier) => [
-            'label'       => $tier['label'],
-            'threshold'   => $tier['points'],
+        $tiers = array_map(fn ($tier) => [
+            'label' => $tier['label'],
+            'threshold' => $tier['points'],
             'description' => $tier['description'],
         ], $config['redemption_tiers']);
 
@@ -50,13 +54,15 @@ class GasPointsController extends Controller
         }
 
         return Inertia::render('Customer/GasPoints/Index', [
-            'balance'       => $currentBalance,
-            'transactions'  => $transactions,
-            'tiers'         => $tiers,
-            'nextTier'      => $nextTier,
-            'referralCode'  => $customer->referral_code,
+            'enabled' => $config['enabled'],
+            'balance' => $currentBalance,
+            'transactions' => $transactions,
+            'tiers' => $tiers,
+            'nextTier' => $nextTier,
+            'referralCode' => $customer->referral_code,
             'referralCount' => $referralCount,
-            'earnRates'     => $config['earn_rates'],
+            'earnRates' => $config['earn_rates'],
+            'rules' => $config['rules'],
         ]);
     }
 }

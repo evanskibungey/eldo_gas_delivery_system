@@ -15,6 +15,7 @@ class CancelOrderRequest extends FormRequest
     {
         return [
             'reason' => ['required', 'string', 'max:255'],
+            'inventory_returned' => ['nullable', 'boolean'],
         ];
     }
 }

@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api\V1\Rider;
 use App\Events\OrderDeliveredEvent;
 use App\Events\OrderPlacedEvent;
 use App\Events\OrderStatusUpdatedEvent;
+use App\Events\RiderOrderRemovedEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
+use App\Services\RiderStatsService;
+use App\Support\OrderLifecycle;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,16 +18,18 @@ use Illuminate\Support\Facades\Storage;
 
 class OrderController extends Controller
 {
+    public function __construct(private readonly RiderStatsService $riderStats) {}
+
     public function active(Request $request): JsonResponse
     {
         $rider = $request->user();
 
         $orders = Order::where('rider_id', $rider->id)
-            ->whereNotIn('status', ['delivered', 'cancelled'])
+            ->whereIn('status', OrderLifecycle::activeStatuses())
             ->with(['customer:id,name,phone', 'size:id,name'])
             ->latest()
             ->get()
-            ->map(fn ($o) => $this->formatOrder($o));
+            ->map(fn (Order $order) => $this->formatOrder($order));
 
         return response()->json(['data' => $orders]);
     }
@@ -48,12 +53,12 @@ class OrderController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        if ($order->status !== 'rider_assigned') {
+        if ($order->status !== OrderLifecycle::STATUS_RIDER_ASSIGNED) {
             return response()->json(['message' => 'Order is not awaiting acceptance.'], 422);
         }
 
         $order->update([
-            'rider_accepted_at'         => now(),
+            'rider_accepted_at' => now(),
             'rider_acceptance_deadline' => null,
         ]);
 
@@ -70,7 +75,7 @@ class OrderController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        if ($order->status !== 'rider_assigned') {
+        if ($order->status !== OrderLifecycle::STATUS_RIDER_ASSIGNED) {
             return response()->json(['message' => 'Order is not awaiting acceptance.'], 422);
         }
 
@@ -78,24 +83,24 @@ class OrderController extends Controller
 
         DB::transaction(function () use ($order, $declinedRiderId): void {
             $order->update([
-                'rider_id'                  => null,
-                'status'                    => 'pending',
-                'rider_assigned_at'         => null,
+                'rider_id' => null,
+                'status' => OrderLifecycle::STATUS_PENDING,
+                'rider_assigned_at' => null,
                 'rider_acceptance_deadline' => null,
-                'rider_accepted_at'         => null,
+                'rider_accepted_at' => null,
             ]);
 
             OrderStatusHistory::create([
-                'order_id'   => $order->id,
-                'status'     => 'pending',
-                'note'       => 'Rider declined — re-queued for assignment',
+                'order_id' => $order->id,
+                'status' => OrderLifecycle::STATUS_PENDING,
+                'note' => 'Rider declined - re-queued for assignment',
                 'actor_type' => 'rider',
-                'actor_id'   => $declinedRiderId,
+                'actor_id' => $declinedRiderId,
                 'created_at' => now(),
             ]);
         });
 
-        // Re-run auto-assign, excluding the rider who just declined.
+        event(new RiderOrderRemovedEvent($declinedRiderId, $order->id, 'declined'));
         event(new OrderPlacedEvent($order->fresh(), [$declinedRiderId]));
 
         return response()->json(['message' => 'Order declined.']);
@@ -108,29 +113,27 @@ class OrderController extends Controller
         }
 
         $data = $request->validate([
-            'status'            => 'required|in:picked_up,on_the_way,delivered',
+            'status' => 'required|in:picked_up,on_the_way,delivered',
             'payment_collected' => 'boolean',
-            'delivery_photo'    => 'nullable|image|max:5120',
+            'delivery_photo' => 'nullable|image|max:5120',
         ]);
 
-        $allowed = [
-            'rider_assigned'  => ['picked_up'],
-            'picked_up'       => ['on_the_way'],
-            'on_the_way'      => ['delivered'],
-        ];
-
-        if (! in_array($data['status'], $allowed[$order->status] ?? [])) {
+        if (! OrderLifecycle::canTransition($order->status, $data['status'])) {
             return response()->json(['message' => "Cannot transition from {$order->status} to {$data['status']}."], 422);
         }
 
         DB::transaction(function () use ($data, $order, $request): void {
             $updates = ['status' => $data['status']];
 
-            if ($data['status'] === 'picked_up') {
+            if ($data['status'] === OrderLifecycle::STATUS_PICKED_UP) {
                 $updates['picked_up_at'] = now();
-            } elseif ($data['status'] === 'on_the_way') {
+            } elseif ($data['status'] === OrderLifecycle::STATUS_ON_THE_WAY) {
                 $updates['on_the_way_at'] = now();
-            } elseif ($data['status'] === 'delivered') {
+                if ($order->status === OrderLifecycle::STATUS_CORRECTION_IN_PROGRESS) {
+                    $updates['has_issue'] = false;
+                    $updates['issue_resolved'] = true;
+                }
+            } elseif ($data['status'] === OrderLifecycle::STATUS_DELIVERED) {
                 $updates['delivered_at'] = now();
 
                 if (! empty($data['payment_collected']) && $order->payment_method === 'cash') {
@@ -146,50 +149,57 @@ class OrderController extends Controller
             $order->update($updates);
 
             OrderStatusHistory::create([
-                'order_id'   => $order->id,
-                'status'     => $data['status'],
+                'order_id' => $order->id,
+                'status' => $data['status'],
                 'actor_type' => 'rider',
-                'actor_id'   => $request->user()->id,
+                'actor_id' => $request->user()->id,
                 'created_at' => now(),
             ]);
         });
 
+        if ($data['status'] === OrderLifecycle::STATUS_DELIVERED) {
+            $this->riderStats->sync($order->rider_id);
+        }
+
         $fresh = $order->fresh();
         event(new OrderStatusUpdatedEvent($fresh));
-        if ($data['status'] === 'delivered') {
+        if ($data['status'] === OrderLifecycle::STATUS_DELIVERED) {
             event(new OrderDeliveredEvent($fresh));
         }
 
-        return response()->json(['message' => 'Status updated.', 'status' => $data['status']]);
+        return response()->json([
+            'message' => 'Status updated.',
+            'status' => $data['status'],
+            'payment_status' => $fresh->payment_status,
+        ]);
     }
 
-    private function formatOrder(Order $o): array
+    private function formatOrder(Order $order): array
     {
         return [
-            'id'             => $o->id,
-            'order_number'   => $o->order_number,
-            'status'         => $o->status,
-            'delivery_lat'   => $o->delivery_lat,
-            'delivery_lng'   => $o->delivery_lng,
-            'delivery_notes' => $o->delivery_notes,
-            'total_amount'   => $o->total_amount,
-            'payment_method' => $o->payment_method,
-            'customer_name'  => $o->customer?->name,
-            'customer_phone' => $o->customer?->phone,
-            'size_name'      => $o->size?->name,
-            'created_at'     => $o->created_at->toIso8601String(),
+            'id' => $order->id,
+            'order_number' => $order->order_number,
+            'status' => $order->status,
+            'payment_status' => $order->payment_status,
+            'delivery_lat' => $order->delivery_lat,
+            'delivery_lng' => $order->delivery_lng,
+            'delivery_notes' => $order->delivery_notes,
+            'total_amount' => $order->total_amount,
+            'payment_method' => $order->payment_method,
+            'customer_name' => $order->customer?->name,
+            'customer_phone' => $order->customer?->phone,
+            'size_name' => $order->size?->name,
+            'created_at' => $order->created_at->toIso8601String(),
         ];
     }
 
-    private function formatOrderDetail(Order $o): array
+    private function formatOrderDetail(Order $order): array
     {
-        return array_merge($this->formatOrder($o), [
-            'brand_name'          => $o->brand?->name,
-            'addons'              => $o->addons->map(fn ($a) => ['name' => $a->addonItem?->name, 'price' => $a->price]),
-            'history'             => $o->statusHistory->map(fn ($h) => ['status' => $h->status, 'at' => $h->created_at?->toIso8601String()]),
-            'delivery_photo_url'  => $o->delivery_photo_path
-                ? Storage::url($o->delivery_photo_path)
-                : null,
+        return array_merge($this->formatOrder($order), [
+            'brand_name' => $order->brand?->name,
+            'addons' => $order->addons->map(fn ($addon) => ['name' => $addon->addonItem?->name, 'price' => $addon->price]),
+            'history' => $order->statusHistory->map(fn ($history) => ['status' => $history->status, 'at' => $history->created_at?->toIso8601String()]),
+            'delivery_photo_url' => $order->delivery_photo_path ? Storage::url($order->delivery_photo_path) : null,
         ]);
     }
 }

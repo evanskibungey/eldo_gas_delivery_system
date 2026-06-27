@@ -11,7 +11,14 @@ class RedirectIfCustomerAuthenticated
     public function handle(Request $request, Closure $next): Response
     {
         if (auth('customer')->check()) {
-            return redirect()->route('customer.home');
+            $customer = auth('customer')->user();
+            if (! $customer?->is_active) {
+                auth('customer')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            } else {
+                return redirect()->route('customer.home');
+            }
         }
 
         return $next($request);

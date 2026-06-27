@@ -32,31 +32,43 @@ class SettingsService
             'gaspoints_earn_review',
             'gaspoints_earn_referral',
             'gaspoints_earn_referral_third_order',
+            'gaspoints_expiry_days',
+            'gaspoints_min_order_amount',
+            'gaspoints_referral_apply_window_days',
+            'gaspoints_referral_reward_window_days',
+            'gaspoints_referral_min_order_amount',
+            'gaspoints_max_balance',
             'gaspoints_redemption_tiers',
         ];
 
         $stored = SystemSetting::getMany($keys);
 
         $merged = array_merge([
-            'app_name'                            => 'EldoGas',
-            'shop_always_open'                     => '1',
-            'shop_open_time'                       => '07:00',
-            'shop_close_time'                       => '21:00',
-            'delivery_fee_mode'                    => 'per_size',
-            'delivery_base_fee'                    => '0.00',
-            'delivery_per_km_fee'                  => '0.00',
-            'shop_lat'                              => '',
-            'shop_lng'                              => '',
-            'commission_rate'                       => '10.00',
-            'gaspoints_enabled'                     => '1',
-            'gaspoints_earn_new_cylinder'           => '150',
-            'gaspoints_earn_swap'                   => '100',
-            'gaspoints_earn_large_cylinder'         => '200',
-            'gaspoints_earn_welcome'                => '250',
-            'gaspoints_earn_review'                 => '25',
-            'gaspoints_earn_referral'               => '250',
-            'gaspoints_earn_referral_third_order'   => '100',
-            'gaspoints_redemption_tiers'             => json_encode($this->gasPoints->redemptionTiersMap()),
+            'app_name' => 'EldoGas',
+            'shop_always_open' => '1',
+            'shop_open_time' => '07:00',
+            'shop_close_time' => '21:00',
+            'delivery_fee_mode' => 'per_size',
+            'delivery_base_fee' => '0.00',
+            'delivery_per_km_fee' => '0.00',
+            'shop_lat' => '',
+            'shop_lng' => '',
+            'commission_rate' => '10.00',
+            'gaspoints_enabled' => '1',
+            'gaspoints_earn_new_cylinder' => '150',
+            'gaspoints_earn_swap' => '100',
+            'gaspoints_earn_large_cylinder' => '200',
+            'gaspoints_earn_welcome' => '250',
+            'gaspoints_earn_review' => '25',
+            'gaspoints_earn_referral' => '250',
+            'gaspoints_earn_referral_third_order' => '100',
+            'gaspoints_expiry_days' => '365',
+            'gaspoints_min_order_amount' => '0',
+            'gaspoints_referral_apply_window_days' => '14',
+            'gaspoints_referral_reward_window_days' => '90',
+            'gaspoints_referral_min_order_amount' => '0',
+            'gaspoints_max_balance' => '0',
+            'gaspoints_redemption_tiers' => json_encode($this->gasPoints->redemptionTiersMap()),
         ], $stored);
 
         $tiers = json_decode((string) $merged['gaspoints_redemption_tiers'], true);
@@ -85,18 +97,18 @@ class SettingsService
         SystemSetting::set('shop_always_open', $alwaysOpen ? '1' : '0');
 
         if (! $alwaysOpen) {
-            SystemSetting::set('shop_open_time',  $data['shop_open_time']);
+            SystemSetting::set('shop_open_time', $data['shop_open_time']);
             SystemSetting::set('shop_close_time', $data['shop_close_time']);
         }
     }
 
     public function updateDelivery(array $data): void
     {
-        SystemSetting::set('delivery_fee_mode',   $data['delivery_fee_mode']);
-        SystemSetting::set('delivery_base_fee',   $data['delivery_base_fee']);
+        SystemSetting::set('delivery_fee_mode', $data['delivery_fee_mode']);
+        SystemSetting::set('delivery_base_fee', $data['delivery_base_fee']);
         SystemSetting::set('delivery_per_km_fee', $data['delivery_per_km_fee']);
-        SystemSetting::set('shop_lat',            $data['shop_lat'] ?? '');
-        SystemSetting::set('shop_lng',            $data['shop_lng'] ?? '');
+        SystemSetting::set('shop_lat', $data['shop_lat'] ?? '');
+        SystemSetting::set('shop_lng', $data['shop_lng'] ?? '');
     }
 
     public function updateCommission(array $data): void
@@ -114,6 +126,12 @@ class SettingsService
         SystemSetting::set('gaspoints_earn_review', (string) $data['gaspoints_earn_review']);
         SystemSetting::set('gaspoints_earn_referral', (string) $data['gaspoints_earn_referral']);
         SystemSetting::set('gaspoints_earn_referral_third_order', (string) $data['gaspoints_earn_referral_third_order']);
+        SystemSetting::set('gaspoints_expiry_days', (string) $data['gaspoints_expiry_days']);
+        SystemSetting::set('gaspoints_min_order_amount', (string) $data['gaspoints_min_order_amount']);
+        SystemSetting::set('gaspoints_referral_apply_window_days', (string) $data['gaspoints_referral_apply_window_days']);
+        SystemSetting::set('gaspoints_referral_reward_window_days', (string) $data['gaspoints_referral_reward_window_days']);
+        SystemSetting::set('gaspoints_referral_min_order_amount', (string) $data['gaspoints_referral_min_order_amount']);
+        SystemSetting::set('gaspoints_max_balance', (string) $data['gaspoints_max_balance']);
 
         $tiers = collect($data['gaspoints_redemption_tiers'])
             ->mapWithKeys(fn ($tier) => [(int) $tier['points'] => (int) $tier['kes']])
@@ -126,9 +144,9 @@ class SettingsService
     public function updateAccount(array $data): void
     {
         /** @var Admin $admin */
-        $admin   = Auth::guard('admin')->user();
+        $admin = Auth::guard('admin')->user();
         $payload = [
-            'name'  => $data['name'],
+            'name' => $data['name'],
             'email' => $data['email'],
         ];
 
@@ -143,8 +161,9 @@ class SettingsService
     {
         /** @var Admin $admin */
         $admin = Auth::guard('admin')->user();
+
         return [
-            'name'  => $admin->name,
+            'name' => $admin->name,
             'email' => $admin->email,
         ];
     }

@@ -5,9 +5,12 @@ namespace App\Services\Admin;
 use App\Events\OrderDeliveredEvent;
 use App\Events\OrderStatusUpdatedEvent;
 use App\Events\RiderAssignedEvent;
+use App\Events\RiderOrderRemovedEvent;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Rider;
+use App\Services\RiderStatsService;
+use App\Support\OrderLifecycle;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -15,26 +18,34 @@ use Illuminate\Validation\ValidationException;
 
 class OrderService
 {
-    public function __construct(private readonly StockService $stock) {}
+    public function __construct(
+        private readonly StockService $stock,
+        private readonly RiderStatsService $riderStats,
+    ) {}
 
     public function paginated(array $filters): LengthAwarePaginator
     {
+        $activeDispatchStatuses = array_values(array_filter(
+            OrderLifecycle::activeStatuses(),
+            fn (string $status) => $status !== OrderLifecycle::STATUS_PENDING,
+        ));
+
         return Order::with(['customer:id,name,phone', 'rider:id,name', 'size:id,name', 'brand:id,name'])
-            ->when($filters['status'] ?? null, function ($q, $status) {
+            ->when($filters['status'] ?? null, function ($q, $status) use ($activeDispatchStatuses) {
                 if ($status === 'active') {
-                    $q->whereIn('status', ['rider_assigned', 'picked_up', 'on_the_way', 'correction_in_progress']);
+                    $q->whereIn('status', $activeDispatchStatuses);
                 } else {
                     $q->where('status', $status);
                 }
             })
-            ->when($filters['search'] ?? null, function ($q, $v) {
-                $q->where(function ($q) use ($v) {
-                    $q->where('order_number', 'like', "%{$v}%")
-                        ->orWhereHas('customer', fn ($q) => $q->where('name', 'like', "%{$v}%")
-                            ->orWhere('phone', 'like', "%{$v}%"));
+            ->when($filters['search'] ?? null, function ($q, $value) {
+                $q->where(function ($query) use ($value) {
+                    $query->where('order_number', 'like', "%{$value}%")
+                        ->orWhereHas('customer', fn ($customer) => $customer->where('name', 'like', "%{$value}%")
+                            ->orWhere('phone', 'like', "%{$value}%"));
                 });
             })
-            ->when($filters['date'] ?? null, fn ($q, $v) => $q->whereDate('created_at', $v))
+            ->when($filters['date'] ?? null, fn ($q, $value) => $q->whereDate('created_at', $value))
             ->orderByRaw(
                 DB::getDriverName() === 'mysql'
                     ? "FIELD(status, 'pending', 'rider_assigned', 'picked_up', 'on_the_way', 'correction_in_progress', 'delivered', 'cancelled')"
@@ -49,22 +60,20 @@ class OrderService
     {
         return Rider::where('is_active', true)
             ->where('is_available', true)
-            ->whereDoesntHave('orders', fn ($q) => $q->whereIn('status', ['rider_assigned', 'picked_up', 'on_the_way']))
+            ->whereDoesntHave('orders', fn ($query) => $query->whereIn('status', OrderLifecycle::riderBusyStatuses()))
             ->orderBy('name')
             ->get();
     }
 
     public function assign(Order $order, Rider $rider): void
     {
-        if (! in_array($order->status, ['pending', 'rider_assigned'])) {
+        if (! in_array($order->status, [OrderLifecycle::STATUS_PENDING, OrderLifecycle::STATUS_RIDER_ASSIGNED], true)) {
             throw ValidationException::withMessages([
                 'rider_id' => 'This order cannot be assigned in its current state.',
             ]);
         }
 
         DB::transaction(function () use ($order, $rider): void {
-            // Pessimistic lock prevents two admins assigning the same rider
-            // to different orders in the same instant.
             $locked = Rider::lockForUpdate()->find($rider->id);
 
             if (! $locked || ! $locked->is_active || ! $locked->is_available) {
@@ -74,7 +83,8 @@ class OrderService
             }
 
             $hasActive = $locked->orders()
-                ->whereIn('status', ['rider_assigned', 'picked_up', 'on_the_way'])
+                ->whereIn('status', OrderLifecycle::riderBusyStatuses())
+                ->where('id', '!=', $order->id)
                 ->exists();
 
             if ($hasActive) {
@@ -84,17 +94,17 @@ class OrderService
             }
 
             $order->update([
-                'rider_id'          => $locked->id,
-                'status'            => 'rider_assigned',
+                'rider_id' => $locked->id,
+                'status' => OrderLifecycle::STATUS_RIDER_ASSIGNED,
                 'rider_assigned_at' => now(),
             ]);
 
             OrderStatusHistory::create([
-                'order_id'   => $order->id,
-                'status'     => 'rider_assigned',
-                'note'       => "Assigned to {$locked->name}",
+                'order_id' => $order->id,
+                'status' => OrderLifecycle::STATUS_RIDER_ASSIGNED,
+                'note' => "Assigned to {$locked->name}",
                 'actor_type' => 'admin',
-                'actor_id'   => auth('admin')->id(),
+                'actor_id' => auth('admin')->id(),
                 'created_at' => now(),
             ]);
         });
@@ -106,46 +116,65 @@ class OrderService
 
     public function reassign(Order $order, Rider $rider, string $reason): void
     {
-        if (! in_array($order->status, ['rider_assigned', 'picked_up', 'on_the_way', 'correction_in_progress'])) {
+        if (! in_array($order->status, OrderLifecycle::riderBusyStatuses(), true)) {
             throw ValidationException::withMessages([
                 'rider_id' => 'This order cannot be reassigned in its current state.',
             ]);
         }
 
-        $preserveStatus = in_array($order->status, ['picked_up', 'on_the_way', 'correction_in_progress']);
+        $previousRiderId = $order->rider_id;
+        $preserveStatus = in_array($order->status, [
+            OrderLifecycle::STATUS_PICKED_UP,
+            OrderLifecycle::STATUS_ON_THE_WAY,
+            OrderLifecycle::STATUS_CORRECTION_IN_PROGRESS,
+        ], true);
 
         DB::transaction(function () use ($order, $rider, $reason, $preserveStatus): void {
-            // Lock the new rider to prevent concurrent double-assignment.
             $locked = Rider::lockForUpdate()->find($rider->id);
 
-            if (! $locked || ! $locked->is_active) {
+            if (! $locked || ! $locked->is_active || ! $locked->is_available) {
                 throw ValidationException::withMessages([
-                    'rider_id' => 'The selected rider is not active.',
+                    'rider_id' => 'The selected rider is not active and available.',
+                ]);
+            }
+
+            $hasActive = $locked->orders()
+                ->whereIn('status', OrderLifecycle::riderBusyStatuses())
+                ->where('id', '!=', $order->id)
+                ->exists();
+
+            if ($hasActive) {
+                throw ValidationException::withMessages([
+                    'rider_id' => 'This rider already has an active order.',
                 ]);
             }
 
             $updates = [
-                'rider_id'          => $locked->id,
+                'rider_id' => $locked->id,
                 'rider_assigned_at' => now(),
             ];
 
             if (! $preserveStatus) {
-                $updates['status'] = 'rider_assigned';
+                $updates['status'] = OrderLifecycle::STATUS_RIDER_ASSIGNED;
+                $updates['rider_accepted_at'] = null;
             }
 
             $order->update($updates);
 
             OrderStatusHistory::create([
-                'order_id'   => $order->id,
-                'status'     => $order->fresh()->status,
-                'note'       => "Reassigned to {$locked->name}. Reason: {$reason}",
+                'order_id' => $order->id,
+                'status' => $order->fresh()->status,
+                'note' => "Reassigned to {$locked->name}. Reason: {$reason}",
                 'actor_type' => 'admin',
-                'actor_id'   => auth('admin')->id(),
+                'actor_id' => auth('admin')->id(),
                 'created_at' => now(),
             ]);
         });
 
         $fresh = $order->fresh();
+        if ($previousRiderId && $previousRiderId !== $fresh->rider_id) {
+            event(new RiderOrderRemovedEvent($previousRiderId, $fresh->id, 'reassigned'));
+        }
         event(new RiderAssignedEvent($fresh, $rider));
         event(new OrderStatusUpdatedEvent($fresh));
     }
@@ -156,15 +185,7 @@ class OrderService
         ?string $deliveryNote = null,
         bool $paymentCollected = false,
     ): void {
-        $validTransitions = [
-            'rider_assigned' => ['picked_up'],
-            'picked_up'      => ['on_the_way', 'delivered'],
-            'on_the_way'     => ['delivered'],
-        ];
-
-        $allowed = $validTransitions[$order->status] ?? [];
-
-        if (! in_array($newStatus, $allowed)) {
+        if (! OrderLifecycle::canTransition($order->status, $newStatus)) {
             throw ValidationException::withMessages([
                 'status' => "Cannot transition from {$order->status} to {$newStatus}.",
             ]);
@@ -173,48 +194,54 @@ class OrderService
         $updates = ['status' => $newStatus];
         $note = null;
 
-        if ($newStatus === 'picked_up') {
+        if ($newStatus === OrderLifecycle::STATUS_PICKED_UP) {
             $updates['picked_up_at'] = now();
         }
 
-        if ($newStatus === 'on_the_way') {
+        if ($newStatus === OrderLifecycle::STATUS_ON_THE_WAY) {
             $updates['on_the_way_at'] = now();
+            if ($order->status === OrderLifecycle::STATUS_CORRECTION_IN_PROGRESS) {
+                $updates['has_issue'] = false;
+                $updates['issue_resolved'] = true;
+            }
         }
 
-        if ($newStatus === 'delivered') {
+        if ($newStatus === OrderLifecycle::STATUS_DELIVERED) {
             $updates['delivered_at'] = now();
             $note = $deliveryNote ?? 'Delivery confirmed';
 
             if ($paymentCollected && $order->payment_method === 'cash') {
                 $updates['payment_status'] = 'collected';
             }
-
-            $this->updateRiderDeliveryCount($order);
         }
 
         DB::transaction(function () use ($order, $updates, $newStatus, $note): void {
             $order->update($updates);
 
             OrderStatusHistory::create([
-                'order_id'   => $order->id,
-                'status'     => $newStatus,
-                'note'       => $note,
+                'order_id' => $order->id,
+                'status' => $newStatus,
+                'note' => $note,
                 'actor_type' => 'admin',
-                'actor_id'   => auth('admin')->id(),
+                'actor_id' => auth('admin')->id(),
                 'created_at' => now(),
             ]);
         });
 
+        if ($newStatus === OrderLifecycle::STATUS_DELIVERED) {
+            $this->riderStats->sync($order->rider_id);
+        }
+
         $fresh = $order->fresh();
         event(new OrderStatusUpdatedEvent($fresh));
-        if ($newStatus === 'delivered') {
+        if ($newStatus === OrderLifecycle::STATUS_DELIVERED) {
             event(new OrderDeliveredEvent($fresh));
         }
     }
 
     public function resolveCorrection(Order $order): void
     {
-        if ($order->status !== 'correction_in_progress') {
+        if ($order->status !== OrderLifecycle::STATUS_CORRECTION_IN_PROGRESS) {
             throw ValidationException::withMessages([
                 'status' => 'Order is not in correction_in_progress state.',
             ]);
@@ -222,17 +249,17 @@ class OrderService
 
         DB::transaction(function () use ($order): void {
             $order->update([
-                'status'         => 'on_the_way',
-                'has_issue'      => false,
+                'status' => OrderLifecycle::STATUS_ON_THE_WAY,
+                'has_issue' => false,
                 'issue_resolved' => true,
             ]);
 
             OrderStatusHistory::create([
-                'order_id'   => $order->id,
-                'status'     => 'on_the_way',
-                'note'       => 'Issue resolved - delivery resumed',
+                'order_id' => $order->id,
+                'status' => OrderLifecycle::STATUS_ON_THE_WAY,
+                'note' => 'Issue resolved - delivery resumed',
                 'actor_type' => 'admin',
-                'actor_id'   => auth('admin')->id(),
+                'actor_id' => auth('admin')->id(),
                 'created_at' => now(),
             ]);
         });
@@ -242,7 +269,7 @@ class OrderService
 
     public function collectPayment(Order $order): void
     {
-        if ($order->status !== 'delivered') {
+        if ($order->status !== OrderLifecycle::STATUS_DELIVERED) {
             throw ValidationException::withMessages([
                 'payment' => 'Payment can only be collected for delivered orders.',
             ]);
@@ -262,11 +289,11 @@ class OrderService
                 : 'Cash payment collected';
 
             OrderStatusHistory::create([
-                'order_id'   => $order->id,
-                'status'     => $order->status,
-                'note'       => $note,
+                'order_id' => $order->id,
+                'status' => $order->status,
+                'note' => $note,
                 'actor_type' => 'admin',
-                'actor_id'   => auth('admin')->id(),
+                'actor_id' => auth('admin')->id(),
                 'created_at' => now(),
             ]);
         });
@@ -276,20 +303,6 @@ class OrderService
 
     public function pendingCount(): int
     {
-        return Order::where('status', 'pending')->count();
-    }
-
-    private function updateRiderDeliveryCount(Order $order): void
-    {
-        if (! $order->rider_id) {
-            return;
-        }
-
-        $count = Order::where('rider_id', $order->rider_id)
-            ->where('status', 'delivered')
-            ->count();
-
-        $order->rider()->update(['total_deliveries' => $count + 1]);
+        return Order::where('status', OrderLifecycle::STATUS_PENDING)->count();
     }
 }
-

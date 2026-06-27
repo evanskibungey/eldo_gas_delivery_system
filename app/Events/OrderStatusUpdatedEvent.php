@@ -17,9 +17,13 @@ class OrderStatusUpdatedEvent implements ShouldBroadcast
 
     public function broadcastOn(): array
     {
-        return [
-            new PrivateChannel("orders.{$this->order->id}"),
-        ];
+        $channels = [new PrivateChannel("orders.{$this->order->id}")];
+
+        if ($this->order->rider_id) {
+            $channels[] = new PrivateChannel("rider.{$this->order->rider_id}");
+        }
+
+        return $channels;
     }
 
     public function broadcastAs(): string
@@ -30,7 +34,9 @@ class OrderStatusUpdatedEvent implements ShouldBroadcast
     public function broadcastWith(): array
     {
         return [
-            'status'     => $this->order->status,
+            'order_id' => $this->order->id,
+            'status' => $this->order->status,
+            'payment_status' => $this->order->payment_status,
             'updated_at' => $this->order->updated_at?->toISOString(),
         ];
     }

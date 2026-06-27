@@ -11,22 +11,16 @@ use App\Models\OrderStatusHistory;
 use App\Models\Rider;
 use App\Models\SystemSetting;
 use App\Services\Sms\SmsTemplateService;
+use App\Support\OrderLifecycle;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AutoAssignRiderToOrder implements ShouldQueue
 {
-    /**
-     * Short delay so the PlaceOrderAction transaction is guaranteed committed
-     * before this job reads the order row.
-     */
     public int $delay = 3;
 
-    /**
-     * Do not retry — if no rider is available now, retrying won't help.
-     * The admin will assign manually if auto-assign fails.
-     */
     public int $tries = 1;
 
     public string $queue = 'default';
@@ -37,64 +31,23 @@ class AutoAssignRiderToOrder implements ShouldQueue
         $excludeRiderIds = $event->excludeRiderIds;
         $assignedRiderId = null;
         $noRiderFound = false;
-
-        // Read radius outside the transaction — it's a cached lookup and does
-        // not need to be part of the pessimistic-lock scope.
         $radiusKm = (float) SystemSetting::get('auto_assign_radius_km', 15);
 
         DB::transaction(function () use ($orderId, $excludeRiderIds, $radiusKm, &$assignedRiderId, &$noRiderFound): void {
-            // Lock the order row so concurrent jobs cannot double-assign.
             $order = Order::lockForUpdate()->find($orderId);
 
-            if (! $order || $order->status !== 'pending') {
-                // Admin already assigned manually during the delay — nothing to do.
+            if (! $order || $order->status !== OrderLifecycle::STATUS_PENDING) {
                 return;
             }
 
-            // Find the best available rider:
-            //   • active and marked available
-            //   • reported location within the last 30 minutes (stale location
-            //     means the rider may be offline or out of area)
-            //   • no current active orders (rider_assigned / picked_up / on_the_way)
-            //   • not in the excluded list (declined this order before)
-            //   • within the configured proximity radius (Haversine, default 15 km)
-            //   • prefer riders with the fewest pending assignments, then highest
-            //     total deliveries (experience-based tie-break)
-            $candidateIds = Rider::where('is_active', true)
-                ->where('is_available', true)
-                ->where('location_updated_at', '>=', now()->subMinutes(30))
-                ->whereNotNull('current_latitude')
-                ->whereNotNull('current_longitude')
-                ->whereDoesntHave('orders', fn ($q) => $q->whereIn('status', [
-                    'rider_assigned', 'picked_up', 'on_the_way',
-                ]))
-                ->when(! empty($excludeRiderIds), fn ($q) => $q->whereNotIn('id', $excludeRiderIds))
-                ->whereRaw(
-                    '(6371 * acos(
-                        cos(radians(?)) * cos(radians(current_latitude))
-                        * cos(radians(current_longitude) - radians(?))
-                        + sin(radians(?)) * sin(radians(current_latitude))
-                    )) <= ?',
-                    [
-                        $order->delivery_lat,
-                        $order->delivery_lng,
-                        $order->delivery_lat,
-                        $radiusKm,
-                    ]
-                )
-                ->withCount(['orders as pending_load' => fn ($q) => $q->where('status', 'rider_assigned')])
-                ->orderBy('pending_load')
-                ->orderByDesc('total_deliveries')
-                ->pluck('id');
+            $candidateIds = $this->candidateIdsForOrder($order, $excludeRiderIds, $radiusKm);
 
             if ($candidateIds->isEmpty()) {
-                Log::info("[AutoAssign] No eligible rider within {$radiusKm} km for order #{$order->order_number} — will require manual assignment.");
+                Log::info("[AutoAssign] No eligible rider within {$radiusKm} km for order #{$order->order_number} - will require manual assignment.");
                 $noRiderFound = true;
                 return;
             }
 
-            // Lock each candidate row in order to prevent the same rider being
-            // assigned to two concurrent orders simultaneously.
             foreach ($candidateIds as $riderId) {
                 $rider = Rider::lockForUpdate()->find($riderId);
 
@@ -103,29 +56,27 @@ class AutoAssignRiderToOrder implements ShouldQueue
                 }
 
                 $hasActiveOrder = $rider->orders()
-                    ->whereIn('status', ['rider_assigned', 'picked_up', 'on_the_way'])
+                    ->whereIn('status', OrderLifecycle::riderBusyStatuses())
                     ->exists();
 
                 if ($hasActiveOrder) {
                     continue;
                 }
 
-                // Rider is confirmed available — assign.
-                // Give them 60 seconds to accept before expiry re-queues.
                 $order->update([
-                    'rider_id'                  => $rider->id,
-                    'status'                    => 'rider_assigned',
-                    'rider_assigned_at'         => now(),
+                    'rider_id' => $rider->id,
+                    'status' => OrderLifecycle::STATUS_RIDER_ASSIGNED,
+                    'rider_assigned_at' => now(),
                     'rider_acceptance_deadline' => now()->addSeconds(60),
-                    'rider_accepted_at'         => null,
+                    'rider_accepted_at' => null,
                 ]);
 
                 OrderStatusHistory::create([
-                    'order_id'   => $order->id,
-                    'status'     => 'rider_assigned',
-                    'note'       => "Auto-assigned to {$rider->name}",
+                    'order_id' => $order->id,
+                    'status' => OrderLifecycle::STATUS_RIDER_ASSIGNED,
+                    'note' => "Auto-assigned to {$rider->name}",
                     'actor_type' => 'system',
-                    'actor_id'   => null,
+                    'actor_id' => null,
                     'created_at' => now(),
                 ]);
 
@@ -137,7 +88,6 @@ class AutoAssignRiderToOrder implements ShouldQueue
             $noRiderFound = true;
         });
 
-        // Fire events outside the transaction so they only run on successful commit.
         if ($assignedRiderId !== null) {
             $fresh = Order::with(['rider'])->find($orderId);
 
@@ -154,18 +104,69 @@ class AutoAssignRiderToOrder implements ShouldQueue
         }
     }
 
-    /**
-     * Called when the queued job fails after all retries are exhausted.
-     * Since $tries = 1, this fires on the first (and only) unhandled exception.
-     */
-    public function failed(OrderPlacedEvent $event, \Throwable $e): void
+    public function failed(OrderPlacedEvent $event, \Throwable $exception): void
     {
-        Log::error("[AutoAssign] Job failed for order #{$event->order->order_number}: {$e->getMessage()}");
+        Log::error("[AutoAssign] Job failed for order #{$event->order->order_number}: {$exception->getMessage()}");
 
         $order = Order::with(['customer', 'size', 'brand'])->find($event->order->id);
-        if ($order && $order->status === 'pending') {
+        if ($order && $order->status === OrderLifecycle::STATUS_PENDING) {
             $this->alertAdminNoRider($order);
         }
+    }
+
+    private function candidateIdsForOrder(Order $order, array $excludeRiderIds, float $radiusKm): Collection
+    {
+        $candidateQuery = Rider::where('is_active', true)
+            ->where('is_available', true)
+            ->where('location_updated_at', '>=', now()->subMinutes(30))
+            ->whereNotNull('current_latitude')
+            ->whereNotNull('current_longitude')
+            ->whereDoesntHave('orders', fn ($query) => $query->whereIn('status', OrderLifecycle::riderBusyStatuses()))
+            ->when(! empty($excludeRiderIds), fn ($query) => $query->whereNotIn('id', $excludeRiderIds))
+            ->withCount(['orders as pending_load' => fn ($query) => $query->where('status', OrderLifecycle::STATUS_RIDER_ASSIGNED)]);
+
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return $candidateQuery
+                ->get()
+                ->filter(fn (Rider $rider) => $this->distanceKm(
+                    (float) $order->delivery_lat,
+                    (float) $order->delivery_lng,
+                    (float) $rider->current_latitude,
+                    (float) $rider->current_longitude,
+                ) <= $radiusKm)
+                ->sort(fn (Rider $left, Rider $right) => [$left->pending_load, -$left->total_deliveries] <=> [$right->pending_load, -$right->total_deliveries])
+                ->pluck('id')
+                ->values();
+        }
+
+        return $candidateQuery
+            ->whereRaw(
+                '(6371 * acos(
+                    cos(radians(?)) * cos(radians(current_latitude))
+                    * cos(radians(current_longitude) - radians(?))
+                    + sin(radians(?)) * sin(radians(current_latitude))
+                )) <= ?',
+                [
+                    $order->delivery_lat,
+                    $order->delivery_lng,
+                    $order->delivery_lat,
+                    $radiusKm,
+                ]
+            )
+            ->orderBy('pending_load')
+            ->orderByDesc('total_deliveries')
+            ->pluck('id');
+    }
+
+    private function distanceKm(float $lat1, float $lng1, float $lat2, float $lng2): float
+    {
+        $earthRadiusKm = 6371;
+        $deltaLat = deg2rad($lat2 - $lat1);
+        $deltaLng = deg2rad($lng2 - $lng1);
+        $a = sin($deltaLat / 2) ** 2
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($deltaLng / 2) ** 2;
+
+        return $earthRadiusKm * 2 * asin(min(1, sqrt($a)));
     }
 
     private function alertAdminNoRider(Order $order): void
@@ -173,7 +174,7 @@ class AutoAssignRiderToOrder implements ShouldQueue
         $phones = $this->resolveManagerPhones();
 
         if (empty($phones)) {
-            Log::warning("[AutoAssign] No admin phones configured — cannot send no-rider alert for order #{$order->order_number}");
+            Log::warning("[AutoAssign] No admin phones configured - cannot send no-rider alert for order #{$order->order_number}");
             return;
         }
 
@@ -193,9 +194,9 @@ class AutoAssignRiderToOrder implements ShouldQueue
         }
 
         return collect(explode(',', $raw))
-            ->map(function (string $p): string {
-                $p = trim($p);
-                return str_starts_with($p, '0') ? '+254' . substr($p, 1) : $p;
+            ->map(function (string $phone): string {
+                $phone = trim($phone);
+                return str_starts_with($phone, '0') ? '+254' . substr($phone, 1) : $phone;
             })
             ->filter()
             ->values()

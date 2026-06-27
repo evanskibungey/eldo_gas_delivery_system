@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Customer;
 
 use App\Actions\ReportDamagedCylinderAction;
 use App\Actions\ReportWrongCylinderAction;
+use App\Actions\RiderNoShowAction;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
@@ -11,12 +12,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
-/**
- * Customer endpoint for reporting an issue on an active order. Maps the
- * `issue_type` payload onto the existing admin-side actions so the same
- * downstream listeners (admin alerts, stock flags, rider incident
- * counters) fire the same way regardless of who reported it.
- */
 class IssueController extends Controller
 {
     public function store(
@@ -24,18 +19,19 @@ class IssueController extends Controller
         Order $order,
         ReportWrongCylinderAction $wrong,
         ReportDamagedCylinderAction $damaged,
+        RiderNoShowAction $riderNoShow,
     ): JsonResponse {
         if ($order->customer_id !== $request->user()->id) {
             return response()->json(['message' => 'Not found.'], 404);
         }
 
         $data = $request->validate([
-            'issue_type'  => 'required|in:wrong_cylinder,damaged_cylinder,other',
+            'issue_type' => 'required|in:wrong_cylinder,damaged_cylinder,rider_no_show,other',
             'description' => 'nullable|string|max:500',
         ]);
 
         $description = $data['description'] ?? '';
-        $actorId     = $request->user()->id;
+        $actorId = $request->user()->id;
 
         try {
             switch ($data['issue_type']) {
@@ -47,6 +43,10 @@ class IssueController extends Controller
                     $damaged->execute($order, $description, 'customer', $actorId);
                     break;
 
+                case 'rider_no_show':
+                    $riderNoShow->execute($order, 'customer', $actorId);
+                    break;
+
                 case 'other':
                     if ($order->status === 'cancelled') {
                         throw ValidationException::withMessages([
@@ -54,16 +54,16 @@ class IssueController extends Controller
                         ]);
                     }
                     $order->update([
-                        'has_issue'         => true,
-                        'issue_type'        => 'other',
+                        'has_issue' => true,
+                        'issue_type' => 'other',
                         'issue_description' => $description,
                     ]);
                     OrderStatusHistory::create([
-                        'order_id'   => $order->id,
-                        'status'     => $order->status,
-                        'note'       => 'Customer reported an issue: ' . $description,
+                        'order_id' => $order->id,
+                        'status' => $order->status,
+                        'note' => 'Customer reported an issue: ' . $description,
                         'actor_type' => 'customer',
-                        'actor_id'   => $actorId,
+                        'actor_id' => $actorId,
                         'created_at' => now(),
                     ]);
                     break;
@@ -71,7 +71,7 @@ class IssueController extends Controller
         } catch (ValidationException $e) {
             return response()->json([
                 'message' => 'Validation failed.',
-                'errors'  => $e->errors(),
+                'errors' => $e->errors(),
             ], 422);
         }
 

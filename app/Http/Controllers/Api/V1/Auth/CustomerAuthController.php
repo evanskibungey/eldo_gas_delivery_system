@@ -15,9 +15,9 @@ class CustomerAuthController extends Controller
 
     public function requestOtp(Request $request): JsonResponse
     {
-        $data  = $request->validate(['phone' => 'required|string|max:20']);
+        $data = $request->validate(['phone' => 'required|string|max:20']);
         $phone = $this->normalizePhone($data['phone']);
-        $key   = 'api-otp:' . $phone;
+        $key = 'api-otp:' . $phone;
 
         if (RateLimiter::tooManyAttempts($key, 5)) {
             return response()->json([
@@ -26,7 +26,6 @@ class CustomerAuthController extends Controller
         }
 
         RateLimiter::hit($key, 600);
-
         $this->otp->generate($phone);
 
         return response()->json(['message' => 'OTP sent.']);
@@ -34,7 +33,7 @@ class CustomerAuthController extends Controller
 
     public function verifyOtp(Request $request): JsonResponse
     {
-        $data  = $request->validate([
+        $data = $request->validate([
             'phone' => 'required|string|max:20',
             'token' => 'required|string|size:4',
         ]);
@@ -43,8 +42,7 @@ class CustomerAuthController extends Controller
 
         if (RateLimiter::tooManyAttempts($verifyKey, 10)) {
             return response()->json([
-                'message' => 'Too many verification attempts. Try again in '
-                    . RateLimiter::availableIn($verifyKey) . ' seconds.',
+                'message' => 'Too many verification attempts. Try again in ' . RateLimiter::availableIn($verifyKey) . ' seconds.',
             ], 429);
         }
 
@@ -58,27 +56,44 @@ class CustomerAuthController extends Controller
 
         RateLimiter::clear($verifyKey);
 
-        $token = $customer->createToken('mobile', ['customer'])->plainTextToken;
+        $plainTextToken = $customer->createToken('mobile', ['customer'])->plainTextToken;
+        $expiresAt = $this->tokenExpiresAt();
 
         return response()->json([
-            'access_token' => $token,
-            'token_type'   => 'Bearer',
-            'customer'     => [
-                'id'             => $customer->id,
-                'name'           => $customer->name,
-                'phone'          => $customer->phone,
-                'gaspoints'      => $customer->gaspoints_balance,
-                'referral_code'  => $customer->referral_code,
+            'access_token' => $plainTextToken,
+            'token_type' => 'Bearer',
+            'expires_at' => $expiresAt?->toIso8601String(),
+            'customer' => [
+                'id' => $customer->id,
+                'name' => $customer->name,
+                'phone' => $customer->phone,
+                'gaspoints' => $customer->gaspoints_balance,
+                'referral_code' => $customer->referral_code,
                 'profile_complete' => ! empty($customer->name),
+                'is_active' => (bool) $customer->is_active,
             ],
         ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $request->user()?->currentAccessToken()?->delete();
 
         return response()->json(['message' => 'Logged out.']);
+    }
+
+    public function logoutAll(Request $request): JsonResponse
+    {
+        $request->user()?->tokens()?->delete();
+
+        return response()->json(['message' => 'Logged out from all devices.']);
+    }
+
+    private function tokenExpiresAt(): ?\Illuminate\Support\Carbon
+    {
+        $minutes = (int) config('sanctum.expiration');
+
+        return $minutes > 0 ? now()->addMinutes($minutes) : null;
     }
 
     private function normalizePhone(string $phone): string

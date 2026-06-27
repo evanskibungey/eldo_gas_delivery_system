@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { OrderStatus } from '@/types/models';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface HistoryEntry {
     status:     string;
@@ -84,7 +84,7 @@ interface Props {
     availableRiders: AvailableRider[];
 }
 
-// ── Config ───────────────────────────────────────────────────────────────────
+// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const STATUS_CFG: Record<string, { label: string; dot: string; chip: string; icon: React.ElementType }> = {
     pending:                { label: 'Pending',        dot: 'bg-amber-400',   chip: 'border-amber-200   bg-amber-50   text-amber-700',   icon: Clock        },
@@ -102,7 +102,7 @@ const NEXT_STATUS_LABEL: Record<string, string> = {
     delivered:  'Mark as Delivered',
 };
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SectionCard({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
     return (
@@ -126,12 +126,20 @@ function StatusBadge({ status }: { status: string }) {
     );
 }
 
-function CancelModal({ orderNumber, onCancel, onConfirm }: {
+function CancelModal({
+    orderNumber,
+    inventoryRestoreRequired,
+    onCancel,
+    onConfirm,
+}: {
     orderNumber: string;
+    inventoryRestoreRequired: boolean;
     onCancel: () => void;
-    onConfirm: (reason: string) => void;
+    onConfirm: (reason: string, inventoryReturned: boolean) => void;
 }) {
     const [reason, setReason] = useState('');
+    const [inventoryReturned, setInventoryReturned] = useState(false);
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 shadow-2xl">
@@ -145,16 +153,32 @@ function CancelModal({ orderNumber, onCancel, onConfirm }: {
                 <textarea
                     value={reason}
                     onChange={e => setReason(e.target.value)}
-                    placeholder="e.g. Customer requested cancellation, out of stock…"
+                    placeholder="e.g. Customer requested cancellation, out of stock..."
                     rows={3}
                     className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300/20 resize-none"
                 />
+                {inventoryRestoreRequired && (
+                    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                        <p className="text-xs font-medium text-amber-800">
+                            This order has already moved beyond rider assignment. Only restore stock if the cylinder or gas physically returned to inventory.
+                        </p>
+                        <label className="mt-3 flex items-start gap-2 text-sm text-slate-700">
+                            <input
+                                type="checkbox"
+                                checked={inventoryReturned}
+                                onChange={e => setInventoryReturned(e.target.checked)}
+                                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
+                            />
+                            <span>Inventory was physically returned to stock</span>
+                        </label>
+                    </div>
+                )}
                 <div className="mt-4 flex gap-3">
                     <Button variant="outline" className="flex-1 h-9 text-sm" onClick={onCancel}>Keep Order</Button>
                     <Button
                         disabled={!reason.trim()}
                         className="flex-1 h-9 bg-red-500 hover:bg-red-600 text-white text-sm disabled:opacity-50"
-                        onClick={() => reason.trim() && onConfirm(reason)}
+                        onClick={() => reason.trim() && onConfirm(reason, inventoryReturned)}
                     >
                         Cancel Order
                     </Button>
@@ -183,7 +207,7 @@ function OutOfStockModal({ orderNumber, onCancel, onConfirm }: {
                 <textarea
                     value={reason}
                     onChange={e => setReason(e.target.value)}
-                    placeholder="e.g. No 13kg cylinders in stock…"
+                    placeholder="e.g. No 13kg cylinders in stockâ€¦"
                     rows={3}
                     className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/20 resize-none"
                 />
@@ -225,7 +249,7 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: {
                 <textarea
                     value={note}
                     onChange={e => setNote(e.target.value)}
-                    placeholder="Optional delivery note (e.g. Left at gate, customer confirmed receipt)…"
+                    placeholder="Optional delivery note (e.g. Left at gate, customer confirmed receipt)â€¦"
                     rows={3}
                     className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300/20 resize-none"
                 />
@@ -258,7 +282,7 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: {
     );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function OrdersShow({ order, availableRiders }: Props) {
     const [showAssign, setShowAssign]                 = useState(false);
@@ -295,8 +319,14 @@ export default function OrdersShow({ order, availableRiders }: Props) {
         });
     }
 
-    function confirmCancel(reason: string) {
-        router.post(`/admin/orders/${order.id}/cancel`, { reason }, {
+    function confirmCancel(reason: string, inventoryReturned: boolean) {
+        const payload: Record<string, unknown> = { reason };
+
+        if (order.inventory_restore_required) {
+            payload.inventory_returned = inventoryReturned;
+        }
+
+        router.post(`/admin/orders/${order.id}/cancel`, payload, {
             onSuccess: () => setShowCancel(false),
         });
     }
@@ -346,7 +376,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
 
-                {/* ── Left column ── */}
+                {/* â”€â”€ Left column â”€â”€ */}
                 <div className="lg:col-span-2 space-y-5">
 
                     {/* Action bar */}
@@ -388,7 +418,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                     className="h-8 gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs"
                                 >
                                     <ChevronRight className="h-3.5 w-3.5" />
-                                    {advancing ? 'Saving…' : (NEXT_STATUS_LABEL[order.next_status] ?? 'Advance')}
+                                    {advancing ? 'Savingâ€¦' : (NEXT_STATUS_LABEL[order.next_status] ?? 'Advance')}
                                 </Button>
                             )}
 
@@ -438,7 +468,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                     {isSwap ? 'Gas Refill (Swap)' : 'New Cylinder'}
                                 </p>
                                 <p className="text-sm text-slate-500">
-                                    {order.size_name}{order.brand_name ? ` · ${order.brand_name}` : ''}
+                                    {order.size_name}{order.brand_name ? ` Â· ${order.brand_name}` : ''}
                                 </p>
                             </div>
                         </div>
@@ -572,7 +602,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                     </SectionCard>
                 </div>
 
-                {/* ── Right column ── */}
+                {/* â”€â”€ Right column â”€â”€ */}
                 <div className="space-y-5">
 
                     {/* Customer */}
@@ -589,7 +619,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                             href={`/admin/customers/${order.customer.id}`}
                                             className="text-[10px] text-orange-500 hover:text-orange-600"
                                         >
-                                            View profile →
+                                            View profile â†’
                                         </Link>
                                     </div>
                                 </div>
@@ -682,7 +712,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                         </div>
                                         <div className="flex items-center gap-1 text-[10px] text-slate-400">
                                             <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                                            {order.rider.avg_rating > 0 ? order.rider.avg_rating.toFixed(1) : '—'}
+                                            {order.rider.avg_rating > 0 ? order.rider.avg_rating.toFixed(1) : 'â€”'}
                                         </div>
                                     </div>
                                 </div>
@@ -746,6 +776,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
             {showCancel && (
                 <CancelModal
                     orderNumber={order.order_number}
+                    inventoryRestoreRequired={order.inventory_restore_required}
                     onCancel={() => setShowCancel(false)}
                     onConfirm={confirmCancel}
                 />

@@ -42,6 +42,12 @@ interface SystemSettings {
     gaspoints_earn_review:               string;
     gaspoints_earn_referral:             string;
     gaspoints_earn_referral_third_order: string;
+    gaspoints_expiry_days:               string;
+    gaspoints_min_order_amount:          string;
+    gaspoints_referral_apply_window_days:string;
+    gaspoints_referral_reward_window_days:string;
+    gaspoints_referral_min_order_amount: string;
+    gaspoints_max_balance:               string;
     gaspoints_redemption_tiers:          RedemptionTier[];
 }
 
@@ -458,15 +464,21 @@ function CommissionTab({ settings }: { settings: SystemSettings }) {
 
 function PointsTab({ settings }: { settings: SystemSettings }) {
     const { data, setData, post, processing, errors } = useForm({
-        gaspoints_enabled:                   settings.gaspoints_enabled === '1',
-        gaspoints_earn_new_cylinder:         settings.gaspoints_earn_new_cylinder,
-        gaspoints_earn_swap:                 settings.gaspoints_earn_swap,
-        gaspoints_earn_large_cylinder:       settings.gaspoints_earn_large_cylinder,
-        gaspoints_earn_welcome:              settings.gaspoints_earn_welcome,
-        gaspoints_earn_review:               settings.gaspoints_earn_review,
-        gaspoints_earn_referral:             settings.gaspoints_earn_referral,
-        gaspoints_earn_referral_third_order: settings.gaspoints_earn_referral_third_order,
-        gaspoints_redemption_tiers:          settings.gaspoints_redemption_tiers,
+        gaspoints_enabled:                    settings.gaspoints_enabled === '1',
+        gaspoints_earn_new_cylinder:          settings.gaspoints_earn_new_cylinder,
+        gaspoints_earn_swap:                  settings.gaspoints_earn_swap,
+        gaspoints_earn_large_cylinder:        settings.gaspoints_earn_large_cylinder,
+        gaspoints_earn_welcome:               settings.gaspoints_earn_welcome,
+        gaspoints_earn_review:                settings.gaspoints_earn_review,
+        gaspoints_earn_referral:              settings.gaspoints_earn_referral,
+        gaspoints_earn_referral_third_order:  settings.gaspoints_earn_referral_third_order,
+        gaspoints_expiry_days:                settings.gaspoints_expiry_days,
+        gaspoints_min_order_amount:           settings.gaspoints_min_order_amount,
+        gaspoints_referral_apply_window_days: settings.gaspoints_referral_apply_window_days,
+        gaspoints_referral_reward_window_days: settings.gaspoints_referral_reward_window_days,
+        gaspoints_referral_min_order_amount:  settings.gaspoints_referral_min_order_amount,
+        gaspoints_max_balance:                settings.gaspoints_max_balance,
+        gaspoints_redemption_tiers:           settings.gaspoints_redemption_tiers,
     });
 
     function submit(e: FormEvent) {
@@ -586,6 +598,63 @@ function PointsTab({ settings }: { settings: SystemSettings }) {
                             />
                         </Field>
                     </div>
+                </div>
+
+                <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Program Rules</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Field label="Points Expiry (days)" error={errors.gaspoints_expiry_days}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_expiry_days}
+                                onChange={e => setData('gaspoints_expiry_days', e.target.value)}
+                                error={!!errors.gaspoints_expiry_days}
+                            />
+                        </Field>
+                        <Field label="Minimum Order Amount to Earn (KES)" error={errors.gaspoints_min_order_amount}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_min_order_amount}
+                                onChange={e => setData('gaspoints_min_order_amount', e.target.value)}
+                                error={!!errors.gaspoints_min_order_amount}
+                            />
+                        </Field>
+                        <Field label="Referral Apply Window (days)" error={errors.gaspoints_referral_apply_window_days}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_referral_apply_window_days}
+                                onChange={e => setData('gaspoints_referral_apply_window_days', e.target.value)}
+                                error={!!errors.gaspoints_referral_apply_window_days}
+                            />
+                        </Field>
+                        <Field label="Referral Reward Window (days)" error={errors.gaspoints_referral_reward_window_days}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_referral_reward_window_days}
+                                onChange={e => setData('gaspoints_referral_reward_window_days', e.target.value)}
+                                error={!!errors.gaspoints_referral_reward_window_days}
+                            />
+                        </Field>
+                        <Field label="Referral Minimum Order Amount (KES)" error={errors.gaspoints_referral_min_order_amount}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_referral_min_order_amount}
+                                onChange={e => setData('gaspoints_referral_min_order_amount', e.target.value)}
+                                error={!!errors.gaspoints_referral_min_order_amount}
+                            />
+                        </Field>
+                        <Field label="Maximum Customer Balance" error={errors.gaspoints_max_balance}>
+                            <Input
+                                type="number" min="0" step="1"
+                                value={data.gaspoints_max_balance}
+                                onChange={e => setData('gaspoints_max_balance', e.target.value)}
+                                error={!!errors.gaspoints_max_balance}
+                            />
+                        </Field>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-400">
+                        Use 0 to disable expiry, minimum thresholds, referral timing windows, or the balance cap.
+                    </p>
                 </div>
 
                 {/* Redemption tiers */}
@@ -787,3 +856,4 @@ export default function SettingsIndex({ settings, account }: Props) {
         </AdminLayout>
     );
 }
+

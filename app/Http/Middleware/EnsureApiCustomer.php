@@ -15,7 +15,12 @@ class EnsureApiCustomer
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        // Bind the authenticated customer onto the request so $request->user() works in controllers.
+        if (! $user->is_active) {
+            $user->currentAccessToken()?->delete();
+
+            return response()->json(['message' => 'Your account is inactive.'], 403);
+        }
+
         $request->setUserResolver(fn () => $user);
 
         return $next($request);

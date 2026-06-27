@@ -20,6 +20,7 @@ class Customer extends Authenticatable
         'gaspoints_balance',
         'referral_code',
         'referred_by',
+        'referral_applied_at',
         'is_active',
     ];
 
@@ -30,9 +31,10 @@ class Customer extends Authenticatable
     protected function casts(): array
     {
         return [
-            'phone_verified_at'  => 'datetime',
-            'is_active'          => 'boolean',
-            'gaspoints_balance'  => 'integer',
+            'phone_verified_at' => 'datetime',
+            'referral_applied_at' => 'datetime',
+            'is_active' => 'boolean',
+            'gaspoints_balance' => 'integer',
         ];
     }
 

@@ -14,14 +14,6 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Fan-out push for an order-status change.
- *
- * Delivery strategy:
- * - Always write to notifications_log for in-app inbox continuity.
- * - Attempt real push via FCM legacy endpoint when FIREBASE_SERVER_KEY exists.
- * - Fall back to structured logging when no key is configured.
- */
 class SendOrderStatusPushJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
@@ -36,19 +28,15 @@ class SendOrderStatusPushJob implements ShouldQueue
         }
 
         [$title, $body] = $this->copyFor($order);
-
         $devices = Device::where('customer_id', $order->customer->id)
             ->orderByDesc('last_seen_at')
             ->get();
 
-        // Always log to the inbox (channel=push) — even when the
-        // customer has no registered devices the in-app inbox can still
-        // surface the message on next refresh.
         $this->logToInbox(
             customer: $order->customer,
-            order:    $order,
-            title:    $title,
-            body:     $body,
+            order: $order,
+            title: $title,
+            body: $body,
         );
 
         if ($devices->isEmpty()) {
@@ -59,103 +47,97 @@ class SendOrderStatusPushJob implements ShouldQueue
             try {
                 $this->sendToDevice(
                     deviceToken: $device->token,
-                    title:       $title,
-                    body:        $body,
-                    data:        [
-                        'type'      => 'order.status',
-                        'order_id'  => (string) $order->id,
-                        'status'    => $order->status,
-                        'deep_link' => "/order/tracking/{$order->id}",
+                    title: $title,
+                    body: $body,
+                    data: [
+                        'type' => 'order.status',
+                        'order_id' => (string) $order->id,
+                        'status' => $order->status,
+                        'deep_link' => "/orders/{$order->id}/tracking",
                     ],
                 );
-            } catch (\Throwable $e) {
+            } catch (\Throwable $exception) {
                 Log::warning('[push] FCM send failed', [
                     'device_id' => $device->id,
-                    'error'     => $e->getMessage(),
+                    'error' => $exception->getMessage(),
                 ]);
             }
         }
     }
 
-    /**
-     * Compose human copy for each status. Mirrors §7 of the concept doc
-     * notification table.
-     */
     private function copyFor(Order $order): array
     {
         $name = $order->customer?->name ?? 'there';
+        $reference = $order->order_number ?: ('Order #' . $order->id);
+
         return match ($order->status) {
             'rider_assigned' => [
                 'A rider is on the way',
-                "Hi $name, a rider has accepted order #{$order->id}.",
+                "Hi {$name}, a rider has accepted {$reference}.",
             ],
             'picked_up' => [
                 'Your gas has been picked up',
-                'The rider just left the shop with your cylinder.',
+                "The rider has left the shop with {$reference}.",
             ],
             'on_the_way' => [
                 'Almost there',
                 'Your rider is now on the way to your address.',
             ],
+            'correction_in_progress' => [
+                'We are correcting an issue',
+                "A correction is in progress for {$reference}. We will keep you updated.",
+            ],
             'delivered' => [
                 'Delivered',
-                'Order #' . $order->id . ' delivered. Tap to rate the experience.',
+                "{$reference} was delivered. Tap to rate the experience.",
             ],
             'cancelled' => [
                 'Order cancelled',
-                'Order #' . $order->id . ' was cancelled. No payment was taken.',
+                "{$reference} was cancelled. No payment was taken.",
             ],
             default => [
                 'Order update',
-                "Order #{$order->id} status: {$order->status}",
+                "{$reference} status: {$order->status}",
             ],
         };
     }
 
-    private function logToInbox(
-        Customer $customer,
-        Order $order,
-        string $title,
-        string $body,
-    ): void {
+    private function logToInbox(Customer $customer, Order $order, string $title, string $body): void
+    {
         NotificationLog::create([
             'recipient_type' => 'customer',
-            'recipient_id'   => $customer->id,
-            'channel'        => 'push',
-            'trigger'        => 'order.status_updated',
-            'title'          => $title,
-            'message'        => $body,
-            'data'           => [
-                'order_id'  => $order->id,
-                'status'    => $order->status,
-                'deep_link' => "/order/tracking/{$order->id}",
+            'recipient_id' => $customer->id,
+            'channel' => 'push',
+            'trigger' => 'order.status_updated',
+            'title' => $title,
+            'message' => $body,
+            'data' => [
+                'order_id' => $order->id,
+                'status' => $order->status,
+                'deep_link' => "/orders/{$order->id}/tracking",
             ],
-            'sent_at'        => now(),
-            'created_at'     => now(),
+            'sent_at' => now(),
+            'created_at' => now(),
         ]);
     }
 
-    private function sendToDevice(
-        string $deviceToken,
-        string $title,
-        string $body,
-        array  $data,
-    ): void {
+    private function sendToDevice(string $deviceToken, string $title, string $body, array $data): void
+    {
         $serverKey = (string) config('services.firebase.server_key', '');
         if ($serverKey !== '') {
             $response = Http::timeout(10)
                 ->withHeaders([
                     'Authorization' => 'key=' . $serverKey,
-                    'Content-Type'  => 'application/json',
+                    'Content-Type' => 'application/json',
                 ])
                 ->post('https://fcm.googleapis.com/fcm/send', [
-                    'to'           => $deviceToken,
-                    'priority'     => 'high',
+                    'to' => $deviceToken,
+                    'priority' => 'high',
                     'notification' => [
                         'title' => $title,
-                        'body'  => $body,
+                        'body' => $body,
                     ],
-                    'data'         => $data,
+                    'data' => $data,
                 ]);
 
             if ($response->successful()) {
@@ -168,10 +150,10 @@ class SendOrderStatusPushJob implements ShouldQueue
         }
 
         Log::info('[push] would send', [
-            'token' => substr($deviceToken, 0, 12) . '…',
+            'token' => substr($deviceToken, 0, 12) . '...',
             'title' => $title,
-            'body'  => $body,
-            'data'  => $data,
+            'body' => $body,
+            'data' => $data,
         ]);
     }
 }
