@@ -20,6 +20,7 @@ class StoreRiderRequest extends FormRequest
             'is_safety_certified' => ['boolean'],
             'certification_date'  => ['nullable', 'date', 'required_if:is_safety_certified,true', 'before_or_equal:today'],
             'is_active'           => ['boolean'],
+            'is_available'        => ['boolean'],
             'photo'               => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:5120'],
         ];
     }
@@ -30,6 +31,7 @@ class StoreRiderRequest extends FormRequest
             'is_safety_certified' => 'safety certification',
             'certification_date'  => 'certification date',
             'is_active'           => 'active status',
+            'is_available'        => 'availability status',
         ];
     }
 }

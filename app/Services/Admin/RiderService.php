@@ -33,6 +33,8 @@ class RiderService
     public function create(array $data, ?UploadedFile $photo): Rider
     {
         $photoPath = $photo ? $photo->store('riders', 'public') : null;
+        $isActive = $data['is_active'] ?? true;
+        $isAvailable = $isActive ? ($data['is_available'] ?? true) : false;
 
         return Rider::create([
             'name'                => $data['name'],
@@ -40,7 +42,8 @@ class RiderService
             'national_id'         => $data['national_id']       ?? null,
             'is_safety_certified' => $data['is_safety_certified'] ?? false,
             'certification_date'  => ($data['is_safety_certified'] ?? false) ? ($data['certification_date'] ?? null) : null,
-            'is_active'           => $data['is_active']          ?? true,
+            'is_active'           => $isActive,
+            'is_available'        => $isAvailable,
             'photo_path'          => $photoPath,
         ]);
     }
@@ -56,14 +59,17 @@ class RiderService
             $photoPath = $photo->store('riders', 'public');
         }
 
+        $isActive = $data['is_active'] ?? $rider->is_active;
+        $isAvailable = $isActive ? ($data['is_available'] ?? $rider->is_available) : false;
+
         $rider->update([
             'name'                => $data['name'],
             'phone'               => $this->normalizePhone($data['phone']),
             'national_id'         => $data['national_id']        ?? null,
             'is_safety_certified' => $data['is_safety_certified'] ?? false,
             'certification_date'  => ($data['is_safety_certified'] ?? false) ? ($data['certification_date'] ?? null) : null,
-            'is_active'           => $data['is_active']           ?? $rider->is_active,
-            'is_available'        => $data['is_available']        ?? $rider->is_available,
+            'is_active'           => $isActive,
+            'is_available'        => $isAvailable,
             'photo_path'          => $photoPath,
         ]);
 

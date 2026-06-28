@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, Loader2, Upload, X, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ export default function RidersCreate() {
     const [isCertified, setIsCertified]   = useState(false);
     const [certDate, setCertDate]         = useState('');
     const [isActive, setIsActive]         = useState(true);
+    const [isAvailable, setIsAvailable]   = useState(true);
     const [photoFile, setPhotoFile]       = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [errors, setErrors]             = useState<Record<string, string>>({});
@@ -42,6 +43,7 @@ export default function RidersCreate() {
         fd.append('is_safety_certified', isCertified ? '1' : '0');
         if (isCertified) fd.append('certification_date', certDate);
         fd.append('is_active', isActive ? '1' : '0');
+        fd.append('is_available', isAvailable ? '1' : '0');
         if (photoFile) fd.append('photo', photoFile);
 
         router.post('/admin/riders', fd, {
@@ -145,11 +147,40 @@ export default function RidersCreate() {
 
                             {/* Active */}
                             <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
-                                <input id="is_active" type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="h-4 w-4 rounded border-slate-300 accent-orange-500" />
+                                <input
+                                    id="is_active"
+                                    type="checkbox"
+                                    checked={isActive}
+                                    onChange={e => {
+                                        const checked = e.target.checked;
+                                        setIsActive(checked);
+                                        setIsAvailable(checked);
+                                    }}
+                                    className="h-4 w-4 rounded border-slate-300 accent-orange-500"
+                                />
                                 <Label htmlFor="is_active" className="text-sm font-normal text-slate-600 cursor-pointer">
                                     Active — can receive deliveries
                                 </Label>
                             </div>
+
+                            {/* Availability */}
+                            <div className={cn(
+                                'flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors',
+                                isActive ? 'border-emerald-100 bg-emerald-50/60' : 'border-slate-100 bg-slate-50',
+                            )}>
+                                <input
+                                    id="is_available"
+                                    type="checkbox"
+                                    checked={isAvailable}
+                                    disabled={!isActive}
+                                    onChange={e => setIsAvailable(e.target.checked)}
+                                    className="h-4 w-4 rounded border-slate-300 accent-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+                                />
+                                <Label htmlFor="is_available" className={cn('text-sm font-normal cursor-pointer', isActive ? 'text-emerald-700' : 'text-slate-400')}>
+                                    Available now — can receive orders immediately after creation
+                                </Label>
+                            </div>
+                            <FieldError message={errors.is_available} />
 
                             <div className="flex gap-3 pt-1">
                                 <Button type="button" variant="outline" className="flex-1" onClick={() => router.visit('/admin/riders')}>Cancel</Button>
