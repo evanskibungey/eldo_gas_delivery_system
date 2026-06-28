@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Exceptions\OtpDeliveryException;
 use App\Http\Controllers\Controller;
 use App\Models\OtpToken;
 use App\Models\Rider;
@@ -31,7 +32,12 @@ class RiderAuthController extends Controller
         }
 
         RateLimiter::hit($key, 600);
-        $this->otp->generate($phone);
+
+        try {
+            $this->otp->generate($phone);
+        } catch (OtpDeliveryException $e) {
+            return response()->json(['message' => $e->getMessage()], 503);
+        }
 
         return response()->json(['message' => 'OTP sent.']);
     }

@@ -5,7 +5,9 @@ namespace Tests\Feature\Api;
 use App\Models\Order;
 use App\Models\OtpToken;
 use App\Models\Rider;
+use App\Services\Sms\SmsServiceInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class RiderApiTest extends TestCase
@@ -32,6 +34,21 @@ class RiderApiTest extends TestCase
         $this->postJson('/api/v1/rider/auth/request-otp', ['phone' => $this->rider->phone])->assertOk();
 
         $this->assertDatabaseHas('otp_tokens', ['phone' => $this->rider->phone]);
+    }
+
+    public function test_rider_otp_request_returns_service_unavailable_when_sms_delivery_fails(): void
+    {
+        $this->mock(SmsServiceInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('send')->once()->andReturnFalse();
+        });
+
+        $this->postJson('/api/v1/rider/auth/request-otp', ['phone' => $this->rider->phone])
+            ->assertStatus(503)
+            ->assertJson([
+                'message' => "We couldn't send a verification code right now. Please try again.",
+            ]);
+
+        $this->assertDatabaseMissing('otp_tokens', ['phone' => $this->rider->phone]);
     }
 
     public function test_rider_verify_otp_returns_token(): void

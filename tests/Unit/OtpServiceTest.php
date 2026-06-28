@@ -2,11 +2,14 @@
 
 namespace Tests\Unit;
 
+use App\Exceptions\OtpDeliveryException;
 use App\Models\Customer;
 use App\Models\OtpToken;
 use App\Services\Customer\OtpService;
+use App\Services\Sms\SmsServiceInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class OtpServiceTest extends TestCase
@@ -37,9 +40,27 @@ class OtpServiceTest extends TestCase
 
         $this->service->generate('+254711000000');
 
-        // Old unused tokens should be gone
         $this->assertDatabaseMissing('otp_tokens', ['phone' => '+254711000000', 'token' => '1111']);
         $this->assertDatabaseMissing('otp_tokens', ['phone' => '+254711000000', 'token' => '2222']);
+    }
+
+    public function test_generate_throws_when_sms_delivery_fails_and_preserves_existing_code(): void
+    {
+        OtpToken::factory()->create(['phone' => '+254711000000', 'token' => '1111']);
+
+        $this->mock(SmsServiceInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('send')->once()->andReturnFalse();
+        });
+        $this->service = app(OtpService::class);
+
+        $this->expectException(OtpDeliveryException::class);
+
+        try {
+            $this->service->generate('+254711000000');
+        } finally {
+            $this->assertDatabaseHas('otp_tokens', ['phone' => '+254711000000', 'token' => '1111']);
+            $this->assertSame(1, OtpToken::where('phone', '+254711000000')->count());
+        }
     }
 
     public function test_verify_returns_customer_for_valid_token(): void

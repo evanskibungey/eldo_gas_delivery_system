@@ -4,7 +4,9 @@ namespace Tests\Feature\Api;
 
 use App\Models\Customer;
 use App\Models\OtpToken;
+use App\Services\Sms\SmsServiceInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class CustomerAuthTest extends TestCase
@@ -29,6 +31,21 @@ class CustomerAuthTest extends TestCase
     public function test_request_otp_requires_phone(): void
     {
         $this->postJson('/api/v1/auth/request-otp', [])->assertUnprocessable()->assertJsonValidationErrors(['phone']);
+    }
+
+    public function test_request_otp_returns_service_unavailable_when_sms_delivery_fails(): void
+    {
+        $this->mock(SmsServiceInterface::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('send')->once()->andReturnFalse();
+        });
+
+        $this->postJson('/api/v1/auth/request-otp', ['phone' => '0712345678'])
+            ->assertStatus(503)
+            ->assertJson([
+                'message' => "We couldn't send a verification code right now. Please try again.",
+            ]);
+
+        $this->assertDatabaseMissing('otp_tokens', ['phone' => '+254712345678']);
     }
 
     public function test_verify_otp_returns_token_for_valid_code(): void

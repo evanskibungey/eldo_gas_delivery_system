@@ -2,18 +2,20 @@
 
 namespace App\Services\Customer;
 
-use App\Jobs\SendOtpJob;
+use App\Exceptions\OtpDeliveryException;
 use App\Models\Customer;
 use App\Models\OtpToken;
+use App\Models\SystemSetting;
+use App\Services\Sms\SmsServiceInterface;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class OtpService
 {
+    public function __construct(private readonly SmsServiceInterface $sms) {}
+
     public function generate(string $phone): OtpToken
     {
-        OtpToken::where('phone', $phone)->whereNull('used_at')->delete();
-
         $expiryMinutes = empty(config('services.talksasa.api_token')) ? 30 : 10;
 
         $otp = OtpToken::create([
@@ -23,8 +25,20 @@ class OtpService
             'created_at' => now(),
         ]);
 
-        Log::info("[OTP] Code dispatched to {$phone}");
-        SendOtpJob::dispatch($phone, $otp->token);
+        $appName = SystemSetting::get('app_name', 'EldoGas');
+        $message = "Your {$appName} code is: {$otp->token}. Valid for {$expiryMinutes} minutes. Do not share.";
+
+        if (! $this->sms->send($phone, $message)) {
+            $otp->delete();
+            throw OtpDeliveryException::unavailable();
+        }
+
+        OtpToken::where('phone', $phone)
+            ->whereNull('used_at')
+            ->whereKeyNot($otp->id)
+            ->delete();
+
+        Log::info("[OTP] Code sent to {$phone}");
 
         return $otp;
     }

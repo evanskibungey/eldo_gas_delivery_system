@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Customer\Auth;
 
+use App\Exceptions\OtpDeliveryException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\Auth\SendOtpRequest;
 use App\Http\Requests\Customer\Auth\VerifyOtpRequest;
@@ -36,7 +37,13 @@ class CustomerAuthController extends Controller
 
         RateLimiter::hit($key, 600);
 
-        $this->otp->generate($phone);
+        try {
+            $this->otp->generate($phone);
+        } catch (OtpDeliveryException $e) {
+            return back()->withErrors([
+                'phone' => $e->getMessage(),
+            ]);
+        }
 
         session(['otp_phone' => $phone]);
 

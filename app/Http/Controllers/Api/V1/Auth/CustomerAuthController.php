@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Exceptions\OtpDeliveryException;
 use App\Http\Controllers\Controller;
 use App\Services\Customer\OtpService;
 use Illuminate\Http\JsonResponse;
@@ -26,7 +27,12 @@ class CustomerAuthController extends Controller
         }
 
         RateLimiter::hit($key, 600);
-        $this->otp->generate($phone);
+
+        try {
+            $this->otp->generate($phone);
+        } catch (OtpDeliveryException $e) {
+            return response()->json(['message' => $e->getMessage()], 503);
+        }
 
         return response()->json(['message' => 'OTP sent.']);
     }
