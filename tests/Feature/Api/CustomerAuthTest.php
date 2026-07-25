@@ -125,6 +125,76 @@ class CustomerAuthTest extends TestCase
         $this->postJson('/api/v1/auth/verify-otp', ['phone' => $phone, 'token' => '1234'])->assertUnprocessable();
     }
 
+    public function test_reviewer_phone_skips_sms_and_stores_no_otp(): void
+    {
+        config([
+            'services.customer_review.phone' => '+254700000000',
+            'services.customer_review.otp' => '1234',
+        ]);
+
+        $this->mock(SmsServiceInterface::class, function (MockInterface $mock): void {
+            $mock->shouldNotReceive('send');
+        });
+
+        $this->postJson('/api/v1/auth/request-otp', ['phone' => '0700000000'])
+            ->assertOk()
+            ->assertJson(['message' => 'OTP sent.']);
+
+        $this->assertDatabaseMissing('otp_tokens', ['phone' => '+254700000000']);
+    }
+
+    public function test_reviewer_phone_verifies_with_fixed_code(): void
+    {
+        config([
+            'services.customer_review.phone' => '+254700000000',
+            'services.customer_review.otp' => '1234',
+        ]);
+
+        $this->assertDatabaseMissing('customers', ['phone' => '+254700000000']);
+
+        $this->postJson('/api/v1/auth/verify-otp', [
+            'phone' => '+254700000000',
+            'token' => '1234',
+        ])
+            ->assertOk()
+            ->assertJsonPath('customer.profile_complete', true)
+            ->assertJsonPath('customer.is_active', true)
+            ->assertJsonStructure(['access_token', 'customer' => ['id', 'name', 'phone']]);
+
+        $this->assertDatabaseHas('customers', [
+            'phone' => '+254700000000',
+            'name' => 'Play Reviewer',
+        ]);
+    }
+
+    public function test_reviewer_phone_rejects_wrong_code(): void
+    {
+        config([
+            'services.customer_review.phone' => '+254700000000',
+            'services.customer_review.otp' => '1234',
+        ]);
+
+        $this->postJson('/api/v1/auth/verify-otp', [
+            'phone' => '+254700000000',
+            'token' => '9999',
+        ])->assertUnprocessable();
+    }
+
+    public function test_reviewer_bypass_is_off_when_unconfigured(): void
+    {
+        // With the config blank, the reserved number must behave like any
+        // other phone and fail without a stored OTP token.
+        config([
+            'services.customer_review.phone' => null,
+            'services.customer_review.otp' => null,
+        ]);
+
+        $this->postJson('/api/v1/auth/verify-otp', [
+            'phone' => '+254700000000',
+            'token' => '1234',
+        ])->assertUnprocessable();
+    }
+
     public function test_logout_revokes_current_token(): void
     {
         $customer = Customer::factory()->create();

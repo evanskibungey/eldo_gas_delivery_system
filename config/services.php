@@ -48,4 +48,13 @@ return [
         'server_key' => env('FIREBASE_SERVER_KEY'),
     ],
 
+    // Store-review (Google Play / App Store) bypass. When BOTH values are
+    // set, the reserved reviewer phone skips real SMS delivery and signs in
+    // with the fixed OTP below. Leave either blank to disable completely
+    // (e.g. after the app is live).
+    'customer_review' => [
+        'phone' => env('CUSTOMER_REVIEW_PHONE'),
+        'otp' => env('CUSTOMER_REVIEW_OTP'),
+    ],
+
 ];
