@@ -70,7 +70,7 @@ export default function Rate({ order, rider }: Props) {
                     onChange={e => setData('review', e.target.value)}
                     placeholder="Leave a comment (optional)…"
                     rows={3}
-                    className="mt-5 w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:border-orange-400 focus:outline-none text-left"
+                    className="mt-5 w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm text-slate-800 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none text-left"
                 />
 
                 <button
@@ -80,7 +80,7 @@ export default function Rate({ order, rider }: Props) {
                         'mt-5 w-full rounded-xl py-3.5 text-sm font-semibold transition-all',
                         ! processing && data.stars > 0
                             ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25 hover:bg-orange-600'
-                            : 'bg-slate-100 text-slate-400 cursor-not-allowed',
+                            : 'bg-slate-100 text-slate-500 cursor-not-allowed',
                     )}
                 >
                     {processing

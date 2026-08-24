@@ -88,7 +88,7 @@ function Field({
         <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">{label}</label>
             {children}
-            {hint && !error && <p className="text-xs text-slate-400">{hint}</p>}
+            {hint && !error && <p className="text-xs text-slate-500">{hint}</p>}
             {error && <p className="flex items-center gap-1 text-xs text-red-500"><AlertCircle className="h-3 w-3" />{error}</p>}
         </div>
     );
@@ -444,7 +444,7 @@ function CommissionTab({ settings }: { settings: SystemSettings }) {
                             placeholder="10.00"
                             className="pr-8"
                         />
-                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
+                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">%</span>
                     </div>
                 </Field>
 
@@ -652,7 +652,7 @@ function PointsTab({ settings }: { settings: SystemSettings }) {
                             />
                         </Field>
                     </div>
-                    <p className="mt-2 text-xs text-slate-400">
+                    <p className="mt-2 text-xs text-slate-500">
                         Use 0 to disable expiry, minimum thresholds, referral timing windows, or the balance cap.
                     </p>
                 </div>
@@ -686,7 +686,7 @@ function PointsTab({ settings }: { settings: SystemSettings }) {
                                         error={!!tierErrors[`gaspoints_redemption_tiers.${i}.points`]}
                                     />
                                 </div>
-                                <span className="text-xs text-slate-400">pts =</span>
+                                <span className="text-xs text-slate-500">pts =</span>
                                 <div className="flex-1">
                                     <Input
                                         type="number" min="1" step="1"
@@ -696,19 +696,19 @@ function PointsTab({ settings }: { settings: SystemSettings }) {
                                         error={!!tierErrors[`gaspoints_redemption_tiers.${i}.kes`]}
                                     />
                                 </div>
-                                <span className="text-xs text-slate-400">KES</span>
+                                <span className="text-xs text-slate-500">KES</span>
                                 <button
                                     type="button"
                                     onClick={() => removeTier(i)}
                                     disabled={data.gaspoints_redemption_tiers.length <= 1}
-                                    className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                                    className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-500 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-500"
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </button>
                             </div>
                         ))}
                     </div>
-                    <p className="mt-2 text-xs text-slate-400">
+                    <p className="mt-2 text-xs text-slate-500">
                         Customers can redeem these exact point amounts as a KES discount at checkout. Each tier must use a unique point value.
                     </p>
                 </div>
@@ -762,7 +762,7 @@ function AccountTab({ account }: { account: Account }) {
 
                 <div className="border-t border-slate-100 pt-5">
                     <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                        Change Password <span className="normal-case font-normal text-slate-400">(leave blank to keep current)</span>
+                        Change Password <span className="normal-case font-normal text-slate-500">(leave blank to keep current)</span>
                     </p>
                     <div className="grid grid-cols-2 gap-4">
                         <Field label="New Password" error={errors.password}>
@@ -832,7 +832,7 @@ export default function SettingsIndex({ settings, account }: Props) {
                                                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
                                         )}
                                     >
-                                        <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-orange-500' : 'text-slate-400')} />
+                                        <Icon className={cn('h-4 w-4 shrink-0', active ? 'text-orange-500' : 'text-slate-500')} />
                                         <span className="flex-1">{tab.label}</span>
                                         {active && <ChevronRight className="h-3.5 w-3.5 text-orange-400" />}
                                     </button>

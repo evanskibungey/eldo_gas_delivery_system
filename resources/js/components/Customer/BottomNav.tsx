@@ -13,7 +13,8 @@ export default function BottomNav() {
     const { url } = usePage();
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-white pb-safe">
+        // Positioning is owned by CustomerLayout's fixed bottom container.
+        <nav className="border-t bg-white pb-safe">
             <div className="flex">
                 {tabs.map((tab) => {
                     const active = url === tab.href || url.startsWith(tab.href + '/');

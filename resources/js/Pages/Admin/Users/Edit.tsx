@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -105,7 +105,7 @@ export default function AdminUsersEdit({ admin, roles, is_self }: Props) {
                 {/* Last login info strip */}
                 {admin.last_login_at && (
                     <div className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-500">
-                        <Clock className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                        <Clock className="h-3.5 w-3.5 shrink-0 text-slate-500" />
                         Last login: {admin.last_login_at}
                     </div>
                 )}
@@ -170,7 +170,7 @@ export default function AdminUsersEdit({ admin, roles, is_self }: Props) {
                         <div>
                             <Label htmlFor="password" className="text-sm font-medium text-slate-700">
                                 New Password
-                                <span className="ml-1.5 text-xs font-normal text-slate-400">(leave blank to keep current)</span>
+                                <span className="ml-1.5 text-xs font-normal text-slate-500">(leave blank to keep current)</span>
                             </Label>
                             <div className="relative mt-1.5">
                                 <Input
@@ -188,7 +188,7 @@ export default function AdminUsersEdit({ admin, roles, is_self }: Props) {
                                     type="button"
                                     tabIndex={-1}
                                     onClick={() => setShowPassword(p => !p)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 transition-colors"
                                 >
                                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                 </button>
@@ -215,7 +215,7 @@ export default function AdminUsersEdit({ admin, roles, is_self }: Props) {
                                     type="button"
                                     tabIndex={-1}
                                     onClick={() => setShowConfirm(p => !p)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 transition-colors"
                                 >
                                     {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                 </button>

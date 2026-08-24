@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link } from '@inertiajs/react';
 import { Pencil, FileText, Package, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ const STATUS_CONFIG = {
 function StatusBadge({ status }: { status: StockRow['status'] }) {
     const cfg = STATUS_CONFIG[status];
     return (
-        <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold', cfg.chip)}>
+        <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-2xs font-semibold', cfg.chip)}>
             <span className={cn('h-1.5 w-1.5 rounded-full', cfg.dot)} />
             {cfg.label}
         </span>
@@ -38,7 +38,7 @@ function CountBadge({ value, threshold, isLow }: { value: number; threshold: num
             <span className={cn('text-base font-bold tabular-nums', isLow ? 'text-red-600' : 'text-slate-800')}>
                 {value}
             </span>
-            <span className="text-[10px] text-slate-400">/ {threshold} threshold</span>
+            <span className="text-2xs text-slate-500">/ {threshold} threshold</span>
         </div>
     );
 }
@@ -60,7 +60,8 @@ export default function StockIndex({ stocks }: { stocks: StockRow[] }) {
 
             <div className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] text-sm">
                     <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/80">
                             <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Size</th>
@@ -77,10 +78,10 @@ export default function StockIndex({ stocks }: { stocks: StockRow[] }) {
                                 <td colSpan={6} className="py-16 text-center">
                                     <div className="flex flex-col items-center gap-2">
                                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                                            <Package className="h-6 w-6 text-slate-300" />
+                                            <Package className="h-6 w-6 text-slate-500" />
                                         </div>
-                                        <p className="text-sm font-medium text-slate-400">No stock records yet</p>
-                                        <p className="text-xs text-slate-300">Add cylinder sizes to begin tracking stock.</p>
+                                        <p className="text-sm font-medium text-slate-500">No stock records yet</p>
+                                        <p className="text-xs text-slate-500">Add cylinder sizes to begin tracking stock.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -104,7 +105,7 @@ export default function StockIndex({ stocks }: { stocks: StockRow[] }) {
                                 <td className="px-5 py-4">
                                     <StatusBadge status={s.status} />
                                 </td>
-                                <td className="px-5 py-4 text-xs text-slate-400">
+                                <td className="px-5 py-4 text-xs text-slate-500">
                                     {s.updated_at ?? <span className="italic">Never</span>}
                                 </td>
                                 <td className="px-5 py-4 text-right">
@@ -114,7 +115,7 @@ export default function StockIndex({ stocks }: { stocks: StockRow[] }) {
                                                 <Pencil className="h-3 w-3" /> Adjust
                                             </Link>
                                         </Button>
-                                        <Button asChild variant="ghost" size="sm" className="h-8 gap-1.5 text-xs text-slate-400 hover:text-slate-700">
+                                        <Button asChild variant="ghost" size="sm" className="h-8 gap-1.5 text-xs text-slate-500 hover:text-slate-700">
                                             <Link href={`/admin/stock/${s.size_id}/audit`}>
                                                 <FileText className="h-3 w-3" /> Log
                                             </Link>
@@ -125,6 +126,7 @@ export default function StockIndex({ stocks }: { stocks: StockRow[] }) {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
         </AdminLayout>
     );

@@ -139,6 +139,8 @@ class PlaceOrderAction
                 'payment_method' => $data['payment_method'],
                 'delivery_lat' => $data['delivery_lat'],
                 'delivery_lng' => $data['delivery_lng'],
+                'delivery_label' => $data['delivery_label'] ?? null,
+                'delivery_address' => $data['delivery_address'] ?? null,
                 'delivery_notes' => $data['delivery_notes'] ?? null,
                 'idempotency_key' => $idempotencyKey,
             ]);

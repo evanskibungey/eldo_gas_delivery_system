@@ -3,8 +3,9 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "dev": "vite"
+        "build": "npm run check:encoding && vite build",
+        "dev": "vite",
+        "check:encoding": "node scripts/check-encoding.mjs"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",

@@ -5,6 +5,7 @@ namespace App\Listeners;
 use App\Events\OrderPlacedEvent;
 use App\Jobs\SendSmsJob;
 use App\Services\Sms\SmsTemplateService;
+use App\Support\ManagerContacts;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 
@@ -40,31 +41,10 @@ class AlertAdminNewOrder implements ShouldQueue
     }
 
     /**
-     * Parse SHOP_MANAGER_PHONES (comma-separated) and normalize each to +254 format.
-     *
      * @return string[]
      */
     private function resolveManagerPhones(): array
     {
-        $raw = config('shop.manager_phones', '');
-
-        if (empty($raw)) {
-            return [];
-        }
-
-        return collect(explode(',', $raw))
-            ->map(fn (string $p) => $this->normalize(trim($p)))
-            ->filter()
-            ->values()
-            ->all();
-    }
-
-    private function normalize(string $phone): string
-    {
-        if (str_starts_with($phone, '0')) {
-            return '+254' . substr($phone, 1);
-        }
-
-        return $phone;
+        return ManagerContacts::phones();
     }
 }

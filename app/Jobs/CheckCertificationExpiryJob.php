@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Rider;
 use App\Services\Sms\SmsServiceInterface;
+use App\Support\ManagerContacts;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -36,12 +37,10 @@ class CheckCertificationExpiryJob implements ShouldQueue
             'riders' => $expired->pluck('id')->toArray(),
         ]);
 
-        $managerPhone = config('shop.manager_phone');
+        $message = "EldoGas Alert: {$count} rider(s) have expired safety certifications "
+            . "and have been flagged: {$names}. Please schedule re-certification.";
 
-        if ($managerPhone) {
-            $message = "EldoGas Alert: {$count} rider(s) have expired safety certifications "
-                . "and have been flagged: {$names}. Please schedule re-certification.";
-
+        foreach (ManagerContacts::phones() as $managerPhone) {
             $sms->send($managerPhone, $message);
         }
     }

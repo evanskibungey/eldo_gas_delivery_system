@@ -22,9 +22,11 @@ export default function SosButton() {
 
     return (
         <>
+            {/* 44x44 minimum — this is the one control likely to be used in a
+                panic, one-handed. It was the smallest target in the app at 36px. */}
             <button
                 onClick={() => setOpen(true)}
-                className="flex items-center justify-center rounded-full w-9 h-9 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
                 title="Gas Emergency SOS"
                 aria-label="SOS — Gas Emergency"
             >

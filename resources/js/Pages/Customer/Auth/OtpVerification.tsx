@@ -1,4 +1,4 @@
-﻿import GuestLayout from '@/Layouts/GuestLayout';
+import GuestLayout from '@/Layouts/GuestLayout';
 import { router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, RotateCcw } from 'lucide-react';
@@ -79,19 +79,29 @@ export default function OtpVerification({ phone }: Props) {
                 Sent to <span className="font-medium text-slate-700">{maskedPhone}</span>
             </p>
 
-            <div className="mt-6 flex justify-center gap-2" onPaste={onPaste}>
+            <div
+                className="mt-6 flex justify-center gap-2"
+                onPaste={onPaste}
+                role="group"
+                aria-label="4-digit verification code"
+            >
                 {digits.map((d, i) => (
                     <input
                         key={i}
                         ref={el => { inputs.current[i] = el; }}
                         type="text"
                         inputMode="numeric"
+                        // Lets iOS and Android offer the code straight from the
+                        // SMS notification instead of making the user retype it.
+                        autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                        aria-label={`Digit ${i + 1}`}
+                        aria-invalid={errors?.token ? true : undefined}
                         maxLength={1}
                         value={d}
                         onChange={e => onDigitChange(i, e.target.value)}
                         onKeyDown={e => onKeyDown(i, e)}
                         className={cn(
-                            'h-12 w-10 rounded-lg border text-center text-lg font-bold transition-all outline-none',
+                            'h-12 w-11 rounded-lg border text-center text-lg font-bold transition-all outline-none',
                             'border-slate-200 bg-slate-50 focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 focus:bg-white',
                             d && 'border-orange-300 bg-orange-50',
                             errors?.token && 'border-red-400 bg-red-50',
@@ -117,7 +127,7 @@ export default function OtpVerification({ phone }: Props) {
 
             <div className="mt-4 text-center">
                 {countdown > 0 ? (
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-500">
                         Resend code in <span className="font-medium text-slate-600">{countdown}s</span>
                     </p>
                 ) : (

@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -75,7 +75,7 @@ export default function StockAdjust({ size, stock }: Props) {
                     { label: 'Low Threshold', value: stock.low_stock_threshold, color: 'text-amber-600' },
                 ].map(({ label, value, color }) => (
                     <div key={label} className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+                        <p className="text-2xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
                         <p className={cn('mt-1 text-2xl font-bold tabular-nums', color)}>{value}</p>
                     </div>
                 ))}
@@ -110,23 +110,23 @@ export default function StockAdjust({ size, stock }: Props) {
 
                             <div>
                                 <Label htmlFor="threshold" className="text-sm font-medium text-slate-700">
-                                    Low-Stock Threshold <span className="text-slate-400 font-normal">(optional update)</span>
+                                    Low-Stock Threshold <span className="text-slate-500 font-normal">(optional update)</span>
                                 </Label>
                                 <Input id="threshold" type="number" min="1" {...register('threshold')} className={inputCls(errors.threshold)} />
-                                <p className="mt-1 text-xs text-slate-400">Alert fires when filled count reaches or falls below this number.</p>
+                                <p className="mt-1 text-xs text-slate-500">Alert fires when filled count reaches or falls below this number.</p>
                                 <FieldError message={errors.threshold?.message} />
                             </div>
 
                             <div>
                                 <Label htmlFor="note" className="text-sm font-medium text-slate-700">
-                                    Note <span className="text-slate-400 font-normal">(optional)</span>
+                                    Note <span className="text-slate-500 font-normal">(optional)</span>
                                 </Label>
                                 <textarea
                                     id="note"
                                     rows={3}
                                     {...register('note')}
                                     placeholder="Reason for adjustment (e.g. received stock delivery, stock count correction)"
-                                    className="mt-1.5 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20 focus:bg-white transition-all resize-none"
+                                    className="mt-1.5 w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20 focus:bg-white transition-all resize-none"
                                 />
                                 <FieldError message={errors.note?.message} />
                             </div>

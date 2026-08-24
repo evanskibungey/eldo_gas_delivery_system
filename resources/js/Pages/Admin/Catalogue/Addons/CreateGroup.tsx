@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -84,7 +84,7 @@ export default function CreateGroup({ sizes, default_size_id }: Props) {
 
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">Selection Type</Label>
-                                <p className="mt-0.5 mb-2 text-xs text-slate-400">How many items can a customer pick from this group?</p>
+                                <p className="mt-0.5 mb-2 text-xs text-slate-500">How many items can a customer pick from this group?</p>
                                 <div className="grid grid-cols-2 gap-3">
                                     {[
                                         { value: 'multi',  label: 'Multi-select',  desc: 'Customer can pick multiple items' },
@@ -94,7 +94,7 @@ export default function CreateGroup({ sizes, default_size_id }: Props) {
                                             <input type="radio" value={opt.value} {...register('selection_type')} className="sr-only" />
                                             <div>
                                                 <p className="text-sm font-semibold text-slate-800">{opt.label}</p>
-                                                <p className="text-xs text-slate-400 mt-0.5">{opt.desc}</p>
+                                                <p className="text-xs text-slate-500 mt-0.5">{opt.desc}</p>
                                             </div>
                                         </label>
                                     ))}
@@ -106,7 +106,7 @@ export default function CreateGroup({ sizes, default_size_id }: Props) {
                                 <Label className="text-sm font-medium text-slate-700">Sort Order</Label>
                                 <Input type="number" min="0" {...register('sort_order')}
                                     className="mt-1.5 h-10 border-slate-200 bg-slate-50 text-sm focus:border-orange-400 focus:ring-orange-400/20 focus:bg-white transition-all" />
-                                <p className="mt-1 text-xs text-slate-400">Lower numbers appear first.</p>
+                                <p className="mt-1 text-xs text-slate-500">Lower numbers appear first.</p>
                             </div>
 
                             <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">

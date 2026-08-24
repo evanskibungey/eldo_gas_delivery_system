@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, Loader2, Upload, X, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -89,7 +89,7 @@ export default function RidersEdit({ rider }: Props) {
                             {/* Photo */}
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">
-                                    Profile Photo <span className="text-slate-400 font-normal">(optional)</span>
+                                    Profile Photo <span className="text-slate-500 font-normal">(optional)</span>
                                 </Label>
                                 <div
                                     onClick={() => fileRef.current?.click()}
@@ -106,7 +106,7 @@ export default function RidersEdit({ rider }: Props) {
                                         </div>
                                     ) : (
                                         <>
-                                            <Upload className="h-7 w-7 text-slate-300" />
+                                            <Upload className="h-7 w-7 text-slate-500" />
                                             <p className="mt-2 text-xs text-slate-500">Click to upload new photo</p>
                                         </>
                                     )}
@@ -131,7 +131,7 @@ export default function RidersEdit({ rider }: Props) {
                             {/* National ID */}
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">
-                                    National ID <span className="text-slate-400 font-normal">(optional)</span>
+                                    National ID <span className="text-slate-500 font-normal">(optional)</span>
                                 </Label>
                                 <Input value={nationalId} onChange={e => setNationalId(e.target.value)} className={inputCls('national_id')} />
                             </div>
@@ -151,7 +151,7 @@ export default function RidersEdit({ rider }: Props) {
                                         <Label className="text-xs font-medium text-slate-600">Certification Date</Label>
                                         <Input type="date" value={certDate} onChange={e => setCertDate(e.target.value)}
                                             className={cn('mt-1 h-9 border-slate-200 bg-white text-sm focus:border-orange-400 focus:ring-orange-400/20 transition-all', errors.certification_date && 'border-red-400 bg-red-50')} />
-                                        <p className="mt-1 text-xs text-slate-400">Certification is valid for 1 year from this date.</p>
+                                        <p className="mt-1 text-xs text-slate-500">Certification is valid for 1 year from this date.</p>
                                         <FieldError message={errors.certification_date} />
                                     </div>
                                 )}

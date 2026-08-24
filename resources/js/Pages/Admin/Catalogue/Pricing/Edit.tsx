@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,9 +39,9 @@ function PriceField({ id, label, hint, register, error }: {
     return (
         <div>
             <Label htmlFor={id} className="text-sm font-medium text-slate-700">{label}</Label>
-            <p className="mt-0.5 mb-1.5 text-xs text-slate-400">{hint}</p>
+            <p className="mt-0.5 mb-1.5 text-xs text-slate-500">{hint}</p>
             <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">KES</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">KES</span>
                 <Input
                     id={id}
                     type="number"

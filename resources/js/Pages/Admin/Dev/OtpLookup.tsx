@@ -109,7 +109,7 @@ export default function OtpLookup() {
                             />
                         </div>
                         {preview && (
-                            <p className="mt-1 text-xs text-slate-400">
+                            <p className="mt-1 text-xs text-slate-500">
                                 Will search for:{' '}
                                 <span className="font-mono text-slate-600">{preview}</span>
                             </p>

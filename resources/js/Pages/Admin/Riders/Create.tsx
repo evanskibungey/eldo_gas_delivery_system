@@ -74,7 +74,7 @@ export default function RidersCreate() {
                             {/* Photo */}
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">
-                                    Profile Photo <span className="text-slate-400 font-normal">(optional)</span>
+                                    Profile Photo <span className="text-slate-500 font-normal">(optional)</span>
                                 </Label>
                                 <div
                                     onClick={() => fileRef.current?.click()}
@@ -91,9 +91,9 @@ export default function RidersCreate() {
                                         </div>
                                     ) : (
                                         <>
-                                            <Upload className="h-7 w-7 text-slate-300" />
+                                            <Upload className="h-7 w-7 text-slate-500" />
                                             <p className="mt-2 text-xs text-slate-500">Click to upload photo</p>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WebP · max 2 MB</p>
+                                            <p className="text-2xs text-slate-500 mt-0.5">JPG, PNG, WebP · max 2 MB</p>
                                         </>
                                     )}
                                 </div>
@@ -118,7 +118,7 @@ export default function RidersCreate() {
                             {/* National ID */}
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">
-                                    National ID <span className="text-slate-400 font-normal">(optional)</span>
+                                    National ID <span className="text-slate-500 font-normal">(optional)</span>
                                 </Label>
                                 <Input placeholder="e.g. 12345678" value={nationalId} onChange={e => setNationalId(e.target.value)} className={inputCls('national_id')} />
                                 <FieldError message={errors.national_id} />
@@ -139,7 +139,7 @@ export default function RidersCreate() {
                                         <Label className="text-xs font-medium text-slate-600">Certification Date</Label>
                                         <Input type="date" value={certDate} onChange={e => setCertDate(e.target.value)}
                                             className={cn('mt-1 h-9 border-slate-200 bg-white text-sm focus:border-orange-400 focus:ring-orange-400/20 transition-all', errors.certification_date && 'border-red-400 bg-red-50')} />
-                                        <p className="mt-1 text-xs text-slate-400">Certification is valid for 1 year from this date.</p>
+                                        <p className="mt-1 text-xs text-slate-500">Certification is valid for 1 year from this date.</p>
                                         <FieldError message={errors.certification_date} />
                                     </div>
                                 )}
@@ -176,7 +176,7 @@ export default function RidersCreate() {
                                     onChange={e => setIsAvailable(e.target.checked)}
                                     className="h-4 w-4 rounded border-slate-300 accent-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                                 />
-                                <Label htmlFor="is_available" className={cn('text-sm font-normal cursor-pointer', isActive ? 'text-emerald-700' : 'text-slate-400')}>
+                                <Label htmlFor="is_available" className={cn('text-sm font-normal cursor-pointer', isActive ? 'text-emerald-700' : 'text-slate-500')}>
                                     Available now — can receive orders immediately after creation
                                 </Label>
                             </div>

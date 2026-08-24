@@ -33,6 +33,8 @@ class Order extends Model
         'payment_status',
         'delivery_lat',
         'delivery_lng',
+        'delivery_label',
+        'delivery_address',
         'delivery_notes',
         'idempotency_key',
         'rider_assigned_at',

@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { Search, Eye, Users, Star, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface CustomerRow {
     id:                number;
@@ -33,7 +33,7 @@ interface Props {
     filters:   { search?: string };
 }
 
-// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function CustomerAvatar({ name }: { name: string }) {
     return (
@@ -43,7 +43,7 @@ function CustomerAvatar({ name }: { name: string }) {
     );
 }
 
-// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CustomersIndex({ customers, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
@@ -59,7 +59,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
             <div className="mb-5 flex items-center justify-between">
                 <p className="text-sm text-slate-500">{customers.total.toLocaleString()} customer{customers.total !== 1 ? 's' : ''} registered</p>
                 <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
                     <Input
                         placeholder="Name or phone…"
                         value={search}
@@ -74,7 +74,8 @@ export default function CustomersIndex({ customers, filters }: Props) {
             <div className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
 
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] text-sm">
                     <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/80">
                             <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Customer</th>
@@ -93,10 +94,10 @@ export default function CustomersIndex({ customers, filters }: Props) {
                                 <td colSpan={7} className="py-16 text-center">
                                     <div className="flex flex-col items-center gap-2">
                                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                                            <Users className="h-6 w-6 text-slate-300" />
+                                            <Users className="h-6 w-6 text-slate-500" />
                                         </div>
-                                        <p className="text-sm font-medium text-slate-400">No customers found</p>
-                                        <p className="text-xs text-slate-300">Try a different search term.</p>
+                                        <p className="text-sm font-medium text-slate-500">No customers found</p>
+                                        <p className="text-xs text-slate-500">Try a different search term.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -111,7 +112,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
                                         <div>
                                             <p className="font-semibold text-slate-900">{c.name}</p>
                                             {!c.is_active && (
-                                                <span className="text-[10px] font-semibold text-red-400">Inactive</span>
+                                                <span className="text-2xs font-semibold text-red-400">Inactive</span>
                                             )}
                                         </div>
                                     </div>
@@ -125,7 +126,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
                                 {/* Orders */}
                                 <td className="px-5 py-4 text-center">
                                     <div className="flex items-center justify-center gap-1">
-                                        <ShoppingBag className="h-3.5 w-3.5 text-slate-400" />
+                                        <ShoppingBag className="h-3.5 w-3.5 text-slate-500" />
                                         <span className="text-sm font-semibold tabular-nums text-slate-700">{c.orders_count}</span>
                                     </div>
                                 </td>
@@ -153,7 +154,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
                                 {/* Action */}
                                 <td className="px-5 py-4 text-right">
                                     <Button asChild variant="ghost" size="sm"
-                                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-700">
+                                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-slate-700">
                                         <Link href={`/admin/customers/${c.id}`}>
                                             <Eye className="h-4 w-4" />
                                         </Link>
@@ -163,11 +164,12 @@ export default function CustomersIndex({ customers, filters }: Props) {
                         ))}
                     </tbody>
                 </table>
+                </div>
 
                 {/* Pagination */}
                 {customers.last_page > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-500">
                             Page {customers.current_page} of {customers.last_page} · {customers.total} customers
                         </p>
                         <div className="flex gap-2">

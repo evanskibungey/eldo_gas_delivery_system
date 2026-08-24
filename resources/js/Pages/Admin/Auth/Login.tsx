@@ -1,4 +1,4 @@
-﻿import { useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { router } from '@inertiajs/react';
@@ -79,7 +79,7 @@ export default function Login() {
     return (
         <div className="flex min-h-screen">
 
-            {/* â”€â”€ Left: Brand Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ── Left: Brand Panel ──────────────────────────────────────── */}
             <div className="relative hidden lg:flex lg:w-[58%] flex-col justify-between overflow-hidden bg-slate-950 px-14 py-12">
 
                 {/* Background gradient orbs */}
@@ -106,7 +106,7 @@ export default function Login() {
                     </div>
                     <div>
                         <p className="text-lg font-bold tracking-tight text-white">EldoGas</p>
-                        <p className="text-xs text-slate-500 -mt-0.5">Admin Portal</p>
+                        <p className="text-xs text-slate-400 -mt-0.5">Admin Portal</p>
                     </div>
                 </div>
 
@@ -139,7 +139,7 @@ export default function Login() {
                                 </div>
                                 <div>
                                     <p className="text-sm font-semibold text-white">{title}</p>
-                                    <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{desc}</p>
+                                    <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{desc}</p>
                                 </div>
                             </div>
                         ))}
@@ -148,13 +148,13 @@ export default function Login() {
 
                 {/* Footer */}
                 <div className="relative">
-                    <p className="text-xs text-slate-600">
-                        Â© {new Date().getFullYear()} EldoGas · Gas delivered. No stress.
+                    <p className="text-xs text-slate-400">
+                        © {new Date().getFullYear()} EldoGas · Gas delivered. No stress.
                     </p>
                 </div>
             </div>
 
-            {/* â”€â”€ Right: Auth Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ── Right: Auth Form ───────────────────────────────────────── */}
             <div className="flex flex-1 flex-col items-center justify-center bg-white px-8 py-12">
 
                 {/* Mobile logo */}
@@ -193,7 +193,7 @@ export default function Login() {
                                 placeholder="admin@eldogas.co.ke"
                                 {...register('email')}
                                 className={cn(
-                                    'h-11 border-slate-200 bg-slate-50 text-sm placeholder:text-slate-400',
+                                    'h-11 border-slate-200 bg-slate-50 text-sm placeholder:text-slate-500',
                                     'focus:border-orange-400 focus:ring-orange-400/20 focus:bg-white',
                                     'transition-all duration-150',
                                     errors.email && 'border-red-400 bg-red-50 focus:border-red-400',
@@ -219,10 +219,10 @@ export default function Login() {
                                     id="password"
                                     type={showPassword ? 'text' : 'password'}
                                     autoComplete="current-password"
-                                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                                    placeholder="••••••••"
                                     {...register('password')}
                                     className={cn(
-                                        'h-11 border-slate-200 bg-slate-50 pr-10 text-sm placeholder:text-slate-400',
+                                        'h-11 border-slate-200 bg-slate-50 pr-10 text-sm placeholder:text-slate-500',
                                         'focus:border-orange-400 focus:ring-orange-400/20 focus:bg-white',
                                         'transition-all duration-150',
                                         errors.password && 'border-red-400 bg-red-50',
@@ -231,7 +231,7 @@ export default function Login() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(p => !p)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 transition-colors"
                                     tabIndex={-1}
                                 >
                                     {showPassword
@@ -282,7 +282,7 @@ export default function Login() {
 
                     {/* Security note */}
                     <div className="mt-8 flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
-                        <ShieldCheck className="h-4 w-4 shrink-0 text-slate-400" />
+                        <ShieldCheck className="h-4 w-4 shrink-0 text-slate-500" />
                         <p className="text-xs text-slate-500">
                             Access is restricted to authorised EldoGas administrators only.
                         </p>

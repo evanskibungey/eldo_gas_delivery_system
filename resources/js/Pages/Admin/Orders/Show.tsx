@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { OrderStatus } from '@/types/models';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface HistoryEntry {
     status:     string;
@@ -84,7 +84,7 @@ interface Props {
     availableRiders: AvailableRider[];
 }
 
-// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Config ───────────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<string, { label: string; dot: string; chip: string; icon: React.ElementType }> = {
     pending:                { label: 'Pending',        dot: 'bg-amber-400',   chip: 'border-amber-200   bg-amber-50   text-amber-700',   icon: Clock        },
@@ -102,7 +102,7 @@ const NEXT_STATUS_LABEL: Record<string, string> = {
     delivered:  'Mark as Delivered',
 };
 
-// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function SectionCard({ title, children, className }: { title: string; children: React.ReactNode; className?: string }) {
     return (
@@ -119,7 +119,7 @@ function SectionCard({ title, children, className }: { title: string; children: 
 function StatusBadge({ status }: { status: string }) {
     const cfg = STATUS_CFG[status] ?? STATUS_CFG.pending;
     return (
-        <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold', cfg.chip)}>
+        <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-2xs font-semibold', cfg.chip)}>
             <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', cfg.dot)} />
             {cfg.label}
         </span>
@@ -155,7 +155,7 @@ function CancelModal({
                     onChange={e => setReason(e.target.value)}
                     placeholder="e.g. Customer requested cancellation, out of stock..."
                     rows={3}
-                    className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300/20 resize-none"
+                    className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300/20 resize-none"
                 />
                 {inventoryRestoreRequired && (
                     <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
@@ -207,9 +207,9 @@ function OutOfStockModal({ orderNumber, onCancel, onConfirm }: {
                 <textarea
                     value={reason}
                     onChange={e => setReason(e.target.value)}
-                    placeholder="e.g. No 13kg cylinders in stockâ€¦"
+                    placeholder="e.g. No 13kg cylinders in stock…"
                     rows={3}
-                    className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/20 resize-none"
+                    className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-300/20 resize-none"
                 />
                 <div className="mt-4 flex gap-3">
                     <Button variant="outline" className="flex-1 h-9 text-sm" onClick={onCancel}>Go Back</Button>
@@ -249,9 +249,9 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: {
                 <textarea
                     value={note}
                     onChange={e => setNote(e.target.value)}
-                    placeholder="Optional delivery note (e.g. Left at gate, customer confirmed receipt)â€¦"
+                    placeholder="Optional delivery note (e.g. Left at gate, customer confirmed receipt)…"
                     rows={3}
-                    className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300/20 resize-none"
+                    className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-300/20 resize-none"
                 />
 
                 {showPaymentCheck && (
@@ -282,7 +282,7 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: {
     );
 }
 
-// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function OrdersShow({ order, availableRiders }: Props) {
     const [showAssign, setShowAssign]                 = useState(false);
@@ -359,7 +359,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                 </Link>
                 <div className="flex items-center gap-2">
                     <StatusBadge status={order.status} />
-                    <span className="text-xs text-slate-400">{order.created_at}</span>
+                    <span className="text-xs text-slate-500">{order.created_at}</span>
                 </div>
             </div>
 
@@ -376,14 +376,14 @@ export default function OrdersShow({ order, availableRiders }: Props) {
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
 
-                {/* â”€â”€ Left column â”€â”€ */}
+                {/* ── Left column ── */}
                 <div className="lg:col-span-2 space-y-5">
 
                     {/* Action bar */}
                     {(order.can_assign || order.can_reassign || order.next_status || order.can_cancel
                         || order.can_report_out_of_stock || order.can_resume_delivery || order.can_collect_payment) && (
                         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3.5 shadow-sm">
-                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide mr-1">Actions</span>
+                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide mr-1">Actions</span>
 
                             {order.can_assign && (
                                 <Button
@@ -418,7 +418,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                     className="h-8 gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs"
                                 >
                                     <ChevronRight className="h-3.5 w-3.5" />
-                                    {advancing ? 'Savingâ€¦' : (NEXT_STATUS_LABEL[order.next_status] ?? 'Advance')}
+                                    {advancing ? 'Saving…' : (NEXT_STATUS_LABEL[order.next_status] ?? 'Advance')}
                                 </Button>
                             )}
 
@@ -468,7 +468,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                     {isSwap ? 'Gas Refill (Swap)' : 'New Cylinder'}
                                 </p>
                                 <p className="text-sm text-slate-500">
-                                    {order.size_name}{order.brand_name ? ` Â· ${order.brand_name}` : ''}
+                                    {order.size_name}{order.brand_name ? ` · ${order.brand_name}` : ''}
                                 </p>
                             </div>
                         </div>
@@ -503,7 +503,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                         {/* Add-ons detail */}
                         {order.addons.length > 0 && (
                             <div className="mt-4 pt-4 border-t border-slate-100 space-y-1">
-                                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Add-ons</p>
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Add-ons</p>
                                 {order.addons.map((a, i) => (
                                     <div key={i} className="flex justify-between text-xs">
                                         <span className="text-slate-600">{a.name}</span>
@@ -515,10 +515,10 @@ export default function OrdersShow({ order, availableRiders }: Props) {
 
                         {/* Payment */}
                         <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2">
-                            <CreditCard className="h-4 w-4 text-slate-400 shrink-0" />
+                            <CreditCard className="h-4 w-4 text-slate-500 shrink-0" />
                             <span className="text-sm text-slate-600 capitalize">{order.payment_method}</span>
                             <span className={cn(
-                                'ml-auto rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize',
+                                'ml-auto rounded-full border px-2 py-0.5 text-2xs font-semibold capitalize',
                                 order.payment_status === 'collected'
                                     ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                                     : order.payment_status === 'disputed'
@@ -585,13 +585,13 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                                     <p className="text-xs font-semibold text-slate-800 capitalize">
                                                         {h.status.replace(/_/g, ' ')}
                                                     </p>
-                                                    <span className="text-[10px] text-slate-400 shrink-0 ml-2">{h.at}</span>
+                                                    <span className="text-2xs text-slate-500 shrink-0 ml-2">{h.at}</span>
                                                 </div>
                                                 {h.note && (
-                                                    <p className="text-[11px] text-slate-500 mt-0.5">{h.note}</p>
+                                                    <p className="text-2xs text-slate-500 mt-0.5">{h.note}</p>
                                                 )}
                                                 {h.actor_type && (
-                                                    <p className="text-[10px] text-slate-400 capitalize mt-0.5">by {h.actor_type}</p>
+                                                    <p className="text-2xs text-slate-500 capitalize mt-0.5">by {h.actor_type}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -602,7 +602,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                     </SectionCard>
                 </div>
 
-                {/* â”€â”€ Right column â”€â”€ */}
+                {/* ── Right column ── */}
                 <div className="space-y-5">
 
                     {/* Customer */}
@@ -617,19 +617,19 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                         <p className="text-sm font-semibold text-slate-900">{order.customer.name}</p>
                                         <Link
                                             href={`/admin/customers/${order.customer.id}`}
-                                            className="text-[10px] text-orange-500 hover:text-orange-600"
+                                            className="text-2xs text-orange-500 hover:text-orange-600"
                                         >
-                                            View profile â†’
+                                            View profile →
                                         </Link>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-slate-600">
-                                    <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                    <Phone className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                                     {order.customer.phone}
                                 </div>
                             </div>
                         ) : (
-                            <p className="text-sm text-slate-400 italic">Customer data unavailable</p>
+                            <p className="text-sm text-slate-500 italic">Customer data unavailable</p>
                         )}
                     </SectionCard>
 
@@ -637,7 +637,7 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                     <SectionCard title="Delivery Location">
                         <div className="space-y-2">
                             <div className="flex items-start gap-2 text-sm text-slate-600">
-                                <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
+                                <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0 mt-0.5" />
                                 <span className="text-xs">
                                     {order.delivery_lat.toFixed(6)}, {order.delivery_lng.toFixed(6)}
                                 </span>
@@ -710,14 +710,14 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                                        <div className="flex items-center gap-1 text-2xs text-slate-500">
                                             <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                                            {order.rider.avg_rating > 0 ? order.rider.avg_rating.toFixed(1) : 'â€”'}
+                                            {order.rider.avg_rating > 0 ? order.rider.avg_rating.toFixed(1) : '—'}
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm text-slate-600">
-                                    <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                    <Phone className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                                     {order.rider.phone}
                                 </div>
                                 <Link
@@ -730,9 +730,9 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                         ) : (
                             <div className="flex flex-col items-center gap-2 py-2">
                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
-                                    <Truck className="h-5 w-5 text-slate-300" />
+                                    <Truck className="h-5 w-5 text-slate-500" />
                                 </div>
-                                <p className="text-xs text-slate-400">No rider assigned yet</p>
+                                <p className="text-xs text-slate-500">No rider assigned yet</p>
                                 {order.can_assign && (
                                     <Button
                                         size="sm" onClick={() => setShowAssign(true)}
@@ -751,10 +751,10 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                             <div className="space-y-1">
                                 <p className="text-xs text-slate-500">{order.cancel_reason}</p>
                                 {order.cancelled_by && (
-                                    <p className="text-[10px] text-slate-400 capitalize">Cancelled by {order.cancelled_by}</p>
+                                    <p className="text-2xs text-slate-500 capitalize">Cancelled by {order.cancelled_by}</p>
                                 )}
                                 {order.cancelled_at && (
-                                    <p className="text-[10px] text-slate-400">{order.cancelled_at}</p>
+                                    <p className="text-2xs text-slate-500">{order.cancelled_at}</p>
                                 )}
                             </div>
                         </SectionCard>

@@ -7,10 +7,12 @@ use App\Events\OrderStatusUpdatedEvent;
 use App\Events\RiderAssignedEvent;
 use App\Jobs\SendSmsJob;
 use App\Models\Order;
+use App\Models\OrderRiderDecline;
 use App\Models\OrderStatusHistory;
 use App\Models\Rider;
 use App\Models\SystemSetting;
 use App\Services\Sms\SmsTemplateService;
+use App\Support\ManagerContacts;
 use App\Support\OrderLifecycle;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Collection;
@@ -67,7 +69,9 @@ class AutoAssignRiderToOrder implements ShouldQueue
                     'rider_id' => $rider->id,
                     'status' => OrderLifecycle::STATUS_RIDER_ASSIGNED,
                     'rider_assigned_at' => now(),
-                    'rider_acceptance_deadline' => now()->addSeconds(60),
+                    'rider_acceptance_deadline' => now()->addSeconds(
+                        (int) config('tracking.acceptance_window_seconds', 60),
+                    ),
                     'rider_accepted_at' => null,
                 ]);
 
@@ -116,6 +120,14 @@ class AutoAssignRiderToOrder implements ShouldQueue
 
     private function candidateIdsForOrder(Order $order, array $excludeRiderIds, float $radiusKm): Collection
     {
+        // The event carries only the rider from the current hop; the table
+        // carries everyone who has ever turned this order down. Merging the
+        // two stops a declined order boomeranging back after one more hop.
+        $excludeRiderIds = array_values(array_unique(array_merge(
+            $excludeRiderIds,
+            OrderRiderDecline::riderIdsFor($order->id),
+        )));
+
         $candidateQuery = Rider::where('is_active', true)
             ->where('is_available', true)
             ->where('location_updated_at', '>=', now()->subMinutes(30))
@@ -187,19 +199,6 @@ class AutoAssignRiderToOrder implements ShouldQueue
 
     private function resolveManagerPhones(): array
     {
-        $raw = config('shop.manager_phones', '');
-
-        if (empty($raw)) {
-            return [];
-        }
-
-        return collect(explode(',', $raw))
-            ->map(function (string $phone): string {
-                $phone = trim($phone);
-                return str_starts_with($phone, '0') ? '+254' . substr($phone, 1) : $phone;
-            })
-            ->filter()
-            ->values()
-            ->all();
+        return ManagerContacts::phones();
     }
 }

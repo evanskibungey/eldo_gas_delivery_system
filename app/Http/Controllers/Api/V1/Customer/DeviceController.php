@@ -26,11 +26,13 @@ class DeviceController extends Controller
         $customer = $request->user();
 
         // Upsert by token — same physical device might have a stale row
-        // owned by a previous customer (account switch).
+        // owned by a previous customer (account switch). Clearing rider_id
+        // keeps ownership single-sided now that riders register too.
         $device = Device::updateOrCreate(
             ['token' => $data['token']],
             [
                 'customer_id'  => $customer->id,
+                'rider_id'     => null,
                 'platform'     => $data['platform']    ?? 'android',
                 'app_version'  => $data['app_version'] ?? null,
                 'last_seen_at' => now(),

@@ -109,7 +109,7 @@ export default function SizesEdit({ size }: Props) {
                             {/* ── Image upload ── */}
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">
-                                    Cylinder Image <span className="text-slate-400 font-normal">(optional)</span>
+                                    Cylinder Image <span className="text-slate-500 font-normal">(optional)</span>
                                 </Label>
 
                                 {preview ? (
@@ -141,7 +141,7 @@ export default function SizesEdit({ size }: Props) {
                                     <button
                                         type="button"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="mt-2 flex h-32 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 transition-colors hover:border-orange-300 hover:bg-orange-50 hover:text-orange-500"
+                                        className="mt-2 flex h-32 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-orange-300 hover:bg-orange-50 hover:text-orange-500"
                                     >
                                         <ImagePlus className="h-5 w-5" />
                                         <span className="text-sm">Click to upload image</span>
@@ -158,7 +158,7 @@ export default function SizesEdit({ size }: Props) {
                                         if (f) pickImage(f);
                                     }}
                                 />
-                                <p className="mt-1.5 text-xs text-slate-400">JPEG, PNG or WebP · max 2 MB</p>
+                                <p className="mt-1.5 text-xs text-slate-500">JPEG, PNG or WebP · max 2 MB</p>
                             </div>
 
                             <div>
@@ -176,7 +176,7 @@ export default function SizesEdit({ size }: Props) {
                             <div>
                                 <Label htmlFor="sort_order" className="text-sm font-medium text-slate-700">Sort Order</Label>
                                 <Input id="sort_order" type="number" min="0" {...register('sort_order')} className={inputCls(errors.sort_order)} />
-                                <p className="mt-1 text-xs text-slate-400">Lower numbers appear first in ordering screens.</p>
+                                <p className="mt-1 text-xs text-slate-500">Lower numbers appear first in ordering screens.</p>
                             </div>
 
                             <div className="space-y-2 pt-1">

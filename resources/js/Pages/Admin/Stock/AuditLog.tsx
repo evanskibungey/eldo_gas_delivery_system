@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,7 @@ const CHANGE_TYPE_CONFIG: Record<string, { label: string; cls: string }> = {
 function ChangeTypeBadge({ type }: { type: string }) {
     const cfg = CHANGE_TYPE_CONFIG[type] ?? { label: type, cls: 'border-slate-200 bg-slate-100 text-slate-600' };
     return (
-        <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold', cfg.cls)}>
+        <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-2xs font-semibold', cfg.cls)}>
             {cfg.label}
         </span>
     );
@@ -116,7 +116,8 @@ export default function StockAuditLog({ size, logs, filters }: Props) {
 
             <div className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] text-sm">
                     <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/80">
                             <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Date / Time</th>
@@ -133,10 +134,10 @@ export default function StockAuditLog({ size, logs, filters }: Props) {
                                 <td colSpan={6} className="py-16 text-center">
                                     <div className="flex flex-col items-center gap-2">
                                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                                            <FileText className="h-6 w-6 text-slate-300" />
+                                            <FileText className="h-6 w-6 text-slate-500" />
                                         </div>
-                                        <p className="text-sm font-medium text-slate-400">No audit log entries</p>
-                                        <p className="text-xs text-slate-300">
+                                        <p className="text-sm font-medium text-slate-500">No audit log entries</p>
+                                        <p className="text-xs text-slate-500">
                                             {hasFilters ? 'Try adjusting your filters.' : 'Stock changes will appear here.'}
                                         </p>
                                     </div>
@@ -150,7 +151,7 @@ export default function StockAuditLog({ size, logs, filters }: Props) {
                                 <td className="px-5 py-3.5 text-center">
                                     <span className={cn(
                                         'text-sm font-bold tabular-nums',
-                                        log.change_amount > 0 ? 'text-emerald-600' : log.change_amount < 0 ? 'text-red-600' : 'text-slate-400',
+                                        log.change_amount > 0 ? 'text-emerald-600' : log.change_amount < 0 ? 'text-red-600' : 'text-slate-500',
                                     )}>
                                         {log.change_amount > 0 ? `+${log.change_amount}` : log.change_amount}
                                     </span>
@@ -163,18 +164,19 @@ export default function StockAuditLog({ size, logs, filters }: Props) {
                                             Order #{log.order_id}
                                         </Link>
                                     )}
-                                    {log.note && <span className={log.order_id ? 'ml-2 text-slate-400' : ''}>{log.note}</span>}
-                                    {!log.order_id && !log.note && <span className="text-slate-300 italic">—</span>}
+                                    {log.note && <span className={log.order_id ? 'ml-2 text-slate-500' : ''}>{log.note}</span>}
+                                    {!log.order_id && !log.note && <span className="text-slate-500 italic">—</span>}
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
+                </div>
 
                 {/* Pagination */}
                 {logs.last_page > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
-                        <p className="text-xs text-slate-400">Page {logs.current_page} of {logs.last_page}</p>
+                        <p className="text-xs text-slate-500">Page {logs.current_page} of {logs.last_page}</p>
                         <div className="flex gap-2">
                             {logs.prev_page_url && (
                                 <Button asChild variant="outline" size="sm" className="h-8 text-xs">

@@ -8,6 +8,7 @@ use App\Events\OrderStatusUpdatedEvent;
 use App\Events\RiderOrderRemovedEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderRiderDecline;
 use App\Models\OrderStatusHistory;
 use App\Services\RiderStatsService;
 use App\Support\OrderLifecycle;
@@ -89,6 +90,10 @@ class OrderController extends Controller
                 'rider_acceptance_deadline' => null,
                 'rider_accepted_at' => null,
             ]);
+
+            // Persisted so the exclusion survives every later re-assignment
+            // hop, not just the next one.
+            OrderRiderDecline::record($order->id, $declinedRiderId, 'declined');
 
             OrderStatusHistory::create([
                 'order_id' => $order->id,
@@ -183,6 +188,8 @@ class OrderController extends Controller
             'payment_status' => $order->payment_status,
             'delivery_lat' => $order->delivery_lat,
             'delivery_lng' => $order->delivery_lng,
+            'delivery_label' => $order->delivery_label,
+            'delivery_address' => $order->delivery_address,
             'delivery_notes' => $order->delivery_notes,
             'total_amount' => $order->total_amount,
             'payment_method' => $order->payment_method,

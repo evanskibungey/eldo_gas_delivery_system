@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link } from '@inertiajs/react';
 import {
     Phone, Star, MapPin, Package, ArrowLeft,
@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface CustomerData {
     id:               number;
@@ -60,7 +60,7 @@ interface Props {
     addresses:    Address[];
 }
 
-// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Config ────────────────────────────────────────────────────────────────────
 
 const STATUS_CHIP: Record<string, string> = {
     pending:        'border-amber-200   bg-amber-50   text-amber-700',
@@ -83,7 +83,7 @@ const TX_ICON: Record<string, { icon: typeof TrendingUp; color: string }> = {
     referral_bonus: { icon: Gift,         color: 'text-violet-600' },
 };
 
-// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function StatCard({ icon: Icon, label, value, sub }: { icon: typeof Package; label: string; value: string; sub?: string }) {
     return (
@@ -93,7 +93,7 @@ function StatCard({ icon: Icon, label, value, sub }: { icon: typeof Package; lab
                 <p className="text-xs font-medium text-slate-500">{label}</p>
             </div>
             <p className="text-xl font-bold text-slate-900 tabular-nums">{value}</p>
-            {sub && <p className="mt-0.5 text-xs text-slate-400">{sub}</p>}
+            {sub && <p className="mt-0.5 text-xs text-slate-500">{sub}</p>}
         </div>
     );
 }
@@ -104,7 +104,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
     );
 }
 
-// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CustomerShow({ customer, orders, transactions, addresses }: Props) {
     return (
@@ -130,7 +130,7 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                     <div className="flex items-center gap-2">
                         <h1 className="text-xl font-bold text-slate-900">{customer.name}</h1>
                         {!customer.is_active && (
-                            <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-600">
+                            <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-2xs font-bold text-red-600">
                                 Inactive
                             </span>
                         )}
@@ -143,7 +143,7 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                         <span>Member since {customer.member_since}</span>
                     </div>
                     {customer.referred_by_name && (
-                        <p className="mt-1 text-xs text-slate-400">Referred by <span className="font-medium text-slate-600">{customer.referred_by_name}</span></p>
+                        <p className="mt-1 text-xs text-slate-500">Referred by <span className="font-medium text-slate-600">{customer.referred_by_name}</span></p>
                     )}
                 </div>
             </div>
@@ -169,10 +169,11 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                             {orders.length === 0 ? (
                                 <div className="flex flex-col items-center py-12 text-center">
                                     <ShoppingBag className="h-8 w-8 text-slate-200" />
-                                    <p className="mt-2 text-sm text-slate-400">No orders yet</p>
+                                    <p className="mt-2 text-sm text-slate-500">No orders yet</p>
                                 </div>
                             ) : (
-                                <table className="w-full text-sm">
+                                <div className="overflow-x-auto">
+                                <table className="w-full min-w-[560px] text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-100 bg-slate-50/80">
                                             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Order</th>
@@ -196,22 +197,22 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                                                             <Link href={`/admin/orders/${o.id}`} className="font-mono text-xs font-semibold text-slate-700 hover:text-orange-600">
                                                                 {o.order_number}
                                                             </Link>
-                                                            <p className="text-[10px] text-slate-400">{o.created_at}</p>
+                                                            <p className="text-2xs text-slate-500">{o.created_at}</p>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <p className="text-xs font-medium text-slate-700">{o.size_name}</p>
-                                                    <p className="text-[10px] text-slate-400">{o.rider_name ?? 'No rider'}</p>
+                                                    <p className="text-2xs text-slate-500">{o.rider_name ?? 'No rider'}</p>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className={cn('inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold', STATUS_CHIP[o.status] ?? STATUS_CHIP.cancelled)}>
+                                                    <span className={cn('inline-flex rounded-full border px-2 py-0.5 text-2xs font-semibold', STATUS_CHIP[o.status] ?? STATUS_CHIP.cancelled)}>
                                                         {STATUS_LABEL[o.status] ?? o.status}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <p className="text-sm font-bold text-slate-900 tabular-nums">KES {o.total_amount.toLocaleString()}</p>
-                                                    <p className={cn('text-[10px] font-semibold uppercase', o.payment_method === 'mpesa' ? 'text-emerald-600' : 'text-slate-400')}>
+                                                    <p className={cn('text-2xs font-semibold uppercase', o.payment_method === 'mpesa' ? 'text-emerald-600' : 'text-slate-500')}>
                                                         {o.payment_method}
                                                     </p>
                                                 </td>
@@ -219,6 +220,7 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                                         ))}
                                     </tbody>
                                 </table>
+                                </div>
                             )}
                         </div>
                         {orders.length > 0 && (
@@ -237,7 +239,7 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                             {transactions.length === 0 ? (
                                 <div className="flex flex-col items-center py-10 text-center">
                                     <Star className="h-8 w-8 text-slate-200" />
-                                    <p className="mt-2 text-sm text-slate-400">No GasPoints activity</p>
+                                    <p className="mt-2 text-sm text-slate-500">No GasPoints activity</p>
                                 </div>
                             ) : (
                                 transactions.map(tx => {
@@ -251,13 +253,13 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-medium text-slate-800 truncate">{tx.description}</p>
-                                                <p className="text-[10px] text-slate-400">{tx.created_at}</p>
+                                                <p className="text-2xs text-slate-500">{tx.created_at}</p>
                                             </div>
                                             <div className="text-right shrink-0">
                                                 <p className={cn('text-sm font-bold tabular-nums', positive ? 'text-emerald-600' : 'text-red-500')}>
                                                     {positive ? '+' : ''}{tx.points.toLocaleString()} pts
                                                 </p>
-                                                <p className="text-[10px] text-slate-400">{tx.balance_after.toLocaleString()} bal</p>
+                                                <p className="text-2xs text-slate-500">{tx.balance_after.toLocaleString()} bal</p>
                                             </div>
                                         </div>
                                     );
@@ -274,7 +276,7 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                         {addresses.length === 0 ? (
                             <div className="flex flex-col items-center rounded-xl border border-dashed border-slate-200 py-10 text-center">
                                 <MapPin className="h-8 w-8 text-slate-200" />
-                                <p className="mt-2 text-sm text-slate-400">No saved addresses</p>
+                                <p className="mt-2 text-sm text-slate-500">No saved addresses</p>
                             </div>
                         ) : (
                             <div className="space-y-2">
@@ -289,10 +291,10 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                                         )}
                                     >
                                         <div className="flex items-center gap-2 mb-0.5">
-                                            <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                            <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                                             <p className="text-xs font-semibold text-slate-800">{addr.label}</p>
                                             {addr.is_default && (
-                                                <span className="rounded-full border border-orange-200 bg-orange-100 px-1.5 py-0.5 text-[9px] font-bold text-orange-700">
+                                                <span className="rounded-full border border-orange-200 bg-orange-100 px-1.5 py-0.5 text-2xs font-bold text-orange-700">
                                                     DEFAULT
                                                 </span>
                                             )}

@@ -3,9 +3,16 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Http\Request;
 
-class EnsureApiRider
+/**
+ * Implements the AuthenticatesRequests marker so Laravel's middleware
+ * priority runs this ahead of ThrottleRequests — otherwise the limiter
+ * keys on IP rather than the rider, and riders sharing a carrier NAT
+ * address would eat each other's allowance.
+ */
+class EnsureApiRider implements AuthenticatesRequests
 {
     public function handle(Request $request, Closure $next): mixed
     {

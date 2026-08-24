@@ -1,7 +1,7 @@
 import CustomerLayout from '@/Layouts/CustomerLayout';
 import { Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
-import { Phone, Star, ShieldCheck, AlertTriangle, X, ChevronDown } from 'lucide-react';
+import { Phone, Star, ShieldCheck, AlertTriangle, X, ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface OrderProps {
@@ -116,7 +116,7 @@ function CancelConfirmModal({
                     onChange={(event) => setReason(event.target.value)}
                     placeholder="Reason (optional)"
                     rows={2}
-                    className="mt-3 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-red-300 focus:outline-none"
+                    className="mt-3 w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-red-300 focus:outline-none"
                 />
                 <div className="mt-3 flex gap-3">
                     <button onClick={onCancel} className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50">
@@ -168,7 +168,7 @@ function ReportIssueModal({
                     placeholder="Describe the issue..."
                     rows={3}
                     className={cn(
-                        'mt-3 w-full resize-none rounded-lg border px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:outline-none',
+                        'mt-3 w-full resize-none rounded-lg border px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none',
                         isDamaged ? 'border-red-200 focus:border-red-400 focus:ring-2 focus:ring-red-400/20' : 'border-slate-200 focus:border-orange-400',
                     )}
                 />
@@ -204,6 +204,12 @@ export default function Tracking({ order: initialOrder, rider: initialRider, mpe
     const mapObj = useRef<any>(null);
     const markerR = useRef<any>(null);
     const markerD = useRef<any>(null);
+    const animRef = useRef<number | null>(null);
+
+    // Cancel any in-flight marker animation when the screen unmounts.
+    useEffect(() => () => {
+        if (animRef.current) cancelAnimationFrame(animRef.current);
+    }, []);
 
     const stageIndex = stageIndexForStatus(order.status);
     const isActive = !['delivered', 'cancelled'].includes(order.status);
@@ -300,6 +306,11 @@ export default function Tracking({ order: initialOrder, rider: initialRider, mpe
     useEffect(() => {
         if (!isActive) return;
 
+        // Poll faster once the rider is actually moving toward the customer;
+        // 30s is fine while the order is still being prepared.
+        const movingStatuses = ['picked_up', 'on_the_way', 'correction_in_progress'];
+        const pollMs = movingStatuses.includes(order.status) ? 10_000 : 30_000;
+
         const interval = window.setInterval(async () => {
             try {
                 const response = await fetch(`/orders/${order.id}/tracking/data`);
@@ -323,10 +334,10 @@ export default function Tracking({ order: initialOrder, rider: initialRider, mpe
             } catch {
                 // Ignore polling failures.
             }
-        }, 30000);
+        }, pollMs);
 
         return () => window.clearInterval(interval);
-    }, [isActive, order.id]);
+    }, [isActive, order.id, order.status]);
 
     useEffect(() => {
         if (!mapRef.current) return;
@@ -372,6 +383,8 @@ export default function Tracking({ order: initialOrder, rider: initialRider, mpe
         import('leaflet').then((Leaflet) => {
             if (!mapObj.current) return;
 
+            const target: [number, number] = [rider.lat!, rider.lng!];
+
             if (!markerR.current) {
                 const riderIcon = Leaflet.divIcon({
                     className: '',
@@ -379,13 +392,42 @@ export default function Tracking({ order: initialOrder, rider: initialRider, mpe
                     iconSize: [36, 36],
                     iconAnchor: [18, 18],
                 });
-                markerR.current = Leaflet.marker([rider.lat!, rider.lng!], { icon: riderIcon }).addTo(mapObj.current);
-                return;
+                markerR.current = Leaflet.marker(target, { icon: riderIcon }).addTo(mapObj.current);
+            } else {
+                // Ease between fixes instead of teleporting. Polling is coarse, so
+                // without this the marker sits still then jumps hundreds of metres.
+                const from = markerR.current.getLatLng();
+                const start = performance.now();
+                const DURATION = 900;
+
+                if (animRef.current) cancelAnimationFrame(animRef.current);
+
+                const step = (now: number) => {
+                    const t = Math.min(1, (now - start) / DURATION);
+                    // ease-out cubic
+                    const e = 1 - Math.pow(1 - t, 3);
+                    markerR.current?.setLatLng([
+                        from.lat + (target[0] - from.lat) * e,
+                        from.lng + (target[1] - from.lng) * e,
+                    ]);
+                    if (t < 1) animRef.current = requestAnimationFrame(step);
+                };
+                animRef.current = requestAnimationFrame(step);
             }
 
-            markerR.current.setLatLng([rider.lat, rider.lng]);
+            // Keep both the rider and the destination in view. Previously the map
+            // was centred on the destination once and never adjusted, so a rider
+            // still at the depot was simply off-screen.
+            if (order.delivery_lat != null && order.delivery_lng != null) {
+                mapObj.current.fitBounds(
+                    Leaflet.latLngBounds([target, [order.delivery_lat, order.delivery_lng]]),
+                    { padding: [48, 48], maxZoom: 16, animate: true },
+                );
+            } else {
+                mapObj.current.panTo(target, { animate: true });
+            }
         });
-    }, [rider?.lat, rider?.lng]);
+    }, [rider?.lat, rider?.lng, order.delivery_lat, order.delivery_lng]);
 
     function submitCancel(reason: string): void {
         router.post(
@@ -440,22 +482,39 @@ export default function Tracking({ order: initialOrder, rider: initialRider, mpe
                     )}
 
                     <section className="rounded-xl border border-slate-200 bg-white p-4">
+                        {/* Current stage, stated plainly. Five 64px labels needed
+                            320px inside ~296px on a 360px phone, so they wrapped. */}
+                        <div className="mb-3 flex items-baseline justify-between gap-3 sm:hidden">
+                            <p className="text-sm font-semibold text-orange-600">
+                                {STAGES[stageIndex]?.label}
+                            </p>
+                            <p className="text-xs tabular-nums text-slate-500">
+                                Step {stageIndex + 1} of {STAGES.length}
+                            </p>
+                        </div>
+
                         <div className="relative flex justify-between">
                             <div className="absolute left-0 right-0 top-3.5 h-0.5 bg-slate-100" />
                             <div className="absolute left-0 top-3.5 h-0.5 bg-orange-400 transition-all duration-700" style={{ width: `${(stageIndex / (STAGES.length - 1)) * 100}%` }} />
                             {STAGES.map((stage, index) => (
                                 <div key={stage.key} className="relative z-10 flex flex-col items-center gap-1.5">
                                     <div
+                                        aria-current={index === stageIndex ? 'step' : undefined}
                                         className={cn(
                                             'flex h-7 w-7 items-center justify-center rounded-full border-2 text-xs font-bold transition-all',
-                                            index <= stageIndex ? 'border-orange-500 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-400',
+                                            index <= stageIndex ? 'border-orange-500 bg-orange-500 text-white' : 'border-slate-200 bg-white text-slate-500',
                                         )}
                                     >
-                                        {index < stageIndex ? '✓' : index + 1}
+                                        {index < stageIndex ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : index + 1}
                                     </div>
-                                    <p className={cn('w-16 text-center text-[10px]', index <= stageIndex ? 'font-semibold text-orange-600' : 'text-slate-400')}>
+                                    {/* Labels only where there's room for them. */}
+                                    <p className={cn(
+                                        'hidden w-16 text-center text-xs sm:block',
+                                        index <= stageIndex ? 'font-semibold text-orange-600' : 'text-slate-500',
+                                    )}>
                                         {stage.label}
                                     </p>
+                                    <span className="sr-only">{stage.label}</span>
                                 </div>
                             ))}
                         </div>
@@ -480,7 +539,7 @@ export default function Tracking({ order: initialOrder, rider: initialRider, mpe
                                         </span>
                                     )}
                                     {rider.is_certified && (
-                                        <span className="flex items-center gap-0.5 rounded-full bg-green-50 px-1.5 py-0.5 text-[10px] text-green-600">
+                                        <span className="flex items-center gap-0.5 rounded-full bg-green-50 px-1.5 py-0.5 text-2xs text-green-600">
                                             <ShieldCheck className="h-3 w-3" /> Certified
                                         </span>
                                     )}
@@ -513,7 +572,7 @@ export default function Tracking({ order: initialOrder, rider: initialRider, mpe
                         </div>
                         <div className="flex items-center justify-between text-slate-600">
                             <span>Payment status</span>
-                            <span className={cn('rounded-full border px-2 py-0.5 text-[11px] font-semibold', paymentChip)}>{paymentLabel}</span>
+                            <span className={cn('rounded-full border px-2 py-0.5 text-2xs font-semibold', paymentChip)}>{paymentLabel}</span>
                         </div>
                         {order.delivery_notes && (
                             <div className="flex justify-between text-slate-600">
@@ -576,13 +635,13 @@ export default function Tracking({ order: initialOrder, rider: initialRider, mpe
                     )}
 
                     {canCancel && (
-                        <button onClick={() => setShowCancel(true)} className="w-full rounded-xl border border-slate-200 py-3 text-sm text-slate-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500">
+                        <button onClick={() => setShowCancel(true)} className="w-full rounded-xl border border-slate-200 py-3 text-sm text-slate-500 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-500">
                             Cancel order
                         </button>
                     )}
 
                     {contactShopOnly && (
-                        <p className="py-2 text-center text-xs text-slate-400">Your order is already on the way. To cancel, please call the shop directly.</p>
+                        <p className="py-2 text-center text-xs text-slate-500">Your order is already on the way. To cancel, please call the shop directly.</p>
                     )}
                 </div>
             </div>

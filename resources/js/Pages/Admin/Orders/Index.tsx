@@ -78,7 +78,7 @@ const PAYMENT_CHIP: Record<string, string> = {
 function StatusBadge({ status }: { status: OrderStatus }) {
     const cfg = STATUS_CFG[status];
     return (
-        <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold', cfg.chip)}>
+        <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-2xs font-semibold', cfg.chip)}>
             <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', cfg.dot)} />
             {cfg.label}
         </span>
@@ -101,7 +101,7 @@ function TabBtn({ label, count, active, onClick }: {
             {label}
             {count != null && count > 0 && (
                 <span className={cn(
-                    'flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold',
+                    'flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-2xs font-bold',
                     active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600',
                 )}>
                     {count > 99 ? '99+' : count}
@@ -118,7 +118,7 @@ function SubTabBtn({ label, count, active, onClick }: {
         <button
             onClick={onClick}
             className={cn(
-                'inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors border',
+                'inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-2xs font-medium transition-colors border',
                 active
                     ? 'bg-slate-800 text-white border-slate-800'
                     : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:text-slate-700',
@@ -127,7 +127,7 @@ function SubTabBtn({ label, count, active, onClick }: {
             {label}
             {count != null && count > 0 && (
                 <span className={cn(
-                    'flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[9px] font-bold',
+                    'flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-2xs font-bold',
                     active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600',
                 )}>
                     {count > 99 ? '99+' : count}
@@ -244,7 +244,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
 
                 <div className="ml-auto flex items-center gap-2">
                     <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
                         <Input
                             placeholder="Order # or customer…"
                             value={search}
@@ -254,7 +254,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                         />
                     </div>
                     {!wsConnected && (
-                        <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700">
+                        <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-2xs font-semibold text-amber-700">
                             <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                             Live updates offline · polling every 30s
                         </span>
@@ -269,7 +269,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
             {/* Active sub-tabs — only shown when Active group is selected */}
             {isActiveGroup && (
                 <div className="mb-4 flex items-center gap-1.5 pl-1">
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mr-1">Filter:</span>
+                    <span className="text-2xs font-semibold text-slate-500 uppercase tracking-wide mr-1">Filter:</span>
                     <SubTabBtn
                         label="All Active"
                         count={counts.active}
@@ -301,7 +301,8 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
             <div className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
 
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[880px] text-sm">
                     <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/80">
                             <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Order</th>
@@ -319,10 +320,10 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                                 <td colSpan={7} className="py-16 text-center">
                                     <div className="flex flex-col items-center gap-2">
                                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                                            <ShoppingBag className="h-6 w-6 text-slate-300" />
+                                            <ShoppingBag className="h-6 w-6 text-slate-500" />
                                         </div>
-                                        <p className="text-sm font-medium text-slate-400">No orders found</p>
-                                        <p className="text-xs text-slate-300">Try a different filter or search term.</p>
+                                        <p className="text-sm font-medium text-slate-500">No orders found</p>
+                                        <p className="text-xs text-slate-500">Try a different filter or search term.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -346,7 +347,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                                         </div>
                                         <div>
                                             <p className="font-semibold text-slate-900 text-xs">{o.order_number}</p>
-                                            <p className="text-[10px] text-slate-400 flex items-center gap-0.5 mt-0.5">
+                                            <p className="text-2xs text-slate-500 flex items-center gap-0.5 mt-0.5">
                                                 <Clock className="h-2.5 w-2.5 shrink-0" />
                                                 {o.created_ago}
                                             </p>
@@ -355,7 +356,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                                             <span className="flex items-center gap-0.5 text-red-500 shrink-0" title={o.issue_type?.replace(/_/g, ' ')}>
                                                 <AlertCircle className="h-3.5 w-3.5" />
                                                 {o.issue_type === 'damaged_cylinder' && (
-                                                    <span className="text-[9px] font-bold uppercase leading-none">P0</span>
+                                                    <span className="text-2xs font-bold uppercase leading-none">P0</span>
                                                 )}
                                             </span>
                                         )}
@@ -365,7 +366,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                                 {/* Customer */}
                                 <td className="px-5 py-4">
                                     <p className="text-sm font-medium text-slate-800">{o.customer_name ?? '—'}</p>
-                                    <p className="text-[10px] text-slate-400">{o.customer_phone}</p>
+                                    <p className="text-2xs text-slate-500">{o.customer_phone}</p>
                                 </td>
 
                                 {/* Details */}
@@ -373,14 +374,14 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                                     <p className="text-xs font-semibold text-slate-700">{o.size_name}</p>
                                     <div className="mt-0.5 flex items-center gap-1.5">
                                         <span className={cn(
-                                            'rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase',
+                                            'rounded px-1.5 py-0.5 text-2xs font-semibold uppercase',
                                             o.order_type === 'swap' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600',
                                         )}>
                                             {o.order_type === 'swap' ? 'Swap' : 'New'}
                                         </span>
                                         <span className={cn(
-                                            'text-[10px] font-bold uppercase',
-                                            o.payment_method === 'mpesa' ? 'text-emerald-600' : 'text-slate-400',
+                                            'text-2xs font-bold uppercase',
+                                            o.payment_method === 'mpesa' ? 'text-emerald-600' : 'text-slate-500',
                                         )}>
                                             {o.payment_method}
                                         </span>
@@ -392,7 +393,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                                     <StatusBadge status={o.status} />
                                     {o.payment_status !== 'pending' && (
                                         <span className={cn(
-                                            'mt-1 block w-fit rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize',
+                                            'mt-1 block w-fit rounded-full border px-2 py-0.5 text-2xs font-semibold capitalize',
                                             PAYMENT_CHIP[o.payment_status] ?? PAYMENT_CHIP.pending,
                                         )}>
                                             {o.payment_status}
@@ -408,12 +409,12 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                                         o.status === 'pending' ? (
                                             <Link
                                                 href={`/admin/orders/${o.id}`}
-                                                className="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-[10px] font-semibold text-orange-600 hover:bg-orange-100 transition-colors"
+                                                className="inline-flex items-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-2xs font-semibold text-orange-600 hover:bg-orange-100 transition-colors"
                                             >
                                                 Assign Rider →
                                             </Link>
                                         ) : (
-                                            <span className="text-xs text-slate-300 italic">None</span>
+                                            <span className="text-xs text-slate-500 italic">None</span>
                                         )
                                     )}
                                 </td>
@@ -428,7 +429,7 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                                 {/* Action */}
                                 <td className="px-5 py-4 text-right">
                                     <Button asChild variant="ghost" size="sm"
-                                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-700">
+                                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-slate-700">
                                         <Link href={`/admin/orders/${o.id}`}>
                                             <Eye className="h-4 w-4" />
                                         </Link>
@@ -438,11 +439,12 @@ export default function OrdersIndex({ orders, filters, counts }: Props) {
                         ))}
                     </tbody>
                 </table>
+                </div>
 
                 {/* Pagination */}
                 {orders.last_page > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-500">
                             Page {orders.current_page} of {orders.last_page} · {orders.total} orders
                         </p>
                         <div className="flex gap-2">

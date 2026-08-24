@@ -172,7 +172,7 @@ export default function CustomerHome({ shopOpen, shopOpensAt, shopClosesAt, last
                                 'h-14 w-full gap-2 text-base font-semibold shadow-md',
                                 shopOpen
                                     ? 'bg-orange-500 shadow-orange-500/30 hover:bg-orange-600'
-                                    : 'cursor-not-allowed bg-slate-200 text-slate-400 shadow-none',
+                                    : 'cursor-not-allowed bg-slate-200 text-slate-500 shadow-none',
                             )}
                         >
                             {shopOpen ? (
@@ -194,7 +194,7 @@ export default function CustomerHome({ shopOpen, shopOpensAt, shopClosesAt, last
                             <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                                 <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 to-amber-500" />
                                 <div className="flex items-center justify-between border-b border-slate-50 px-4 py-3">
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Last Order</p>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Last Order</p>
                                     <Link href={`/orders/${lastOrder.id}`} className="flex items-center gap-0.5 text-xs font-medium text-orange-500 hover:text-orange-600">
                                         View <ChevronRight className="h-3.5 w-3.5" />
                                     </Link>
@@ -212,11 +212,11 @@ export default function CustomerHome({ shopOpen, shopOpensAt, shopClosesAt, last
                                                 {ORDER_STATUS_CFG[lastOrder.status]?.label ?? lastOrder.status}
                                             </span>
                                             {paymentCfg && (
-                                                <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-semibold', paymentCfg.chip)}>
+                                                <span className={cn('rounded-full border px-2 py-0.5 text-2xs font-semibold', paymentCfg.chip)}>
                                                     {paymentCfg.label}
                                                 </span>
                                             )}
-                                            <span className="text-[10px] text-slate-400">· {lastOrder.created_at}</span>
+                                            <span className="text-2xs text-slate-500">· {lastOrder.created_at}</span>
                                         </div>
                                     </div>
                                     <p className="shrink-0 text-sm font-bold tabular-nums text-slate-800">KES {lastOrder.total_amount.toLocaleString()}</p>

@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
 import {
@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Summary {
     total_revenue:   number;
@@ -44,11 +44,11 @@ interface Props {
     byType:       TypeRow[];
 }
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const fmt = (n: number) => `KES ${n.toLocaleString()}`;
 
-// â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function MetricCard({
     icon: Icon, label, value, sub, color = 'orange',
@@ -72,7 +72,7 @@ function MetricCard({
             </div>
             <p className="text-2xl font-black text-slate-900 tabular-nums">{value}</p>
             <p className="mt-0.5 text-xs font-medium text-slate-500">{label}</p>
-            {sub && <p className="mt-1 text-[10px] text-slate-400">{sub}</p>}
+            {sub && <p className="mt-1 text-2xs text-slate-500">{sub}</p>}
         </div>
     );
 }
@@ -97,7 +97,7 @@ function MiniBar({
     );
 }
 
-// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function RevenueReport({ filters, summary, dailyRevenue, bySize, byType }: Props) {
     const [from, setFrom] = useState(filters.from);
@@ -165,11 +165,11 @@ export default function RevenueReport({ filters, summary, dailyRevenue, bySize, 
                         <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 to-amber-500" />
                         <div className="px-5 py-4 border-b border-slate-100">
                             <h2 className="text-sm font-bold text-slate-900">Daily Revenue</h2>
-                            <p className="text-xs text-slate-400">{filters.from} → {filters.to}</p>
+                            <p className="text-xs text-slate-500">{filters.from} → {filters.to}</p>
                         </div>
                         <div className="px-5 py-4 space-y-3 max-h-80 overflow-y-auto">
                             {dailyRevenue.length === 0 ? (
-                                <p className="py-10 text-center text-sm text-slate-400">No revenue data for this period.</p>
+                                <p className="py-10 text-center text-sm text-slate-500">No revenue data for this period.</p>
                             ) : (
                                 dailyRevenue.map(d => (
                                     <div key={d.date} className="flex items-center gap-3">
@@ -180,11 +180,11 @@ export default function RevenueReport({ filters, summary, dailyRevenue, bySize, 
                                                 style={{ width: `${Math.max(2, (d.revenue / maxDailyRevenue) * 100)}%` }}
                                             >
                                                 {d.revenue / maxDailyRevenue > 0.3 && (
-                                                    <span className="text-[10px] font-bold text-white">{fmt(d.revenue)}</span>
+                                                    <span className="text-2xs font-bold text-white">{fmt(d.revenue)}</span>
                                                 )}
                                             </div>
                                         </div>
-                                        <p className="w-8 shrink-0 text-right text-[10px] font-medium text-slate-400 tabular-nums">{d.orders}</p>
+                                        <p className="w-8 shrink-0 text-right text-2xs font-medium text-slate-500 tabular-nums">{d.orders}</p>
                                     </div>
                                 ))
                             )}
@@ -203,7 +203,7 @@ export default function RevenueReport({ filters, summary, dailyRevenue, bySize, 
                         </div>
                         <div className="px-4 py-3 space-y-3">
                             {bySize.length === 0 ? (
-                                <p className="text-xs text-slate-400 py-4 text-center">No data</p>
+                                <p className="text-xs text-slate-500 py-4 text-center">No data</p>
                             ) : (
                                 bySize.map(s => (
                                     <MiniBar key={s.size_name} label={s.size_name} value={s.revenue} max={maxSizeRevenue} amount={s.revenue} />
@@ -263,7 +263,7 @@ export default function RevenueReport({ filters, summary, dailyRevenue, bySize, 
                                     </div>
                                     <div className="text-right">
                                         <p className="text-xs font-bold text-slate-900 tabular-nums">{fmt(t.revenue)}</p>
-                                        <p className="text-[10px] text-slate-400">{t.orders} orders</p>
+                                        <p className="text-2xs text-slate-500">{t.orders} orders</p>
                                     </div>
                                 </div>
                             ))}

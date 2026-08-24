@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import {
     Plus,
@@ -45,10 +45,10 @@ const roleColors: Record<string, string> = {
 };
 
 function RoleBadge({ role }: { role: string }) {
-    const color = roleColors[role] ?? 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+    const color = roleColors[role] ?? 'bg-slate-500/10 text-slate-500 border-slate-500/20';
     const label = role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     return (
-        <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', color)}>
+        <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-2xs font-semibold', color)}>
             {label}
         </span>
     );
@@ -114,7 +114,8 @@ export default function AdminUsersIndex({ admins, roles }: Props) {
 
             {/* Table card */}
             <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[660px] text-sm">
                     <thead>
                         <tr className="border-b border-slate-100 bg-slate-50">
                             <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">User</th>
@@ -127,7 +128,7 @@ export default function AdminUsersIndex({ admins, roles }: Props) {
                     <tbody className="divide-y divide-slate-100">
                         {admins.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="py-16 text-center text-slate-400">
+                                <td colSpan={5} className="py-16 text-center text-slate-500">
                                     No admin users found.
                                 </td>
                             </tr>
@@ -144,10 +145,10 @@ export default function AdminUsersIndex({ admins, roles }: Props) {
                                             <p className="font-medium text-slate-900 leading-none">
                                                 {admin.name}
                                                 {admin.is_self && (
-                                                    <span className="ml-2 text-[10px] text-orange-500 font-semibold bg-orange-50 border border-orange-100 rounded-full px-1.5 py-0.5">You</span>
+                                                    <span className="ml-2 text-2xs text-orange-500 font-semibold bg-orange-50 border border-orange-100 rounded-full px-1.5 py-0.5">You</span>
                                                 )}
                                             </p>
-                                            <p className="text-xs text-slate-400 mt-0.5">{admin.email}</p>
+                                            <p className="text-xs text-slate-500 mt-0.5">{admin.email}</p>
                                         </div>
                                     </div>
                                 </td>
@@ -156,7 +157,7 @@ export default function AdminUsersIndex({ admins, roles }: Props) {
                                 <td className="px-5 py-4">
                                     {admin.roles.length > 0
                                         ? admin.roles.map(r => <RoleBadge key={r} role={r} />)
-                                        : <span className="text-slate-400 text-xs">No role</span>
+                                        : <span className="text-slate-500 text-xs">No role</span>
                                     }
                                 </td>
 
@@ -167,14 +168,14 @@ export default function AdminUsersIndex({ admins, roles }: Props) {
                                             <CheckCircle2 className="h-3.5 w-3.5" /> Active
                                         </span>
                                     ) : (
-                                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
                                             <XCircle className="h-3.5 w-3.5" /> Suspended
                                         </span>
                                     )}
                                 </td>
 
                                 {/* Last login */}
-                                <td className="px-5 py-4 text-xs text-slate-400">
+                                <td className="px-5 py-4 text-xs text-slate-500">
                                     {admin.last_login_at ?? 'Never'}
                                 </td>
 
@@ -185,7 +186,7 @@ export default function AdminUsersIndex({ admins, roles }: Props) {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8 text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                                                className="h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-slate-100"
                                             >
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
@@ -193,7 +194,7 @@ export default function AdminUsersIndex({ admins, roles }: Props) {
                                         <DropdownMenuContent align="end" className="w-44">
                                             <DropdownMenuItem asChild>
                                                 <Link href={`/admin/users/${admin.id}/edit`} className="flex items-center gap-2 cursor-pointer">
-                                                    <Pencil className="h-3.5 w-3.5 text-slate-400" />
+                                                    <Pencil className="h-3.5 w-3.5 text-slate-500" />
                                                     Edit
                                                 </Link>
                                             </DropdownMenuItem>
@@ -216,6 +217,7 @@ export default function AdminUsersIndex({ admins, roles }: Props) {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {/* Delete confirmation dialog */}

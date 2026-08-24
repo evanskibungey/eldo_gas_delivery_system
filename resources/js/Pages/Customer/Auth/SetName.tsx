@@ -1,4 +1,4 @@
-﻿import GuestLayout from '@/Layouts/GuestLayout';
+import GuestLayout from '@/Layouts/GuestLayout';
 import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { User, Loader2 } from 'lucide-react';
@@ -33,20 +33,25 @@ export default function SetName() {
 
             <form onSubmit={onSubmit} className="space-y-4">
                 <div>
-                    <Label className="text-sm font-medium text-slate-700">Your Name</Label>
+                    <Label htmlFor="name" className="text-sm font-medium text-slate-700">Your Name</Label>
                     <Input
+                        id="name"
+                        name="name"
+                        autoComplete="name"
                         value={name}
                         onChange={e => setName(e.target.value)}
                         placeholder="e.g. Jane Wanjiku"
+                        aria-invalid={errors?.name ? true : undefined}
+                        aria-describedby={errors?.name ? 'name-error' : undefined}
                         className={cn(
-                            'mt-1.5 h-10 border-slate-200 bg-slate-50 text-sm focus:border-orange-400 focus:ring-orange-400/20 focus:bg-white transition-all',
+                            'mt-1.5 h-11 border-slate-200 bg-slate-50 text-base focus:border-orange-400 focus:ring-orange-400/20 focus:bg-white transition-all',
                             errors?.name && 'border-red-400 bg-red-50',
                         )}
                         autoFocus
                         maxLength={100}
                     />
                     {errors?.name && (
-                        <p className="mt-1.5 text-xs text-red-500">{errors.name}</p>
+                        <p id="name-error" className="mt-1.5 text-xs text-red-500">{errors.name}</p>
                     )}
                 </div>
 

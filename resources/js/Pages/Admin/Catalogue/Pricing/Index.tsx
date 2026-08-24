@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link } from '@inertiajs/react';
 import { Pencil, Building2, Home, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ interface Size {
 const fmt = (n: number) => `KES ${n.toLocaleString()}`;
 
 function PriceCell({ value }: { value: number | undefined }) {
-    if (value == null) return <span className="text-slate-300">—</span>;
+    if (value == null) return <span className="text-slate-500">—</span>;
     return <span className="font-semibold text-slate-800">{fmt(value)}</span>;
 }
 
@@ -35,7 +35,8 @@ export default function PricingIndex({ sizes }: { sizes: Size[] }) {
 
             <div className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] text-sm">
                     <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/80">
                             <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Size</th>
@@ -57,7 +58,7 @@ export default function PricingIndex({ sizes }: { sizes: Size[] }) {
                                         </div>
                                         <div>
                                             <p className="font-semibold text-slate-900">{s.name}</p>
-                                            <span className="inline-flex items-center gap-1 text-[10px] text-slate-400">
+                                            <span className="inline-flex items-center gap-1 text-2xs text-slate-500">
                                                 {s.is_commercial
                                                     ? <><Building2 className="h-3 w-3" /> Commercial</>
                                                     : <><Home className="h-3 w-3" /> Household</>
@@ -72,8 +73,8 @@ export default function PricingIndex({ sizes }: { sizes: Size[] }) {
                                 <td className="px-5 py-4 text-right"><PriceCell value={s.price?.delivery_fee} /></td>
                                 <td className="px-5 py-4">
                                     {s.price?.updated_at
-                                        ? <span className="text-xs text-slate-400">{s.price.updated_at}</span>
-                                        : <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-600">Not set</span>
+                                        ? <span className="text-xs text-slate-500">{s.price.updated_at}</span>
+                                        : <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-2xs font-semibold text-amber-600">Not set</span>
                                     }
                                 </td>
                                 <td className="px-5 py-4 text-right">
@@ -87,6 +88,7 @@ export default function PricingIndex({ sizes }: { sizes: Size[] }) {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
         </AdminLayout>
     );

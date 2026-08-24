@@ -14,7 +14,9 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command(ExpireRiderAcceptance::class)->everyMinute()->withoutOverlapping();
+// Every 30s rather than every minute: at everyMinute() a 60-second window
+// was really 60-120s, so riders lost work they had accepted in good time.
+Schedule::command(ExpireRiderAcceptance::class)->everyThirtySeconds()->withoutOverlapping();
 Schedule::command(ExpireGasPoints::class)->dailyAt('00:10')->withoutOverlapping();
 Schedule::job(new CheckLowStockJob)->everyFifteenMinutes();
 Schedule::job(new CheckRiderDelaysJob)->everyFiveMinutes();

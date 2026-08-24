@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Events\OrderPlacedEvent;
 use App\Events\RiderOrderRemovedEvent;
 use App\Models\Order;
+use App\Models\OrderRiderDecline;
 use App\Models\OrderStatusHistory;
 use App\Support\OrderLifecycle;
 use Illuminate\Console\Command;
@@ -45,6 +46,10 @@ class ExpireRiderAcceptance extends Command
             }
 
             $declinedRiderId = $locked->rider_id;
+
+            // Same exclusion record as an explicit decline: a rider who let
+            // the window lapse should not be handed the order again.
+            OrderRiderDecline::record($locked->id, $declinedRiderId, 'acceptance_expired');
 
             $locked->update([
                 'rider_id' => null,

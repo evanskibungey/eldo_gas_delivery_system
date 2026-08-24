@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import {
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface OrderRow {
     id:             number;
@@ -52,7 +52,7 @@ interface Props {
     summary: { total_orders: number; with_issues: number; exception_rate: number };
 }
 
-// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Config ────────────────────────────────────────────────────────────────────
 
 const STATUS_CHIP: Record<string, string> = {
     pending:        'border-amber-200   bg-amber-50   text-amber-700',
@@ -67,7 +67,7 @@ const STATUS_LABEL: Record<string, string> = {
     delivered: 'Delivered', cancelled: 'Cancelled',
 };
 
-// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function OrdersReport({ orders, sizes, riders, filters, summary }: Props) {
     const [from,      setFrom]      = useState(filters.from      ?? '');
@@ -129,15 +129,15 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
             {/* Filters */}
             <div className="mb-5 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div>
-                    <p className="text-[10px] font-semibold uppercase text-slate-400 mb-1">From</p>
+                    <p className="text-2xs font-semibold uppercase text-slate-500 mb-1">From</p>
                     <input type="date" value={from} onChange={e => setFrom(e.target.value)} className={sel} />
                 </div>
                 <div>
-                    <p className="text-[10px] font-semibold uppercase text-slate-400 mb-1">To</p>
+                    <p className="text-2xs font-semibold uppercase text-slate-500 mb-1">To</p>
                     <input type="date" value={to} onChange={e => setTo(e.target.value)} className={sel} />
                 </div>
                 <div>
-                    <p className="text-[10px] font-semibold uppercase text-slate-400 mb-1">Status</p>
+                    <p className="text-2xs font-semibold uppercase text-slate-500 mb-1">Status</p>
                     <select value={status} onChange={e => setStatus(e.target.value)} className={sel}>
                         <option value="">All</option>
                         <option value="pending">Pending</option>
@@ -148,7 +148,7 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
                     </select>
                 </div>
                 <div>
-                    <p className="text-[10px] font-semibold uppercase text-slate-400 mb-1">Type</p>
+                    <p className="text-2xs font-semibold uppercase text-slate-500 mb-1">Type</p>
                     <select value={orderType} onChange={e => setOrderType(e.target.value)} className={sel}>
                         <option value="">All</option>
                         <option value="swap">Swap</option>
@@ -156,14 +156,14 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
                     </select>
                 </div>
                 <div>
-                    <p className="text-[10px] font-semibold uppercase text-slate-400 mb-1">Size</p>
+                    <p className="text-2xs font-semibold uppercase text-slate-500 mb-1">Size</p>
                     <select value={sizeId} onChange={e => setSizeId(e.target.value)} className={sel}>
                         <option value="">All</option>
                         {sizes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                 </div>
                 <div>
-                    <p className="text-[10px] font-semibold uppercase text-slate-400 mb-1">Rider</p>
+                    <p className="text-2xs font-semibold uppercase text-slate-500 mb-1">Rider</p>
                     <select value={riderId} onChange={e => setRiderId(e.target.value)} className={sel}>
                         <option value="">All</option>
                         {riders.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -182,7 +182,8 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
             {/* Table */}
             <div className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[880px] text-sm">
                     <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/80">
                             <th className="px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Order</th>
@@ -200,9 +201,9 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
                                 <td colSpan={7} className="py-16 text-center">
                                     <div className="flex flex-col items-center gap-2">
                                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                                            <ShoppingBag className="h-6 w-6 text-slate-300" />
+                                            <ShoppingBag className="h-6 w-6 text-slate-500" />
                                         </div>
-                                        <p className="text-sm font-medium text-slate-400">No orders match the selected filters</p>
+                                        <p className="text-sm font-medium text-slate-500">No orders match the selected filters</p>
                                     </div>
                                 </td>
                             </tr>
@@ -219,7 +220,7 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
                                         </div>
                                         <div>
                                             <p className="font-mono text-xs font-semibold text-slate-700">{o.order_number}</p>
-                                            <p className="text-[10px] text-slate-400">{o.created_at}</p>
+                                            <p className="text-2xs text-slate-500">{o.created_at}</p>
                                         </div>
                                         {o.has_issue && (
                                             <AlertCircle className="h-3.5 w-3.5 text-red-500 shrink-0" title={o.issue_type ?? 'Issue'} />
@@ -230,14 +231,14 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
                                 {/* Customer */}
                                 <td className="px-4 py-3.5">
                                     <p className="text-xs font-medium text-slate-800">{o.customer_name ?? '—'}</p>
-                                    <p className="text-[10px] text-slate-400 font-mono">{o.customer_phone}</p>
+                                    <p className="text-2xs text-slate-500 font-mono">{o.customer_phone}</p>
                                 </td>
 
                                 {/* Details */}
                                 <td className="px-4 py-3.5">
                                     <p className="text-xs font-semibold text-slate-700">{o.size_name}</p>
                                     <div className="flex items-center gap-1.5 mt-0.5">
-                                        <span className={cn('text-[10px] font-bold uppercase', o.payment_method === 'mpesa' ? 'text-emerald-600' : 'text-slate-400')}>
+                                        <span className={cn('text-2xs font-bold uppercase', o.payment_method === 'mpesa' ? 'text-emerald-600' : 'text-slate-500')}>
                                             {o.payment_method}
                                         </span>
                                     </div>
@@ -245,12 +246,12 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
 
                                 {/* Rider */}
                                 <td className="px-4 py-3.5">
-                                    <p className="text-xs text-slate-600">{o.rider_name ?? <span className="italic text-slate-300">None</span>}</p>
+                                    <p className="text-xs text-slate-600">{o.rider_name ?? <span className="italic text-slate-500">None</span>}</p>
                                 </td>
 
                                 {/* Status */}
                                 <td className="px-4 py-3.5">
-                                    <span className={cn('inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold', STATUS_CHIP[o.status] ?? STATUS_CHIP.cancelled)}>
+                                    <span className={cn('inline-flex rounded-full border px-2 py-0.5 text-2xs font-semibold', STATUS_CHIP[o.status] ?? STATUS_CHIP.cancelled)}>
                                         {STATUS_LABEL[o.status] ?? o.status}
                                     </span>
                                 </td>
@@ -263,7 +264,7 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
                                 {/* Action */}
                                 <td className="px-4 py-3.5 text-right">
                                     <Button asChild variant="ghost" size="sm"
-                                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-700">
+                                        className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-slate-700">
                                         <Link href={`/admin/orders/${o.id}`}>
                                             <Eye className="h-4 w-4" />
                                         </Link>
@@ -273,11 +274,12 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
                         ))}
                     </tbody>
                 </table>
+                </div>
 
                 {/* Pagination */}
                 {orders.last_page > 1 && (
                     <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3">
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-500">
                             Page {orders.current_page} of {orders.last_page} · {orders.total} orders
                         </p>
                         <div className="flex gap-2">

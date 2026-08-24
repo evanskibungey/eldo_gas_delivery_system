@@ -54,6 +54,11 @@ class Rider extends Authenticatable
         return $this->hasMany(OrderRating::class);
     }
 
+    public function devices(): HasMany
+    {
+        return $this->hasMany(Device::class);
+    }
+
     public function getAvatarUrlAttribute(): ?string
     {
         return $this->photo_path ? Storage::url($this->photo_path) : null;

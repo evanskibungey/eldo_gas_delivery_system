@@ -1,4 +1,4 @@
-﻿import { router, usePage } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { MapPin, Crosshair, Loader2, CheckCircle, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -148,7 +148,7 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
 
             const map = L.map(mapRef.current, { zoomControl: true }).setView([DEFAULT_LAT, DEFAULT_LNG], 14);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: 'Â© OpenStreetMap contributors',
+                attribution: '© OpenStreetMap contributors',
             }).addTo(map);
 
             const pin = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
@@ -227,7 +227,7 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
                 )}>
                     {searching
                         ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-orange-400" />
-                        : <Search className="h-4 w-4 shrink-0 text-slate-400" />
+                        : <Search className="h-4 w-4 shrink-0 text-slate-500" />
                     }
                     <input
                         type="text"
@@ -236,10 +236,10 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
                         onKeyDown={onKeyDown}
                         onFocus={() => suggestions.length > 0 && setShowDrop(true)}
                         placeholder="Search for a street, estate, or landmark…"
-                        className="flex-1 h-10 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                        className="flex-1 h-10 bg-transparent text-sm outline-none placeholder:text-slate-500"
                     />
                     {query && (
-                        <button type="button" onClick={clearSearch} className="text-slate-400 hover:text-slate-600">
+                        <button type="button" onClick={clearSearch} className="text-slate-500 hover:text-slate-600">
                             <X className="h-4 w-4" />
                         </button>
                     )}
@@ -263,11 +263,11 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
                                         i > 0 && 'border-t border-slate-50',
                                     )}
                                 >
-                                    <MapPin className={cn('h-3.5 w-3.5 shrink-0 mt-0.5', i === activeIdx ? 'text-orange-500' : 'text-slate-400')} />
+                                    <MapPin className={cn('h-3.5 w-3.5 shrink-0 mt-0.5', i === activeIdx ? 'text-orange-500' : 'text-slate-500')} />
                                     <div className="min-w-0">
                                         <p className="text-sm font-medium text-slate-800 truncate">{primary}</p>
                                         {secondary && (
-                                            <p className="text-[11px] text-slate-400 truncate">{secondary}</p>
+                                            <p className="text-2xs text-slate-500 truncate">{secondary}</p>
                                         )}
                                     </div>
                                 </li>
@@ -292,7 +292,7 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
             </div>
 
             {/* Coords */}
-            <p className="mt-1 text-center text-[10px] text-slate-400 tabular-nums">
+            <p className="mt-1 text-center text-2xs text-slate-500 tabular-nums">
                 {lat.toFixed(6)}, {lng.toFixed(6)}
             </p>
 
@@ -321,7 +321,7 @@ export default function SetLocation({ isOnboarding, redirect_to = '' }: Props) {
 
                 <div>
                     <Label className="text-sm font-medium text-slate-700">
-                        Delivery Notes <span className="text-slate-400 font-normal">(optional)</span>
+                        Delivery Notes <span className="text-slate-500 font-normal">(optional)</span>
                     </Label>
                     <input
                         type="text"

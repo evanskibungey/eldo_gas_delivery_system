@@ -42,10 +42,12 @@ return [
     ],
 
     'firebase' => [
-        // Legacy FCM server key fallback. Prefer OAuth2 service-account
-        // integration in production, but this key enables immediate
-        // push delivery in environments that still use legacy auth.
-        'server_key' => env('FIREBASE_SERVER_KEY'),
+        // FCM HTTP v1. The legacy server-key endpoint was decommissioned by
+        // Google in July 2024, so delivery now needs the project id plus a
+        // service-account credential — either an absolute path to the JSON
+        // file or the JSON itself pasted into the env var.
+        'project_id'  => env('FIREBASE_PROJECT_ID'),
+        'credentials' => env('FIREBASE_CREDENTIALS'),
     ],
 
     // Store-review (Google Play / App Store) bypass. When BOTH values are

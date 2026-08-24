@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Customer;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendSmsJob;
 use App\Models\NotificationLog;
+use App\Support\ManagerContacts;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -76,21 +77,30 @@ class SosController extends Controller
             'created_at'     => now(),
         ]);
 
-        // SMS to shop manager — high priority queue.
-        $managerPhone = config('shop.manager_phone');
-        if ($managerPhone) {
-            $message = "EMERGENCY: {$name} (Tel:{$phone}) reported a gas emergency. ";
-            if ($mapLink) {
-                $message .= "Location: {$mapLink}. ";
-            }
-            $message .= "{$orderRef}. Call customer immediately and dispatch safety support.";
+        // SMS to every shop manager — high priority queue. This is the P0
+        // path: whoever is reachable first should get the customer on the
+        // phone, so the alert goes to all of them rather than one.
+        $managerPhones = ManagerContacts::phones();
 
+        if ($managerPhones === []) {
+            Log::error('[SOS] No manager phones configured — emergency alert could not be sent.', [
+                'customer_id' => $customer->id,
+            ]);
+        }
+
+        $message = "EMERGENCY: {$name} (Tel:{$phone}) reported a gas emergency. ";
+        if ($mapLink) {
+            $message .= "Location: {$mapLink}. ";
+        }
+        $message .= "{$orderRef}. Call customer immediately and dispatch safety support.";
+
+        foreach ($managerPhones as $managerPhone) {
             SendSmsJob::dispatch(
                 $managerPhone,
                 $message,
                 'sos_trigger',
                 'admin',
-                null,
+                0,
             )->onQueue('high');
         }
 

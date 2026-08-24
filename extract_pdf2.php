@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 $data = file_get_contents("EldoGas_Complete_Product_Concept.pdf");
 
 // Find all compressed streams and decompress them

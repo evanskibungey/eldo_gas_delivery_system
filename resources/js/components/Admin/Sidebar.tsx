@@ -17,8 +17,9 @@ import {
     FileText,
     TrendingUp,
 } from 'lucide-react';
+import { Dialog as DialogPrimitive } from 'radix-ui';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface NavChild {
     label: string;
@@ -100,21 +101,22 @@ function NavLink({ href, icon: Icon, label, active, badge }: {
     return (
         <Link
             href={href}
+            aria-current={active ? 'page' : undefined}
             className={cn(
-                'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
                 active
                     ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-white',
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white',
             )}
         >
             <Icon className={cn(
                 'h-[17px] w-[17px] shrink-0 transition-colors',
-                active ? 'text-white' : 'text-slate-500 group-hover:text-slate-300',
+                active ? 'text-white' : 'text-slate-400 group-hover:text-slate-200',
             )} />
             <span className="flex-1">{label}</span>
             {badge != null && badge > 0 && (
                 <span className={cn(
-                    'ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold tabular-nums',
+                    'ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-2xs font-bold tabular-nums',
                     active ? 'bg-white/20 text-white' : 'bg-amber-500 text-white',
                 )}>
                     {badge > 99 ? '99+' : badge}
@@ -127,7 +129,11 @@ function NavLink({ href, icon: Icon, label, active, badge }: {
     );
 }
 
-export default function Sidebar() {
+/**
+ * The navigation itself, without a positioning wrapper — rendered both by the
+ * fixed desktop rail and by the mobile drawer.
+ */
+function SidebarNav() {
     const { url, props } = usePage();
     const lowStockCount      = (props as any).low_stock_count      as number ?? 0;
     const pendingOrdersCount = (props as any).pending_orders_count as number ?? 0;
@@ -153,16 +159,15 @@ export default function Sidebar() {
     }
 
     return (
-        <aside className="flex h-full w-64 shrink-0 flex-col bg-slate-950 border-r border-white/5">
-
+        <>
             {/* Logo */}
-            <div className="flex h-16 items-center gap-3 px-5 border-b border-white/5">
+            <div className="flex h-16 shrink-0 items-center gap-3 px-5 border-b border-white/5">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500 shadow-md shadow-orange-500/40">
                     <Flame className="h-4 w-4 text-white" />
                 </div>
                 <div className="leading-none">
                     <p className="text-sm font-bold text-white tracking-wide">{appName}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-widest">Admin Portal</p>
+                    <p className="text-2xs text-slate-400 mt-0.5 uppercase tracking-widest">Admin Portal</p>
                 </div>
             </div>
 
@@ -171,7 +176,7 @@ export default function Sidebar() {
                 {navSections.map((section, si) => (
                     <div key={si}>
                         {section.title && (
-                            <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
+                            <p className="mb-1.5 px-3 text-2xs font-semibold uppercase tracking-widest text-slate-400">
                                 {section.title}
                             </p>
                         )}
@@ -186,20 +191,21 @@ export default function Sidebar() {
                                         <div key={item.label}>
                                             <button
                                                 onClick={() => toggleGroup(item.label)}
+                                                aria-expanded={isOpen}
                                                 className={cn(
-                                                    'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                                                    'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150',
                                                     isActive || isOpen
                                                         ? 'text-white bg-white/5'
-                                                        : 'text-slate-400 hover:bg-white/5 hover:text-white',
+                                                        : 'text-slate-300 hover:bg-white/5 hover:text-white',
                                                 )}
                                             >
                                                 <item.icon className={cn(
                                                     'h-[17px] w-[17px] shrink-0',
-                                                    isActive ? 'text-orange-400' : 'text-slate-500 group-hover:text-slate-300',
+                                                    isActive ? 'text-orange-400' : 'text-slate-400 group-hover:text-slate-200',
                                                 )} />
                                                 <span className="flex-1 text-left">{item.label}</span>
                                                 <ChevronDown className={cn(
-                                                    'h-3.5 w-3.5 text-slate-600 transition-transform duration-200',
+                                                    'h-3.5 w-3.5 text-slate-400 transition-transform duration-200',
                                                     isOpen && 'rotate-180',
                                                 )} />
                                             </button>
@@ -213,11 +219,12 @@ export default function Sidebar() {
                                                             <Link
                                                                 key={child.href}
                                                                 href={child.href}
+                                                                aria-current={childActive ? 'page' : undefined}
                                                                 className={cn(
-                                                                    'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-all duration-150',
+                                                                    'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors duration-150',
                                                                     childActive
-                                                                        ? 'bg-orange-500/15 text-orange-400 font-medium'
-                                                                        : 'text-slate-500 hover:bg-white/5 hover:text-slate-300',
+                                                                        ? 'bg-orange-500/15 text-orange-300 font-medium'
+                                                                        : 'text-slate-400 hover:bg-white/5 hover:text-slate-200',
                                                                 )}
                                                             >
                                                                 {ChildIcon && (
@@ -254,12 +261,52 @@ export default function Sidebar() {
                 ))}
             </nav>
 
-            {/* User footer strip */}
-            <div className="border-t border-white/5 px-4 py-3">
-                <p className="text-[10px] text-slate-600 text-center">
+            {/* Footer strip */}
+            <div className="shrink-0 border-t border-white/5 px-4 py-3">
+                <p className="text-2xs text-slate-400 text-center">
                     {appName} © {new Date().getFullYear()}
                 </p>
             </div>
+        </>
+    );
+}
+
+/** Fixed rail — desktop only. */
+export default function Sidebar() {
+    return (
+        <aside className="hidden lg:flex h-full w-64 shrink-0 flex-col bg-slate-950 border-r border-white/5">
+            <SidebarNav />
         </aside>
+    );
+}
+
+/**
+ * Slide-over drawer for < lg. Built on the Radix dialog already installed, so
+ * focus trapping, Escape-to-close, scroll lock and focus restoration come free.
+ */
+export function MobileSidebar({ open, onOpenChange }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
+    const { url } = usePage();
+
+    // Close on navigation — otherwise the drawer stays open over the new page.
+    useEffect(() => { onOpenChange(false); }, [url]);
+
+    return (
+        <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+            <DialogPrimitive.Portal>
+                <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50 lg:hidden data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0" />
+                <DialogPrimitive.Content
+                    className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-slate-950 shadow-2xl outline-none lg:hidden data-open:animate-in data-open:slide-in-from-left data-closed:animate-out data-closed:slide-out-to-left"
+                >
+                    <DialogPrimitive.Title className="sr-only">Admin navigation</DialogPrimitive.Title>
+                    <DialogPrimitive.Description className="sr-only">
+                        Links to every section of the admin console.
+                    </DialogPrimitive.Description>
+                    <SidebarNav />
+                </DialogPrimitive.Content>
+            </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
     );
 }

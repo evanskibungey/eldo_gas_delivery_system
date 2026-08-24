@@ -3,9 +3,17 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Http\Request;
 
-class EnsureApiCustomer
+/**
+ * Implements the AuthenticatesRequests marker so Laravel's middleware
+ * priority runs this ahead of ThrottleRequests. Without it the sorter
+ * hoists the throttle first, $request->user() is still null when the
+ * limiter builds its key, and every customer behind one carrier NAT
+ * address ends up sharing a single bucket.
+ */
+class EnsureApiCustomer implements AuthenticatesRequests
 {
     public function handle(Request $request, Closure $next): mixed
     {

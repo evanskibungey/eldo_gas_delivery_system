@@ -280,4 +280,127 @@ class CustomerOrderTest extends TestCase
 
         $this->authed()->postJson("/api/v1/orders/{$order->id}/cancel")->assertNotFound();
     }
+
+    // ── service area ───────────────────────────────────────────────────────────
+
+    public function test_order_outside_the_service_area_is_rejected(): void
+    {
+        ['size' => $size, 'brand' => $brand] = $this->createOrderingPrerequisites();
+        $farAway = CustomerAddress::factory()->outsideServiceArea()->create([
+            'customer_id' => $this->customer->id,
+        ]);
+
+        $this->authed()
+            ->postJson('/api/v1/orders', $this->payload($size, $brand, $farAway))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['address_id']);
+
+        // Nothing may be created: auto-assignment is radius-gated, so an order
+        // out here would sit at pending forever with no rider ever matching.
+        $this->assertDatabaseCount('orders', 0);
+    }
+
+    public function test_order_inside_the_service_area_is_accepted(): void
+    {
+        ['size' => $size, 'brand' => $brand] = $this->createOrderingPrerequisites();
+        $nearby = CustomerAddress::factory()->create([
+            'customer_id' => $this->customer->id,
+            'latitude' => 0.5200,
+            'longitude' => 35.2800,
+        ]);
+
+        $this->authed()
+            ->postJson('/api/v1/orders', $this->payload($size, $brand, $nearby))
+            ->assertCreated();
+    }
+
+    public function test_service_area_radius_can_be_widened_at_runtime(): void
+    {
+        ['size' => $size, 'brand' => $brand] = $this->createOrderingPrerequisites();
+        // ~55 km north of Eldoret: outside the default 25 km, inside 100 km.
+        $address = CustomerAddress::factory()->create([
+            'customer_id' => $this->customer->id,
+            'latitude' => 1.0100,
+            'longitude' => 35.2698,
+        ]);
+
+        $this->authed()
+            ->postJson('/api/v1/orders', $this->payload($size, $brand, $address))
+            ->assertUnprocessable();
+
+        SystemSetting::set('service_area_radius_km', 100);
+
+        $this->authed()
+            ->postJson('/api/v1/orders', $this->payload($size, $brand, $address))
+            ->assertCreated();
+    }
+
+    public function test_the_address_text_is_snapshotted_onto_the_order(): void
+    {
+        ['size' => $size, 'brand' => $brand] = $this->createOrderingPrerequisites();
+        $address = CustomerAddress::factory()->create([
+            'customer_id' => $this->customer->id,
+            'label' => 'Home',
+            'description' => 'Kapsoya, opposite Zion Mall',
+        ]);
+
+        $this->authed()
+            ->postJson('/api/v1/orders', $this->payload($size, $brand, $address))
+            ->assertCreated();
+
+        // The rider used to get a pin and nothing else; the landmark the
+        // customer typed never left customer_addresses.
+        $this->assertDatabaseHas('orders', [
+            'customer_id' => $this->customer->id,
+            'delivery_label' => 'Home',
+            'delivery_address' => 'Kapsoya, opposite Zion Mall',
+        ]);
+    }
+
+    public function test_editing_an_address_does_not_rewrite_a_past_order(): void
+    {
+        ['size' => $size, 'brand' => $brand] = $this->createOrderingPrerequisites();
+        $address = CustomerAddress::factory()->create([
+            'customer_id' => $this->customer->id,
+            'label' => 'Home',
+            'description' => 'Kapsoya, opposite Zion Mall',
+        ]);
+
+        $this->authed()
+            ->postJson('/api/v1/orders', $this->payload($size, $brand, $address))
+            ->assertCreated();
+
+        $this->authed()->putJson("/api/v1/addresses/{$address->id}", [
+            'label' => 'Office',
+            'latitude' => 0.5300,
+            'longitude' => 35.2900,
+            'description' => 'Somewhere else entirely',
+        ])->assertOk();
+
+        // Snapshotted, not joined — where a past order went is history.
+        $this->assertDatabaseHas('orders', [
+            'delivery_label' => 'Home',
+            'delivery_address' => 'Kapsoya, opposite Zion Mall',
+        ]);
+    }
+
+    public function test_the_customer_can_read_back_where_an_order_is_going(): void
+    {
+        ['size' => $size, 'brand' => $brand] = $this->createOrderingPrerequisites();
+        $address = CustomerAddress::factory()->create([
+            'customer_id' => $this->customer->id,
+            'label' => 'Home',
+            'description' => 'Kapsoya, opposite Zion Mall',
+        ]);
+
+        $response = $this->authed()
+            ->postJson('/api/v1/orders', $this->payload($size, $brand, $address))
+            ->assertCreated();
+
+        $this->authed()
+            ->getJson('/api/v1/orders/' . $response->json('order_id'))
+            ->assertOk()
+            ->assertJsonPath('delivery_label', 'Home')
+            ->assertJsonPath('delivery_address', 'Kapsoya, opposite Zion Mall');
+    }
 }

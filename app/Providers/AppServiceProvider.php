@@ -5,12 +5,18 @@ namespace App\Providers;
 use App\Models\Order;
 use App\Policies\OrderPolicy;
 use App\Services\GasPointsService;
+use App\Services\Geocoding\GeoapifyProvider;
+use App\Services\Geocoding\GeocodingProvider;
+use App\Services\Geocoding\GeocodingService;
+use App\Services\Geocoding\NominatimProvider;
+use App\Services\ServiceAreaService;
 use App\Services\Sms\SmsServiceInterface;
 use App\Services\Sms\SmsTemplateService;
 use App\Services\Sms\TalkSasaSmsService;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use InvalidArgumentException;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +30,22 @@ class AppServiceProvider extends ServiceProvider
 
         // GasPoints service — singleton so state is consistent within a request
         $this->app->singleton(GasPointsService::class);
+
+        // Service area — read from config plus one SystemSetting lookup
+        $this->app->singleton(ServiceAreaService::class);
+
+        // Geocoding — the driver is config-selected so the provider can change
+        // without an app release. Add a case here when adding a provider.
+        $this->app->singleton(GeocodingProvider::class, function () {
+            return match (config('geocoding.driver', 'nominatim')) {
+                'geoapify' => new GeoapifyProvider(),
+                'nominatim' => new NominatimProvider(),
+                default => throw new InvalidArgumentException(
+                    'Unknown geocoding driver: ' . config('geocoding.driver')
+                ),
+            };
+        });
+        $this->app->singleton(GeocodingService::class);
     }
 
     public function boot(): void

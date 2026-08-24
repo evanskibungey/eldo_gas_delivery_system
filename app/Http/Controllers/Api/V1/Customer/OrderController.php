@@ -11,6 +11,7 @@ use App\Models\CustomerAddress;
 use App\Models\CylinderSize;
 use App\Models\Order;
 use App\Services\GasPointsService;
+use App\Services\ServiceAreaService;
 use App\Services\ShopHoursService;
 use App\Support\OrderLifecycle;
 use Illuminate\Http\JsonResponse;
@@ -115,6 +116,8 @@ class OrderController extends Controller
             'payment_method' => $order->payment_method,
             'delivery_lat' => $order->delivery_lat,
             'delivery_lng' => $order->delivery_lng,
+            'delivery_label' => $order->delivery_label,
+            'delivery_address' => $order->delivery_address,
             'delivery_notes' => $order->delivery_notes,
             'created_at' => $order->created_at->toIso8601String(),
             'can_cancel' => $order->canBeCancelledByCustomer(),
@@ -228,6 +231,22 @@ class OrderController extends Controller
             return response()->json(['message' => 'Address not found.'], 422);
         }
 
+        // Reject out-of-area pins here rather than letting the order sit at
+        // pending forever: auto-assignment is radius-gated, so an order placed
+        // outside the service area silently matches no rider.
+        $serviceArea = app(ServiceAreaService::class);
+        if (! $serviceArea->contains((float) $address->latitude, (float) $address->longitude)) {
+            $message = $serviceArea->rejectionMessage(
+                (float) $address->latitude,
+                (float) $address->longitude
+            );
+
+            return response()->json([
+                'message' => $message,
+                'errors' => ['address_id' => [$message]],
+            ], 422);
+        }
+
         $data = [
             'order_type' => $input['order_type'],
             'size_id' => $input['size_id'],
@@ -236,6 +255,10 @@ class OrderController extends Controller
             'payment_method' => $input['payment_method'],
             'delivery_lat' => $address->latitude,
             'delivery_lng' => $address->longitude,
+            // Snapshotted so the rider sees the landmark the customer wrote,
+            // and so a later edit to the address cannot rewrite this order.
+            'delivery_label' => $address->label,
+            'delivery_address' => $address->description,
             'delivery_notes' => $input['delivery_notes'] ?? null,
             'redemption_points' => $redemptionPoints,
             'idempotency_key' => $request->header('Idempotency-Key'),

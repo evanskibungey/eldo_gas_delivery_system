@@ -39,14 +39,14 @@ export default function Footer() {
                             Fast, safe LPG gas delivery in Eldoret.<br />
                             Certified cylinders, trained riders.
                         </p>
-                        <p className="mt-2 text-xs text-slate-400">
+                        <p className="mt-2 text-xs text-slate-500">
                             Mon – Sun · {fmt24to12(openTime)} – {fmt24to12(closeTime)}
                         </p>
                     </div>
 
                     {/* Quick Links */}
                     <div>
-                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                             Quick Links
                         </p>
                         <div className="space-y-2">
@@ -65,7 +65,7 @@ export default function Footer() {
 
                     {/* Safety */}
                     <div>
-                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                             Safety
                         </p>
                         <div className="space-y-2 text-sm text-slate-500">
@@ -85,8 +85,8 @@ export default function Footer() {
 
                 {/* Copyright */}
                 <div className="mt-8 flex items-center justify-between border-t border-slate-100 pt-5">
-                    <p className="text-xs text-slate-400">© {year} {appName}. All rights reserved.</p>
-                    <p className="text-xs text-slate-400">Gas delivered. No stress.</p>
+                    <p className="text-xs text-slate-500">© {year} {appName}. All rights reserved.</p>
+                    <p className="text-xs text-slate-500">Gas delivered. No stress.</p>
                 </div>
             </div>
         </footer>

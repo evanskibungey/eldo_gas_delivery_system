@@ -166,7 +166,7 @@ function TierCard({ tier, balance }: { tier: Tier; balance: number }) {
                 </div>
                 <div className="text-right">
                     {achieved ? (
-                        <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-bold', colors.bg, colors.border, colors.text)}>Unlocked</span>
+                        <span className={cn('rounded-full border px-2 py-0.5 text-2xs font-bold', colors.bg, colors.border, colors.text)}>Unlocked</span>
                     ) : (
                         <p className="text-xs tabular-nums text-slate-500">{(tier.threshold - balance).toLocaleString()} pts to go</p>
                     )}
@@ -225,14 +225,14 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
             </div>
             <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-slate-800">{transaction.description}</p>
-                <p className="text-[11px] text-slate-400">{transaction.created_at}</p>
-                {meta && <p className="text-[11px] text-slate-400">{meta}</p>}
+                <p className="text-2xs text-slate-500">{transaction.created_at}</p>
+                {meta && <p className="text-2xs text-slate-500">{meta}</p>}
             </div>
             <div className="shrink-0 text-right">
                 <p className={cn('text-sm font-bold tabular-nums', config.color)}>
                     {config.sign}{Math.abs(transaction.points).toLocaleString()} pts
                 </p>
-                <p className="text-[11px] tabular-nums text-slate-400">{transaction.balance_after.toLocaleString()} bal</p>
+                <p className="text-2xs tabular-nums text-slate-500">{transaction.balance_after.toLocaleString()} bal</p>
             </div>
         </div>
     );
@@ -335,7 +335,7 @@ export default function GasPointsIndex({
                                 Share via WhatsApp
                             </button>
                             {referralCount > 0 && (
-                                <p className="mt-2 text-center text-[11px] text-slate-500">
+                                <p className="mt-2 text-center text-2xs text-slate-500">
                                     {referralCount} friend{referralCount !== 1 ? 's' : ''} referred so far
                                 </p>
                             )}
@@ -348,8 +348,8 @@ export default function GasPointsIndex({
                             {transactions.data.length === 0 ? (
                                 <div className="flex flex-col items-center py-10 text-center">
                                     <Star className="h-8 w-8 text-slate-200" />
-                                    <p className="mt-2 text-sm text-slate-400">No transactions yet</p>
-                                    <p className="text-xs text-slate-300">Place an order to start earning points.</p>
+                                    <p className="mt-2 text-sm text-slate-500">No transactions yet</p>
+                                    <p className="text-xs text-slate-500">Place an order to start earning points.</p>
                                 </div>
                             ) : (
                                 transactions.data.map((transaction) => <TransactionRow key={transaction.id} transaction={transaction} />)

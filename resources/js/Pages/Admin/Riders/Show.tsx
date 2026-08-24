@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link } from '@inertiajs/react';
 import { ArrowLeft, Pencil, Star, Truck, ShieldCheck, ShieldAlert, ShieldOff, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -95,7 +95,7 @@ export default function RidersShow({ rider, stats }: Props) {
 
             <div className="grid grid-cols-3 gap-5">
 
-                {/* â”€â”€ Profile card â”€â”€ */}
+                {/* ── Profile card ── */}
                 <div className="col-span-1">
                     <div className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                         <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
@@ -110,27 +110,27 @@ export default function RidersShow({ rider, stats }: Props) {
 
                             <h2 className="mt-4 text-lg font-bold text-slate-900">{rider.name}</h2>
 
-                            <span className={cn('mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold', statusCfg.chip)}>
+                            <span className={cn('mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-2xs font-semibold', statusCfg.chip)}>
                                 <span className={cn('h-1.5 w-1.5 rounded-full', statusCfg.dot)} />
                                 {statusCfg.label}
                             </span>
 
                             {!rider.is_active && (
-                                <span className="mt-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[10px] font-semibold text-red-600">Inactive</span>
+                                <span className="mt-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-2xs font-semibold text-red-600">Inactive</span>
                             )}
 
                             <div className="mt-5 w-full space-y-2 text-left">
                                 <div className="flex items-center gap-2 text-sm text-slate-600">
-                                    <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                    <Phone className="h-3.5 w-3.5 text-slate-500 shrink-0" />
                                     {rider.phone}
                                 </div>
                                 {rider.national_id && (
                                     <div className="flex items-center gap-2 text-sm text-slate-600">
-                                        <span className="text-xs font-semibold text-slate-400 w-3.5 text-center">ID</span>
+                                        <span className="text-xs font-semibold text-slate-500 w-3.5 text-center">ID</span>
                                         {rider.national_id}
                                     </div>
                                 )}
-                                <div className="flex items-center gap-2 text-xs text-slate-400">
+                                <div className="flex items-center gap-2 text-xs text-slate-500">
                                     <Truck className="h-3.5 w-3.5 shrink-0" />
                                     Joined {rider.created_at}
                                 </div>
@@ -143,7 +143,7 @@ export default function RidersShow({ rider, stats }: Props) {
                                         <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
                                         <div className="text-left">
                                             <p className="text-xs font-semibold text-emerald-700">Safety Certified</p>
-                                            <p className="text-[10px] text-slate-400">Expires {rider.certification_date}</p>
+                                            <p className="text-2xs text-slate-500">Expires {rider.certification_date}</p>
                                         </div>
                                     </div>
                                 ) : rider.is_safety_certified ? (
@@ -151,13 +151,13 @@ export default function RidersShow({ rider, stats }: Props) {
                                         <ShieldAlert className="h-4 w-4 text-amber-500 shrink-0" />
                                         <div className="text-left">
                                             <p className="text-xs font-semibold text-amber-700">Certification Expired</p>
-                                            <p className="text-[10px] text-slate-400">Was {rider.certification_date}</p>
+                                            <p className="text-2xs text-slate-500">Was {rider.certification_date}</p>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-2">
-                                        <ShieldOff className="h-4 w-4 text-slate-300 shrink-0" />
-                                        <p className="text-xs text-slate-400">Not certified</p>
+                                        <ShieldOff className="h-4 w-4 text-slate-500 shrink-0" />
+                                        <p className="text-xs text-slate-500">Not certified</p>
                                     </div>
                                 )}
                             </div>
@@ -165,7 +165,7 @@ export default function RidersShow({ rider, stats }: Props) {
                     </div>
                 </div>
 
-                {/* â”€â”€ Right column â”€â”€ */}
+                {/* ── Right column ── */}
                 <div className="col-span-2 space-y-5">
 
                     {/* Stats */}
@@ -178,7 +178,7 @@ export default function RidersShow({ rider, stats }: Props) {
                         ].map(({ label, value, color }) => (
                             <div key={label} className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden p-4">
                                 <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 to-amber-500" />
-                                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+                                <p className="text-2xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
                                 <p className={cn('mt-1.5 text-xl font-bold tabular-nums', color)}>{value}</p>
                             </div>
                         ))}
@@ -191,17 +191,18 @@ export default function RidersShow({ rider, stats }: Props) {
                             <p className="text-sm font-semibold text-slate-800">Recent Orders</p>
                         </div>
                         {stats.recentOrders.length === 0 ? (
-                            <p className="px-5 py-8 text-center text-sm text-slate-400 italic">No orders yet.</p>
+                            <p className="px-5 py-8 text-center text-sm text-slate-500 italic">No orders yet.</p>
                         ) : (
-                            <table className="w-full text-sm">
+                            <div className="overflow-x-auto">
+                            <table className="w-full min-w-[760px] text-sm">
                                 <thead>
                                     <tr className="border-b border-slate-50 bg-slate-50/60">
-                                        <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Order</th>
-                                        <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Status</th>
-                                        <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">Total</th>
-                                        <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">Commission</th>
-                                        <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">Rider Gets</th>
-                                        <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">Date</th>
+                                        <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Order</th>
+                                        <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                                        <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Total</th>
+                                        <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Commission</th>
+                                        <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Rider Gets</th>
+                                        <th className="px-5 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Date</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
@@ -213,18 +214,19 @@ export default function RidersShow({ rider, stats }: Props) {
                                                 </Link>
                                             </td>
                                             <td className="px-5 py-2.5">
-                                                <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize', ORDER_STATUS_CFG[o.status] ?? 'border-slate-200 bg-slate-100 text-slate-600')}>
+                                                <span className={cn('rounded-full border px-2 py-0.5 text-2xs font-semibold capitalize', ORDER_STATUS_CFG[o.status] ?? 'border-slate-200 bg-slate-100 text-slate-600')}>
                                                     {o.status.replace('_', ' ')}
                                                 </span>
                                             </td>
                                             <td className="px-5 py-2.5 text-right text-xs font-medium text-slate-700">{fmt(o.total_amount)}</td>
                                             <td className="px-5 py-2.5 text-right text-xs text-red-400">-{fmt(o.commission)}</td>
                                             <td className="px-5 py-2.5 text-right text-xs font-semibold text-emerald-600">{fmt(o.rider_earning)}</td>
-                                            <td className="px-5 py-2.5 text-right text-xs text-slate-400">{o.created_at.slice(0, 10)}</td>
+                                            <td className="px-5 py-2.5 text-right text-xs text-slate-500">{o.created_at.slice(0, 10)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
+                            </div>
                         )}
                     </div>
 
@@ -235,7 +237,7 @@ export default function RidersShow({ rider, stats }: Props) {
                             <p className="text-sm font-semibold text-slate-800">Recent Ratings</p>
                         </div>
                         {stats.recentRatings.length === 0 ? (
-                            <p className="px-5 py-8 text-center text-sm text-slate-400 italic">No ratings yet.</p>
+                            <p className="px-5 py-8 text-center text-sm text-slate-500 italic">No ratings yet.</p>
                         ) : (
                             <div className="divide-y divide-slate-50">
                                 {stats.recentRatings.map(r => (
@@ -244,7 +246,7 @@ export default function RidersShow({ rider, stats }: Props) {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <p className="text-sm font-medium text-slate-800">{r.customer_name}</p>
-                                                    <Link href={`/admin/orders/${r.order_id}`} className="text-[10px] text-orange-500 hover:text-orange-600">
+                                                    <Link href={`/admin/orders/${r.order_id}`} className="text-2xs text-orange-500 hover:text-orange-600">
                                                         Order #{r.order_id}
                                                     </Link>
                                                 </div>
@@ -252,7 +254,7 @@ export default function RidersShow({ rider, stats }: Props) {
                                             </div>
                                             <div className="flex flex-col items-end gap-1 shrink-0">
                                                 <StarRow count={r.stars} />
-                                                <span className="text-[10px] text-slate-400">{r.created_at?.slice(0, 10)}</span>
+                                                <span className="text-2xs text-slate-500">{r.created_at?.slice(0, 10)}</span>
                                             </div>
                                         </div>
                                     </div>

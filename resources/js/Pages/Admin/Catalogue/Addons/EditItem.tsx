@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, Loader2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -101,7 +101,7 @@ export default function EditItem({ item, sizes }: Props) {
 
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">
-                                    Description <span className="text-slate-400 font-normal">(optional)</span>
+                                    Description <span className="text-slate-500 font-normal">(optional)</span>
                                 </Label>
                                 <Input value={description} onChange={e => setDesc(e.target.value)} className={inputCls('description')} />
                             </div>
@@ -109,7 +109,7 @@ export default function EditItem({ item, sizes }: Props) {
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">Price (KES)</Label>
                                 <div className="relative mt-1.5">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">KES</span>
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">KES</span>
                                     <Input type="number" min="0" value={price} onChange={e => setPrice(e.target.value)} className={cn('h-10 pl-12 border-slate-200 bg-slate-50 text-sm focus:border-orange-400 focus:ring-orange-400/20 focus:bg-white transition-all', errors.price && 'border-red-400 bg-red-50')} />
                                 </div>
                                 <FieldError message={errors.price} />
@@ -117,7 +117,7 @@ export default function EditItem({ item, sizes }: Props) {
 
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">
-                                    Photo <span className="text-slate-400 font-normal">(optional)</span>
+                                    Photo <span className="text-slate-500 font-normal">(optional)</span>
                                 </Label>
                                 <div
                                     onClick={() => fileRef.current?.click()}
@@ -136,9 +136,9 @@ export default function EditItem({ item, sizes }: Props) {
                                         </div>
                                     ) : (
                                         <>
-                                            <Upload className="h-7 w-7 text-slate-300" />
+                                            <Upload className="h-7 w-7 text-slate-500" />
                                             <p className="mt-2 text-xs text-slate-500">Click to upload a new photo</p>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WebP · max 2 MB</p>
+                                            <p className="text-2xs text-slate-500 mt-0.5">JPG, PNG, WebP · max 2 MB</p>
                                         </>
                                     )}
                                 </div>
@@ -149,7 +149,7 @@ export default function EditItem({ item, sizes }: Props) {
                                 <Label className="text-sm font-medium text-slate-700">Sort Order</Label>
                                 <Input type="number" min="0" value={sortOrder} onChange={e => setSortOrder(e.target.value)}
                                     className="mt-1.5 h-10 border-slate-200 bg-slate-50 text-sm focus:border-orange-400 focus:ring-orange-400/20 focus:bg-white transition-all" />
-                                <p className="mt-1 text-xs text-slate-400">Lower numbers appear first.</p>
+                                <p className="mt-1 text-xs text-slate-500">Lower numbers appear first.</p>
                             </div>
 
                             <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">

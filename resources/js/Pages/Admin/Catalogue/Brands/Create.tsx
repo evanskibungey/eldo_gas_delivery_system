@@ -106,7 +106,7 @@ export default function BrandsCreate({ sizes }: Props) {
                             {/* Brand logo */}
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">
-                                    Brand Logo <span className="text-slate-400 font-normal">(optional)</span>
+                                    Brand Logo <span className="text-slate-500 font-normal">(optional)</span>
                                 </Label>
                                 <div
                                     onClick={() => logoRef.current?.click()}
@@ -128,9 +128,9 @@ export default function BrandsCreate({ sizes }: Props) {
                                         </div>
                                     ) : (
                                         <>
-                                            <Upload className="h-7 w-7 text-slate-300" />
+                                            <Upload className="h-7 w-7 text-slate-500" />
                                             <p className="mt-2 text-xs text-slate-500">Click to upload logo</p>
-                                            <p className="text-[10px] text-slate-400 mt-0.5">JPG, PNG, WebP · max 1 MB</p>
+                                            <p className="text-2xs text-slate-500 mt-0.5">JPG, PNG, WebP · max 1 MB</p>
                                         </>
                                     )}
                                 </div>
@@ -141,7 +141,7 @@ export default function BrandsCreate({ sizes }: Props) {
                             {/* Available in sizes */}
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">Available In</Label>
-                                <p className="mt-0.5 mb-2 text-xs text-slate-400">Select which cylinder sizes this brand is sold in.</p>
+                                <p className="mt-0.5 mb-2 text-xs text-slate-500">Select which cylinder sizes this brand is sold in.</p>
                                 <div className="grid grid-cols-3 gap-2">
                                     {sizes.map(s => (
                                         <label
@@ -169,7 +169,7 @@ export default function BrandsCreate({ sizes }: Props) {
                             {selectedSizeObjects.length > 0 && (
                                 <div>
                                     <Label className="text-sm font-medium text-slate-700">Cylinder Images per Size</Label>
-                                    <p className="mt-0.5 mb-3 text-xs text-slate-400">
+                                    <p className="mt-0.5 mb-3 text-xs text-slate-500">
                                         Upload the specific cylinder photo for each size. Customers will see this image when selecting that size.
                                     </p>
                                     <div className="space-y-2">
@@ -195,7 +195,7 @@ export default function BrandsCreate({ sizes }: Props) {
                                                     </div>
                                                 ) : (
                                                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-dashed border-slate-300 bg-white">
-                                                        <ImageOff className="h-4 w-4 text-slate-300" />
+                                                        <ImageOff className="h-4 w-4 text-slate-500" />
                                                     </div>
                                                 )}
                                                 <label className="flex cursor-pointer items-center gap-1.5 text-xs text-orange-600 hover:text-orange-700 font-medium">

@@ -109,4 +109,112 @@ class CustomerProfileTest extends TestCase
         $this->withToken($this->token)->deleteJson("/api/v1/addresses/{$address->id}")
             ->assertNotFound();
     }
+
+    // ── address updates ────────────────────────────────────────────────────────
+
+    public function test_set_as_default_sends_only_the_changed_field(): void
+    {
+        $other = CustomerAddress::factory()->create([
+            'customer_id' => $this->customer->id,
+            'is_default'  => true,
+        ]);
+        $address = CustomerAddress::factory()->create([
+            'customer_id' => $this->customer->id,
+            'latitude'    => 0.51430000,
+            'longitude'   => 35.26980000,
+            'is_default'  => false,
+        ]);
+
+        // This is exactly what UpdateAddressDto(isDefault: true) now serialises to.
+        $this->withToken($this->token)
+            ->putJson("/api/v1/addresses/{$address->id}", ['is_default' => true])
+            ->assertOk();
+
+        $this->assertDatabaseHas('customer_addresses', ['id' => $address->id, 'is_default' => true]);
+        $this->assertDatabaseHas('customer_addresses', ['id' => $other->id, 'is_default' => false]);
+
+        // The coordinates must survive a partial update untouched.
+        $fresh = $address->fresh();
+        $this->assertEquals(0.51430000, (float) $fresh->latitude);
+        $this->assertEquals(35.26980000, (float) $fresh->longitude);
+    }
+
+    public function test_a_null_coordinate_can_never_blank_out_a_delivery_pin(): void
+    {
+        $address = CustomerAddress::factory()->create([
+            'customer_id' => $this->customer->id,
+            'latitude'    => 0.51430000,
+            'longitude'   => 35.26980000,
+        ]);
+
+        $this->withToken($this->token)
+            ->putJson("/api/v1/addresses/{$address->id}", [
+                'label'     => null,
+                'latitude'  => null,
+                'longitude' => null,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['label', 'latitude', 'longitude']);
+
+        $fresh = $address->fresh();
+        $this->assertEquals(0.51430000, (float) $fresh->latitude);
+        $this->assertEquals(35.26980000, (float) $fresh->longitude);
+    }
+
+    public function test_latitude_and_longitude_must_move_together(): void
+    {
+        $address = CustomerAddress::factory()->create(['customer_id' => $this->customer->id]);
+
+        $this->withToken($this->token)
+            ->putJson("/api/v1/addresses/{$address->id}", ['latitude' => 0.6])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['longitude']);
+    }
+
+    public function test_can_move_an_address_to_new_coordinates(): void
+    {
+        $address = CustomerAddress::factory()->create([
+            'customer_id' => $this->customer->id,
+            'latitude'    => 0.51430000,
+            'longitude'   => 35.26980000,
+        ]);
+
+        $this->withToken($this->token)
+            ->putJson("/api/v1/addresses/{$address->id}", [
+                'label'       => 'Office',
+                'latitude'    => 0.52210000,
+                'longitude'   => 35.28150000,
+                'description' => 'Zion Mall, Uganda Road',
+            ])
+            ->assertOk();
+
+        $fresh = $address->fresh();
+        $this->assertSame('Office', $fresh->label);
+        $this->assertEquals(0.52210000, (float) $fresh->latitude);
+        $this->assertEquals(35.28150000, (float) $fresh->longitude);
+        $this->assertSame('Zion Mall, Uganda Road', $fresh->description);
+    }
+
+    public function test_an_empty_landmark_is_stored_as_no_landmark(): void
+    {
+        $address = CustomerAddress::factory()->create([
+            'customer_id' => $this->customer->id,
+            'description' => 'Old landmark',
+        ]);
+
+        $this->withToken($this->token)
+            ->putJson("/api/v1/addresses/{$address->id}", ['description' => '   '])
+            ->assertOk();
+
+        $this->assertNull($address->fresh()->description);
+    }
+
+    public function test_cannot_update_another_customers_address(): void
+    {
+        $address = CustomerAddress::factory()->create();
+
+        $this->withToken($this->token)
+            ->putJson("/api/v1/addresses/{$address->id}", ['is_default' => true])
+            ->assertNotFound();
+    }
 }

@@ -67,11 +67,11 @@ export default function RiderStatusBoard() {
                 <div className="flex items-center gap-3">
                     <p className="text-sm font-semibold text-slate-800">Rider Status</p>
                     <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-2xs font-semibold text-emerald-700">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{counts.available} available
                         </span>
                         {counts.on_delivery > 0 && (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-2xs font-semibold text-amber-700">
                                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />{counts.on_delivery} on delivery
                             </span>
                         )}
@@ -79,13 +79,13 @@ export default function RiderStatusBoard() {
                 </div>
                 <div className="flex items-center gap-2">
                     {lastSync && (
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-2xs text-slate-500">
                             Updated {lastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                     )}
                     <button
                         onClick={fetchPositions}
-                        className="flex h-6 w-6 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+                        className="flex h-6 w-6 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-600 transition-colors"
                         title="Refresh now"
                     >
                         <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
@@ -96,13 +96,13 @@ export default function RiderStatusBoard() {
             {/* Body */}
             {loading && riders.length === 0 ? (
                 <div className="px-5 py-8 text-center">
-                    <RefreshCw className="mx-auto h-5 w-5 animate-spin text-slate-300" />
-                    <p className="mt-2 text-xs text-slate-400">Loading rider positions…</p>
+                    <RefreshCw className="mx-auto h-5 w-5 animate-spin text-slate-500" />
+                    <p className="mt-2 text-xs text-slate-500">Loading rider positions…</p>
                 </div>
             ) : error ? (
                 <p className="px-5 py-6 text-center text-xs text-red-500">Failed to load rider positions.</p>
             ) : riders.length === 0 ? (
-                <p className="px-5 py-6 text-center text-xs text-slate-400 italic">No active riders.</p>
+                <p className="px-5 py-6 text-center text-xs text-slate-500 italic">No active riders.</p>
             ) : (
                 <div className="divide-y divide-slate-50 max-h-72 overflow-y-auto">
                     {riders
@@ -121,9 +121,9 @@ export default function RiderStatusBoard() {
                                             {r.name}
                                         </Link>
                                     </div>
-                                    <span className="text-[10px] font-semibold text-slate-400 shrink-0">{cfg.label}</span>
+                                    <span className="text-2xs font-semibold text-slate-500 shrink-0">{cfg.label}</span>
                                     {r.updated_at && (
-                                        <span className="text-[10px] text-slate-300 shrink-0 hidden sm:block">{r.updated_at}</span>
+                                        <span className="text-2xs text-slate-500 shrink-0 hidden sm:block">{r.updated_at}</span>
                                     )}
                                 </div>
                             );
@@ -133,7 +133,7 @@ export default function RiderStatusBoard() {
 
             {/* Footer hint */}
             <div className="border-t border-slate-50 px-5 py-2">
-                <p className="text-[10px] text-slate-300">Auto-refreshes every 30 s · upgrades to live WebSocket in Phase 10</p>
+                <p className="text-2xs text-slate-500">Auto-refreshes every 30 s · upgrades to live WebSocket in Phase 10</p>
             </div>
         </div>
     );

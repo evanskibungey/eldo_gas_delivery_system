@@ -7,6 +7,7 @@ use App\Jobs\SendSmsJob;
 use App\Models\StockAuditLog;
 use App\Models\StockLevel;
 use App\Models\SystemSetting;
+use App\Support\ManagerContacts;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 
@@ -33,15 +34,14 @@ class HandleDamagedCylinder implements ShouldQueue
             'created_at'    => now(),
         ]);
 
-        // P0: Immediate SMS to shop manager — non-blocking via queue
-        $shopPhone = config('shop.manager_phone', '');
-        if ($shopPhone) {
-            $customerName = $order->customer?->name ?? 'Unknown';
-            $sizeName     = $order->size?->name     ?? 'Unknown';
-            $appName = SystemSetting::get('app_name', 'EldoGas');
-            $msg = "P0 SAFETY ALERT — {$appName}: Damaged/unsafe {$sizeName} cylinder reported by {$customerName}. "
-                 . "Order #{$order->order_number}. Inspect batch immediately and call customer: {$order->customer?->phone}";
+        // P0: Immediate SMS to every shop manager — non-blocking via queue
+        $customerName = $order->customer?->name ?? 'Unknown';
+        $sizeName     = $order->size?->name     ?? 'Unknown';
+        $appName = SystemSetting::get('app_name', 'EldoGas');
+        $msg = "P0 SAFETY ALERT — {$appName}: Damaged/unsafe {$sizeName} cylinder reported by {$customerName}. "
+             . "Order #{$order->order_number}. Inspect batch immediately and call customer: {$order->customer?->phone}";
 
+        foreach (ManagerContacts::phones() as $shopPhone) {
             SendSmsJob::dispatch($shopPhone, $msg, 'damaged_cylinder_p0', 'admin', 0);
         }
     }

@@ -1,4 +1,4 @@
-﻿import { router } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import { X, ShieldCheck, Star, Truck, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -65,9 +65,9 @@ export default function AssignRiderModal({ orderId, orderNumber, riders, isReass
                         <p className="text-sm font-semibold text-slate-900">
                             {isReassign ? 'Reassign Rider' : 'Assign Rider'}
                         </p>
-                        <p className="text-xs text-slate-400 mt-0.5">Order {orderNumber}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">Order {orderNumber}</p>
                     </div>
-                    <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors">
+                    <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors">
                         <X className="h-4 w-4" />
                     </button>
                 </div>
@@ -77,10 +77,10 @@ export default function AssignRiderModal({ orderId, orderNumber, riders, isReass
                     {riders.length === 0 ? (
                         <div className="flex flex-col items-center gap-2 py-10">
                             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                                <Truck className="h-6 w-6 text-slate-300" />
+                                <Truck className="h-6 w-6 text-slate-500" />
                             </div>
-                            <p className="text-sm text-slate-400 font-medium">No available riders</p>
-                            <p className="text-xs text-slate-300">All riders are currently on delivery or offline.</p>
+                            <p className="text-sm text-slate-500 font-medium">No available riders</p>
+                            <p className="text-xs text-slate-500">All riders are currently on delivery or offline.</p>
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-50 px-2 py-2">
@@ -103,7 +103,7 @@ export default function AssignRiderModal({ orderId, orderNumber, riders, isReass
                                                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                                             )}
                                         </div>
-                                        <div className="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400">
+                                        <div className="mt-0.5 flex items-center gap-2 text-2xs text-slate-500">
                                             <span className="flex items-center gap-0.5">
                                                 <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
                                                 {r.avg_rating > 0 ? r.avg_rating.toFixed(1) : '—'}
@@ -134,7 +134,7 @@ export default function AssignRiderModal({ orderId, orderNumber, riders, isReass
                             value={reason}
                             onChange={e => setReason(e.target.value)}
                             placeholder="e.g. Rider unavailable, wrong route…"
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-300 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-400/20"
                         />
                     </div>
                 )}

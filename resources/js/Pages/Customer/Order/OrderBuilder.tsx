@@ -80,20 +80,20 @@ function SectionHeader({
     return (
         <div className="flex items-center gap-2.5 px-4 pt-4 pb-2">
             <span className={cn(
-                'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-all duration-200',
+                'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-2xs font-bold transition-all duration-200',
                 done    ? 'bg-emerald-500 text-white'
-                : locked ? 'bg-slate-200 text-slate-400'
+                : locked ? 'bg-slate-200 text-slate-500'
                          : 'bg-orange-500 text-white',
             )}>
                 {done ? <Check className="h-3 w-3" strokeWidth={3} /> : step}
             </span>
             <p className={cn(
-                'text-[11px] font-semibold uppercase tracking-wider transition-colors duration-200',
-                locked ? 'text-slate-300' : 'text-slate-500',
+                'text-2xs font-semibold uppercase tracking-wider transition-colors duration-200',
+                locked ? 'text-slate-500' : 'text-slate-600',
             )}>
                 {label}
                 {optional && (
-                    <span className="ml-1 font-normal normal-case text-slate-300">(optional)</span>
+                    <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span>
                 )}
             </p>
         </div>
@@ -110,6 +110,112 @@ function ScrollRow({ children, className }: { children: React.ReactNode; classNa
             {/* fade hint — indicates more chips to the right */}
             <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white to-transparent" />
         </div>
+    );
+}
+
+/*
+ * SizeChip and BrandChip live at module scope deliberately.
+ *
+ * They were previously declared inside the OrderBuilder body, which gave React a
+ * brand-new component type on every render — so every keystroke in the delivery
+ * note remounted the whole picker, re-requesting brand logos and restarting
+ * selection transitions mid-flight.
+ */
+function SizeChip({ s, isSwap, isSel, onSelect }: {
+    s: Size;
+    isSwap: boolean;
+    isSel: boolean;
+    onSelect: (id: number) => void;
+}) {
+    const price = isSwap ? s.swap_price : s.new_price;
+    return (
+        <button
+            type="button"
+            disabled={! s.in_stock}
+            aria-pressed={isSel}
+            onClick={() => onSelect(s.id)}
+            className={cn(
+                'flex flex-col items-center rounded-xl border-2 px-4 py-3 transition-all duration-150',
+                ! s.in_stock && 'opacity-60 cursor-not-allowed border-slate-100 bg-slate-50',
+                s.in_stock && isSel  && 'border-orange-400 bg-orange-50 shadow-sm',
+                s.in_stock && ! isSel && 'border-slate-200 bg-white hover:border-orange-200',
+            )}
+        >
+            <span className={cn(
+                'text-base font-bold leading-none',
+                isSel ? 'text-orange-600' : 'text-slate-700',
+            )}>
+                {s.name}
+            </span>
+            {price != null ? (
+                <span className={cn(
+                    'mt-1 text-xs font-medium',
+                    isSel ? 'text-orange-500' : 'text-slate-500',
+                )}>
+                    {fmt(price)}
+                </span>
+            ) : (
+                <span className="mt-1 text-xs text-slate-500">—</span>
+            )}
+            {! s.in_stock && (
+                <span className="mt-1 text-xs font-semibold text-slate-600">Out of stock</span>
+            )}
+            {isSel && s.in_stock && (
+                <span className="mt-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500">
+                    <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+                </span>
+            )}
+        </button>
+    );
+}
+
+function BrandChip({ b, isSel, onSelect }: {
+    b: Brand;
+    isSel: boolean;
+    onSelect: (id: number) => void;
+}) {
+    return (
+        <button
+            type="button"
+            aria-pressed={isSel}
+            onClick={() => onSelect(b.id)}
+            className={cn(
+                'flex flex-col items-center gap-1.5 rounded-xl border-2 px-3.5 py-3 transition-all duration-150 min-w-[68px]',
+                isSel
+                    ? 'border-orange-400 bg-orange-50 shadow-sm'
+                    : 'border-slate-200 bg-white hover:border-orange-200',
+            )}
+        >
+            {b.logo_url ? (
+                <img
+                    src={b.logo_url}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    width={40}
+                    height={40}
+                    className="h-10 w-10 rounded-full object-contain"
+                />
+            ) : (
+                <div className={cn(
+                    'flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold',
+                    isSel ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-600',
+                )}>
+                    {b.name.charAt(0)}
+                </div>
+            )}
+            <span className={cn(
+                'text-xs font-medium text-center leading-tight max-w-[68px] truncate',
+                isSel ? 'text-orange-600' : 'text-slate-700',
+            )}>
+                {b.name}
+            </span>
+            {isSel && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-orange-500">
+                    <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+                </span>
+            )}
+        </button>
     );
 }
 
@@ -281,93 +387,64 @@ export default function OrderBuilder({
 
     const canSubmit = sizesDone && brandDone && addrDone && ! loading;
 
-    // ── Size chip (shared between mobile scroll and desktop grid) ────────────
-    function SizeChip({ s }: { s: Size }) {
-        const price = isSwap ? s.swap_price : s.new_price;
-        const isSel = sizeId === s.id;
-        return (
-            <button
-                type="button"
-                disabled={! s.in_stock}
-                onClick={() => handleSizeChange(s.id)}
-                className={cn(
-                    'flex flex-col items-center rounded-xl border-2 px-4 py-3 transition-all duration-150',
-                    ! s.in_stock && 'opacity-35 cursor-not-allowed border-slate-100 bg-slate-50',
-                    s.in_stock && isSel  && 'border-orange-400 bg-orange-50 shadow-sm',
-                    s.in_stock && ! isSel && 'border-slate-200 bg-white hover:border-orange-200',
-                )}
-            >
-                <span className={cn(
-                    'text-base font-bold leading-none',
-                    isSel ? 'text-orange-600' : 'text-slate-700',
-                )}>
-                    {s.name}
-                </span>
-                {price != null ? (
-                    <span className={cn(
-                        'mt-1 text-[10px] font-medium',
-                        isSel ? 'text-orange-500' : 'text-slate-400',
-                    )}>
-                        {fmt(price)}
-                    </span>
-                ) : (
-                    <span className="mt-1 text-[10px] text-slate-300">—</span>
-                )}
-                {! s.in_stock && (
-                    <span className="mt-1 text-[9px] font-medium text-slate-300">Out</span>
-                )}
-                {isSel && s.in_stock && (
-                    <span className="mt-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-orange-500">
-                        <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
-                    </span>
-                )}
-            </button>
-        );
-    }
+    /* Sticky total + submit. Handed to the layout so it stacks flush above the
+       bottom nav rather than being independently pinned at bottom-16. */
+    const stickyAction = (
+        <div className="lg:hidden bg-white/95 backdrop-blur-sm border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+            <div className="mx-auto w-full sm:max-w-sm flex items-center gap-3 px-4 py-3">
 
-    // ── Brand chip (shared between mobile scroll and desktop grid) ───────────
-    function BrandChip({ b }: { b: Brand }) {
-        const isSel = brandId === b.id;
-        return (
-            <button
-                type="button"
-                onClick={() => handleBrandChange(b.id)}
-                className={cn(
-                    'flex flex-col items-center gap-1.5 rounded-xl border-2 px-3.5 py-3 transition-all duration-150 min-w-[68px]',
-                    isSel
-                        ? 'border-orange-400 bg-orange-50 shadow-sm'
-                        : 'border-slate-200 bg-white hover:border-orange-200',
-                )}
-            >
-                {b.logo_url ? (
-                    <img src={b.logo_url} alt={b.name} className="h-10 w-10 rounded-full object-contain" />
-                ) : (
-                    <div className={cn(
-                        'flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold',
-                        isSel ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-600',
-                    )}>
-                        {b.name.charAt(0)}
-                    </div>
-                )}
-                <span className={cn(
-                    'text-[11px] font-medium text-center leading-tight max-w-[60px] truncate',
-                    isSel ? 'text-orange-600' : 'text-slate-700',
-                )}>
-                    {b.name}
-                </span>
-                {isSel && (
-                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-orange-500">
-                        <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
-                    </span>
-                )}
-            </button>
-        );
-    }
+                {/* Order summary + total */}
+                <div className="min-w-0 flex-1">
+                    {selectedSize ? (
+                        <>
+                            <p className="text-2xs text-slate-500 truncate leading-tight">
+                                {selectedSize.name} · {isSwap ? 'Swap / Refill' : 'New Cylinder'}
+                                {brandId && brandsForSize.find(b => b.id === brandId)
+                                    ? ` · ${brandsForSize.find(b => b.id === brandId)!.name}`
+                                    : ''}
+                            </p>
+                            <p className="text-xl font-bold text-slate-800 tabular-nums leading-tight">
+                                {fmt(total)}
+                            </p>
+                            {addonsTotal > 0 && (
+                                <p className="text-2xs text-slate-500">incl. {fmt(addonsTotal)} add-ons</p>
+                            )}
+                            {gasPointsDiscount > 0 && (
+                                <p className="text-2xs font-semibold text-amber-600">
+                                    −{fmt(gasPointsDiscount)} GasPoints discount
+                                </p>
+                            )}
+                        </>
+                    ) : (
+                        <p className="text-xs text-slate-500 leading-snug">Select a size<br />to see price</p>
+                    )}
+                </div>
+
+                {/* CTA */}
+                <button
+                    onClick={submit}
+                    disabled={! canSubmit}
+                    className={cn(
+                        'shrink-0 rounded-xl px-5 py-3.5 text-sm font-bold transition-all duration-150',
+                        canSubmit
+                            ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 hover:bg-orange-600 active:scale-[0.97]'
+                            : 'bg-slate-100 text-slate-500 cursor-not-allowed',
+                    )}
+                >
+                    {loading
+                        ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Placing…</span>
+                        : 'Place Order →'}
+                </button>
+            </div>
+        </div>
+    );
 
     return (
-        <CustomerLayout title="Order Gas" showBack backHref="/home">
-            {/* Desktop: two-column grid. Mobile: single column */}
-            <div className="mx-auto max-w-sm lg:max-w-5xl lg:grid lg:grid-cols-[1fr_320px] lg:gap-6 lg:items-start px-4 lg:px-6 pt-4 pb-36 lg:pb-10">
+        <CustomerLayout title="Order Gas" showBack backHref="/home" stickyAction={stickyAction}>
+            {/* Desktop: two-column grid. Mobile: single column.
+                Mobile stays fluid — max-w-sm capped content at 384px, leaving dead
+                gutters on 414–430px handsets. */}
+            <div className="mx-auto w-full sm:max-w-sm lg:max-w-5xl lg:grid lg:grid-cols-[1fr_320px] lg:gap-6 lg:items-start px-4 lg:px-6 pt-4 pb-44 lg:pb-10">
 
                 {/* ── LEFT COLUMN: all form sections ─────────────────────── */}
                 <div className="space-y-3">
@@ -428,8 +505,8 @@ export default function OrderBuilder({
                                 <div className="flex justify-between mt-2">
                                     {steps.map(s => (
                                         <div key={s.label} className={cn(
-                                            'flex items-center gap-1 text-[10px] font-medium',
-                                            s.done ? 'text-emerald-600' : 'text-slate-400',
+                                            'flex items-center gap-1 text-2xs font-medium',
+                                            s.done ? 'text-emerald-600' : 'text-slate-500',
                                         )}>
                                             <div className={cn(
                                                 'h-3 w-3 rounded-full flex items-center justify-center',
@@ -454,7 +531,7 @@ export default function OrderBuilder({
                             <ScrollRow>
                                 {sizes.map(s => (
                                     <div key={s.id} className="snap-start shrink-0">
-                                        <SizeChip s={s} />
+                                        <SizeChip s={s} isSwap={isSwap} isSel={sizeId === s.id} onSelect={handleSizeChange} />
                                     </div>
                                 ))}
                             </ScrollRow>
@@ -462,13 +539,13 @@ export default function OrderBuilder({
 
                         {/* Desktop: grid */}
                         <div className="hidden lg:grid grid-cols-4 gap-2 px-4 pb-4">
-                            {sizes.map(s => <SizeChip key={s.id} s={s} />)}
+                            {sizes.map(s => <SizeChip key={s.id} s={s} isSwap={isSwap} isSel={sizeId === s.id} onSelect={handleSizeChange} />)}
                         </div>
 
                         {(errors.size_id || selectedSize) && (
                             <p className={cn(
-                                'px-4 pb-3 -mt-1 text-[11px]',
-                                errors.size_id ? 'text-red-500' : 'text-slate-400',
+                                'px-4 pb-3 -mt-1 text-xs',
+                                errors.size_id ? 'text-red-500' : 'text-slate-500',
                             )}>
                                 {errors.size_id
                                     ? errors.size_id
@@ -485,9 +562,9 @@ export default function OrderBuilder({
                         <SectionHeader step={2} label="Brand" done={brandDone} locked={! sizesDone} />
 
                         {! sizesDone ? (
-                            <p className="px-4 pb-4 text-xs text-slate-400">Select a size first</p>
+                            <p className="px-4 pb-4 text-xs text-slate-500">Select a size first</p>
                         ) : brandsForSize.length === 0 ? (
-                            <p className="px-4 pb-4 text-sm text-slate-400">No brands available for this size.</p>
+                            <p className="px-4 pb-4 text-sm text-slate-500">No brands available for this size.</p>
                         ) : (
                             <>
                                 {/* Mobile: horizontal scroll */}
@@ -495,7 +572,7 @@ export default function OrderBuilder({
                                     <ScrollRow>
                                         {brandsForSize.map(b => (
                                             <div key={b.id} className="snap-start">
-                                                <BrandChip b={b} />
+                                                <BrandChip b={b} isSel={brandId === b.id} onSelect={handleBrandChange} />
                                             </div>
                                         ))}
                                     </ScrollRow>
@@ -503,13 +580,13 @@ export default function OrderBuilder({
 
                                 {/* Desktop: grid */}
                                 <div className="hidden lg:flex lg:flex-wrap gap-2 px-4 pb-4">
-                                    {brandsForSize.map(b => <BrandChip key={b.id} b={b} />)}
+                                    {brandsForSize.map(b => <BrandChip key={b.id} b={b} isSel={brandId === b.id} onSelect={handleBrandChange} />)}
                                 </div>
                             </>
                         )}
 
                         {errors.brand_id && (
-                            <p className="px-4 pb-3 -mt-1 text-[11px] text-red-500">{errors.brand_id}</p>
+                            <p className="px-4 pb-3 -mt-1 text-xs text-red-500">{errors.brand_id}</p>
                         )}
                     </div>
 
@@ -528,14 +605,14 @@ export default function OrderBuilder({
                             <SectionHeader step={3} label="Add-ons" done={addonIds.length > 0} locked={! sizesDone} optional />
                             <div className="flex items-center gap-1.5">
                                 {addonIds.length > 0 && (
-                                    <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-600">
+                                    <span className="rounded-full bg-orange-100 px-2 py-0.5 text-2xs font-semibold text-orange-600">
                                         {addonIds.length} selected
                                     </span>
                                 )}
                                 {sizesDone && (
                                     addonsOpen
-                                        ? <ChevronUp className="h-4 w-4 text-slate-400" />
-                                        : <ChevronDown className="h-4 w-4 text-slate-400" />
+                                        ? <ChevronUp className="h-4 w-4 text-slate-500" />
+                                        : <ChevronDown className="h-4 w-4 text-slate-500" />
                                 )}
                             </div>
                         </button>
@@ -543,16 +620,16 @@ export default function OrderBuilder({
                         {/* Collapsible body */}
                         {addonsOpen && (
                             ! sizesDone ? (
-                                <p className="px-4 pb-4 text-xs text-slate-400">Select a size first.</p>
+                                <p className="px-4 pb-4 text-xs text-slate-500">Select a size first.</p>
                             ) : addonsForSize.length === 0 ? (
-                                <p className="px-4 pb-4 text-xs text-slate-400">No add-ons available for this size.</p>
+                                <p className="px-4 pb-4 text-xs text-slate-500">No add-ons available for this size.</p>
                             ) : (
                                 <div className="px-4 pb-4 space-y-4">
                                     {addonsForSize.map(group => (
                                         <div key={group.id}>
                                             <p className="mb-2 text-xs font-medium text-slate-500">
                                                 {group.name}
-                                                <span className="ml-1 font-normal text-slate-300 text-[10px]">
+                                                <span className="ml-1 font-normal text-slate-500 text-2xs">
                                                     ({group.selection_type === 'single' ? 'pick one' : 'pick any'})
                                                 </span>
                                             </p>
@@ -576,7 +653,7 @@ export default function OrderBuilder({
                                                             ) : (
                                                                 <div className={cn(
                                                                     'h-10 w-10 shrink-0 rounded-lg flex items-center justify-center text-xs font-bold',
-                                                                    isSel ? 'bg-orange-100 text-orange-500' : 'bg-slate-100 text-slate-400',
+                                                                    isSel ? 'bg-orange-100 text-orange-500' : 'bg-slate-100 text-slate-500',
                                                                 )}>
                                                                     {item.name.charAt(0)}
                                                                 </div>
@@ -584,7 +661,7 @@ export default function OrderBuilder({
                                                             <div className="flex-1 min-w-0">
                                                                 <p className="text-sm font-semibold text-slate-800">{item.name}</p>
                                                                 {item.description && (
-                                                                    <p className="mt-0.5 text-[11px] text-slate-500 truncate">{item.description}</p>
+                                                                    <p className="mt-0.5 text-xs text-slate-500 truncate">{item.description}</p>
                                                                 )}
                                                             </div>
                                                             <div className="shrink-0 text-right">
@@ -624,7 +701,7 @@ export default function OrderBuilder({
                                             ? <><Loader2 className="h-4 w-4 animate-spin" />Detecting…</>
                                             : <><Crosshair className="h-4 w-4" />Use My Current Location</>}
                                     </button>
-                                    <p className="text-center text-xs text-slate-400">
+                                    <p className="text-center text-xs text-slate-500">
                                         or{' '}
                                         <a href="/addresses/create?redirect_to=order_new" className="text-orange-500 underline">
                                             pin on map
@@ -645,10 +722,10 @@ export default function OrderBuilder({
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-medium text-slate-800">{chosenAddress?.label ?? '—'}</p>
                                                 {chosenAddress?.description && (
-                                                    <p className="text-[11px] text-slate-500 truncate">{chosenAddress.description}</p>
+                                                    <p className="text-2xs text-slate-500 truncate">{chosenAddress.description}</p>
                                                 )}
                                             </div>
-                                            <ChevronDown className={cn('h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200', addrOpen && 'rotate-180')} />
+                                            <ChevronDown className={cn('h-4 w-4 shrink-0 text-slate-500 transition-transform duration-200', addrOpen && 'rotate-180')} />
                                         </button>
 
                                         {addrOpen && (
@@ -671,7 +748,7 @@ export default function OrderBuilder({
                                                         <div className="min-w-0 flex-1">
                                                             <p className="font-medium text-slate-800">{a.label}</p>
                                                             {a.description && (
-                                                                <p className="text-[11px] text-slate-500 truncate">{a.description}</p>
+                                                                <p className="text-2xs text-slate-500 truncate">{a.description}</p>
                                                             )}
                                                         </div>
                                                         {addressId === a.id && (
@@ -707,7 +784,7 @@ export default function OrderBuilder({
 
                     {/* ── 5. Payment ───────────────────────────────────────── */}
                     <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
-                        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Payment</p>
+                        <p className="mb-3 text-2xs font-semibold uppercase tracking-wider text-slate-500">Payment</p>
                         <div className="grid grid-cols-2 gap-2">
                             {[
                                 { value: 'mpesa', label: 'M-Pesa',  sub: 'Pay after order' },
@@ -738,7 +815,7 @@ export default function OrderBuilder({
                                             {m.label}
                                         </span>
                                     </div>
-                                    <p className="mt-0.5 pl-6 text-[10px] text-slate-400">{m.sub}</p>
+                                    <p className="mt-0.5 pl-6 text-2xs text-slate-500">{m.sub}</p>
                                 </button>
                             ))}
                         </div>
@@ -760,11 +837,11 @@ export default function OrderBuilder({
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-2">
                                     <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-400" />
-                                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                                    <p className="text-2xs font-semibold uppercase tracking-wider text-slate-500">
                                         GasPoints
                                     </p>
                                 </div>
-                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-[11px] font-bold text-amber-700">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2.5 py-0.5 text-2xs font-bold text-amber-700">
                                     <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                                     {gaspoints_balance.toLocaleString()} pts
                                 </span>
@@ -799,7 +876,7 @@ export default function OrderBuilder({
                                         <span className={cn('text-xs font-bold', redemptionPoints === pts ? 'text-amber-700' : 'text-slate-700')}>
                                             −{fmt(kes)}
                                         </span>
-                                        <span className={cn('text-[10px]', redemptionPoints === pts ? 'text-amber-500' : 'text-slate-400')}>
+                                        <span className={cn('text-2xs', redemptionPoints === pts ? 'text-amber-500' : 'text-slate-500')}>
                                             {pts.toLocaleString()} pts
                                         </span>
                                     </button>
@@ -816,10 +893,10 @@ export default function OrderBuilder({
                     {/* ── Delivery note ─────────────────────────────────────── */}
                     <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-4">
                         <div className="flex items-center gap-2 mb-2">
-                            <StickyNote className="h-3.5 w-3.5 text-slate-400" />
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                            <StickyNote className="h-3.5 w-3.5 text-slate-500" />
+                            <p className="text-2xs font-semibold uppercase tracking-wider text-slate-500">
                                 Delivery Note
-                                <span className="ml-1 font-normal normal-case text-slate-300">(optional)</span>
+                                <span className="ml-1 font-normal normal-case text-slate-500">(optional)</span>
                             </p>
                         </div>
                         <input
@@ -827,7 +904,7 @@ export default function OrderBuilder({
                             value={notes}
                             onChange={e => setNotes(e.target.value)}
                             placeholder="Gate code, floor number, landmark…"
-                            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-orange-400 focus:bg-white focus:outline-none transition-colors"
+                            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-500 focus:border-orange-400 focus:bg-white focus:outline-none transition-colors"
                         />
                     </div>
 
@@ -852,7 +929,7 @@ export default function OrderBuilder({
 
                         {/* Order summary card */}
                         <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-5">
-                            <p className="mb-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            <p className="mb-4 text-2xs font-semibold uppercase tracking-wider text-slate-500">
                                 Order Summary
                             </p>
 
@@ -903,7 +980,7 @@ export default function OrderBuilder({
                             ) : (
                                 <div className="flex flex-col items-center py-6 text-center">
                                     <Package className="h-8 w-8 text-slate-200 mb-2" />
-                                    <p className="text-xs text-slate-400">Select a cylinder size<br />to see pricing</p>
+                                    <p className="text-xs text-slate-500">Select a cylinder size<br />to see pricing</p>
                                 </div>
                             )}
                         </div>
@@ -916,7 +993,7 @@ export default function OrderBuilder({
                                 'w-full rounded-xl px-5 py-4 text-sm font-bold transition-all duration-150',
                                 canSubmit
                                     ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 hover:bg-orange-600 active:scale-[0.97]'
-                                    : 'bg-slate-100 text-slate-400 cursor-not-allowed',
+                                    : 'bg-slate-100 text-slate-500 cursor-not-allowed',
                             )}
                         >
                             {loading
@@ -935,7 +1012,7 @@ export default function OrderBuilder({
                             ].map(item => (
                                 <div key={item.label} className={cn(
                                     'flex items-center gap-2 text-xs',
-                                    item.done ? 'text-emerald-600' : 'text-slate-400',
+                                    item.done ? 'text-emerald-600' : 'text-slate-500',
                                 )}>
                                     <div className={cn(
                                         'flex h-4 w-4 shrink-0 items-center justify-center rounded-full',
@@ -952,54 +1029,6 @@ export default function OrderBuilder({
 
             </div>
 
-            {/* ── Mobile sticky CTA (hidden on lg) ──────────────────────────── */}
-            <div className="lg:hidden fixed bottom-16 inset-x-0 z-40 bg-white/95 backdrop-blur-sm border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-                <div className="mx-auto max-w-sm flex items-center gap-3 px-4 py-3">
-
-                    {/* Order summary + total */}
-                    <div className="min-w-0 flex-1">
-                        {selectedSize ? (
-                            <>
-                                <p className="text-[10px] text-slate-400 truncate leading-tight">
-                                    {selectedSize.name} · {isSwap ? 'Swap / Refill' : 'New Cylinder'}
-                                    {brandId && brandsForSize.find(b => b.id === brandId)
-                                        ? ` · ${brandsForSize.find(b => b.id === brandId)!.name}`
-                                        : ''}
-                                </p>
-                                <p className="text-xl font-bold text-slate-800 tabular-nums leading-tight">
-                                    {fmt(total)}
-                                </p>
-                                {addonsTotal > 0 && (
-                                    <p className="text-[10px] text-slate-400">incl. {fmt(addonsTotal)} add-ons</p>
-                                )}
-                                {gasPointsDiscount > 0 && (
-                                    <p className="text-[10px] font-semibold text-amber-600">
-                                        −{fmt(gasPointsDiscount)} GasPoints discount
-                                    </p>
-                                )}
-                            </>
-                        ) : (
-                            <p className="text-xs text-slate-400 leading-snug">Select a size<br />to see price</p>
-                        )}
-                    </div>
-
-                    {/* CTA */}
-                    <button
-                        onClick={submit}
-                        disabled={! canSubmit}
-                        className={cn(
-                            'shrink-0 rounded-xl px-5 py-3.5 text-sm font-bold transition-all duration-150',
-                            canSubmit
-                                ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30 hover:bg-orange-600 active:scale-[0.97]'
-                                : 'bg-slate-100 text-slate-400 cursor-not-allowed',
-                        )}
-                    >
-                        {loading
-                            ? <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Placing…</span>
-                            : 'Place Order →'}
-                    </button>
-                </div>
-            </div>
         </CustomerLayout>
     );
 }

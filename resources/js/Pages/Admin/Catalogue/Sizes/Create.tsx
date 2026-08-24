@@ -82,7 +82,7 @@ export default function SizesCreate() {
                             {/* ── Image upload ── */}
                             <div>
                                 <Label className="text-sm font-medium text-slate-700">
-                                    Cylinder Image <span className="text-slate-400 font-normal">(optional)</span>
+                                    Cylinder Image <span className="text-slate-500 font-normal">(optional)</span>
                                 </Label>
 
                                 {imagePreview ? (
@@ -104,7 +104,7 @@ export default function SizesCreate() {
                                     <button
                                         type="button"
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="mt-2 flex h-32 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 transition-colors hover:border-orange-300 hover:bg-orange-50 hover:text-orange-500"
+                                        className="mt-2 flex h-32 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-orange-300 hover:bg-orange-50 hover:text-orange-500"
                                     >
                                         <ImagePlus className="h-5 w-5" />
                                         <span className="text-sm">Click to upload image</span>
@@ -121,7 +121,7 @@ export default function SizesCreate() {
                                         if (f) pickImage(f);
                                     }}
                                 />
-                                <p className="mt-1.5 text-xs text-slate-400">JPEG, PNG or WebP · max 2 MB</p>
+                                <p className="mt-1.5 text-xs text-slate-500">JPEG, PNG or WebP · max 2 MB</p>
                             </div>
 
                             <div>
@@ -139,14 +139,14 @@ export default function SizesCreate() {
                             <div>
                                 <Label htmlFor="sort_order" className="text-sm font-medium text-slate-700">Sort Order</Label>
                                 <Input id="sort_order" type="number" min="0" placeholder="0" {...register('sort_order')} className={inputCls(errors.sort_order)} />
-                                <p className="mt-1 text-xs text-slate-400">Lower numbers appear first in ordering screens.</p>
+                                <p className="mt-1 text-xs text-slate-500">Lower numbers appear first in ordering screens.</p>
                             </div>
 
                             <div className="space-y-2 pt-1">
                                 <div className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-4 py-3">
                                     <input id="is_commercial" type="checkbox" {...register('is_commercial')} className="h-4 w-4 rounded border-slate-300 accent-orange-500" />
                                     <Label htmlFor="is_commercial" className="text-sm font-normal text-slate-600 cursor-pointer">
-                                        Commercial size <span className="text-slate-400">(25 kg, 50 kg — shown separately)</span>
+                                        Commercial size <span className="text-slate-500">(25 kg, 50 kg — shown separately)</span>
                                     </Label>
                                 </div>
 

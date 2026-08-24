@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\SystemSetting;
 use App\Services\Sms\SmsTemplateService;
+use App\Support\ManagerContacts;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -69,19 +70,6 @@ class CheckStalePendingOrdersJob implements ShouldQueue
 
     private function resolveManagerPhones(): array
     {
-        $raw = config('shop.manager_phones', '');
-
-        if (empty($raw)) {
-            return [];
-        }
-
-        return collect(explode(',', $raw))
-            ->map(function (string $p): string {
-                $p = trim($p);
-                return str_starts_with($p, '0') ? '+254' . substr($p, 1) : $p;
-            })
-            ->filter()
-            ->values()
-            ->all();
+        return ManagerContacts::phones();
     }
 }

@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -84,7 +84,7 @@ export default function AddonsIndex({ sizes }: { sizes: Size[] }) {
                                 </div>
                                 <div className="text-left">
                                     <span className="font-semibold text-slate-800">{size.name} Cylinder</span>
-                                    <span className="ml-2.5 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                                    <span className="ml-2.5 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-2xs font-semibold text-slate-500">
                                         {size.groups.length} group{size.groups.length !== 1 ? 's' : ''}
                                     </span>
                                 </div>
@@ -102,8 +102,8 @@ export default function AddonsIndex({ sizes }: { sizes: Size[] }) {
                                     </Link>
                                 </Button>
                                 {expanded.has(size.id)
-                                    ? <ChevronDown className="h-4 w-4 text-slate-400" />
-                                    : <ChevronRight className="h-4 w-4 text-slate-400" />
+                                    ? <ChevronDown className="h-4 w-4 text-slate-500" />
+                                    : <ChevronRight className="h-4 w-4 text-slate-500" />
                                 }
                             </div>
                         </button>
@@ -114,9 +114,9 @@ export default function AddonsIndex({ sizes }: { sizes: Size[] }) {
                                 {size.groups.length === 0 ? (
                                     <div className="flex flex-col items-center gap-2 px-5 py-10">
                                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
-                                            <Layers className="h-5 w-5 text-slate-300" />
+                                            <Layers className="h-5 w-5 text-slate-500" />
                                         </div>
-                                        <p className="text-sm text-slate-400">No add-on groups for this size yet.</p>
+                                        <p className="text-sm text-slate-500">No add-on groups for this size yet.</p>
                                         <Button asChild variant="outline" size="sm" className="mt-1 h-7 gap-1 text-xs">
                                             <Link href={`/admin/catalogue/addon-groups/create?size_id=${size.id}`}>
                                                 <Plus className="h-3 w-3" /> Add group
@@ -131,7 +131,7 @@ export default function AddonsIndex({ sizes }: { sizes: Size[] }) {
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-semibold text-slate-700 text-sm">{group.name}</span>
                                                     <span className={cn(
-                                                        'rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+                                                        'rounded-full border px-2 py-0.5 text-2xs font-semibold',
                                                         group.selection_type === 'single'
                                                             ? 'border-blue-200 bg-blue-50 text-blue-700'
                                                             : 'border-purple-200 bg-purple-50 text-purple-700',
@@ -139,11 +139,11 @@ export default function AddonsIndex({ sizes }: { sizes: Size[] }) {
                                                         {group.selection_type === 'single' ? 'Single-select' : 'Multi-select'}
                                                     </span>
                                                     {group.is_active ? (
-                                                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-2xs font-semibold text-emerald-700">
                                                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Active
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                                                        <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-2xs font-semibold text-slate-500">
                                                             <span className="h-1.5 w-1.5 rounded-full bg-slate-400" /> Inactive
                                                         </span>
                                                     )}
@@ -172,7 +172,7 @@ export default function AddonsIndex({ sizes }: { sizes: Size[] }) {
 
                                             {/* Items */}
                                             {group.items.length === 0 ? (
-                                                <p className="px-8 py-3 text-xs text-slate-400 italic">No items in this group.</p>
+                                                <p className="px-8 py-3 text-xs text-slate-500 italic">No items in this group.</p>
                                             ) : (
                                                 <div className="divide-y divide-slate-50">
                                                     {group.items.map(item => (
@@ -180,7 +180,7 @@ export default function AddonsIndex({ sizes }: { sizes: Size[] }) {
                                                             {item.photo_url ? (
                                                                 <img src={item.photo_url} alt={item.name} className="h-9 w-9 rounded-lg object-cover border border-slate-100 shadow-sm" />
                                                             ) : (
-                                                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-slate-200 to-slate-300 text-[10px] font-bold text-slate-500">
+                                                                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-slate-200 to-slate-300 text-2xs font-bold text-slate-500">
                                                                     {item.name.slice(0, 2).toUpperCase()}
                                                                 </div>
                                                             )}
@@ -188,10 +188,10 @@ export default function AddonsIndex({ sizes }: { sizes: Size[] }) {
                                                                 <p className="text-sm font-medium text-slate-800 flex items-center gap-2">
                                                                     {item.name}
                                                                     {!item.is_active && (
-                                                                        <span className="rounded-full border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">Inactive</span>
+                                                                        <span className="rounded-full border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-500">Inactive</span>
                                                                     )}
                                                                 </p>
-                                                                {item.description && <p className="text-xs text-slate-400 truncate">{item.description}</p>}
+                                                                {item.description && <p className="text-xs text-slate-500 truncate">{item.description}</p>}
                                                             </div>
                                                             <span className={cn(
                                                                 'text-sm font-semibold shrink-0',
@@ -200,7 +200,7 @@ export default function AddonsIndex({ sizes }: { sizes: Size[] }) {
                                                                 {fmt(item.price)}
                                                             </span>
                                                             <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <Button asChild variant="ghost" size="sm" className="h-7 text-xs text-slate-400 hover:text-slate-700">
+                                                                <Button asChild variant="ghost" size="sm" className="h-7 text-xs text-slate-500 hover:text-slate-700">
                                                                     <Link href={`/admin/catalogue/addon-items/${item.id}/edit`}>
                                                                         <Pencil className="h-3 w-3" />
                                                                     </Link>

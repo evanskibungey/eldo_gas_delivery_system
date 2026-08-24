@@ -246,7 +246,7 @@ export default function Show({ order, mpesa_till }: Props) {
                                             <div className="min-w-0 flex-1">
                                                 <div className="flex items-center justify-between gap-3">
                                                     <span className="capitalize text-slate-700">{entry.status.replace(/_/g, ' ')}</span>
-                                                    <span className="shrink-0 text-xs text-slate-400">{entry.at}</span>
+                                                    <span className="shrink-0 text-xs text-slate-500">{entry.at}</span>
                                                 </div>
                                                 {entry.note && <p className="mt-0.5 text-xs text-slate-500">{entry.note}</p>}
                                             </div>
@@ -279,7 +279,7 @@ export default function Show({ order, mpesa_till }: Props) {
                                                 onChange={(event) => setCancelReason(event.target.value)}
                                                 rows={3}
                                                 placeholder="Reason (optional)"
-                                                className="w-full resize-none rounded-lg border border-red-200 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-red-300 focus:outline-none"
+                                                className="w-full resize-none rounded-lg border border-red-200 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-500 focus:border-red-300 focus:outline-none"
                                             />
                                             <div className="flex gap-2">
                                                 <button onClick={() => setShowConfirm(false)} className="flex-1 rounded-lg border border-slate-200 bg-white py-2 text-sm font-medium text-slate-700">

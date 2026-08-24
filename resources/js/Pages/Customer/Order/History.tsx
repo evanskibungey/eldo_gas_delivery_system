@@ -98,7 +98,7 @@ export default function History({ orders }: Props) {
                             <Package className="h-8 w-8 text-orange-300" />
                         </div>
                         <p className="text-base font-semibold text-slate-700">No orders yet</p>
-                        <p className="mt-1 max-w-xs text-sm text-slate-400">Your order history will appear here once you place your first order.</p>
+                        <p className="mt-1 max-w-xs text-sm text-slate-500">Your order history will appear here once you place your first order.</p>
                         <Link href="/order/new" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-orange-500/20 transition-colors hover:bg-orange-600">
                             Place your first order
                         </Link>
@@ -114,10 +114,10 @@ export default function History({ orders }: Props) {
                                     <div className="min-w-0 flex-1">
                                         <div className="flex flex-wrap items-center gap-2">
                                             <p className="truncate font-mono text-xs font-semibold text-slate-700">{order.order_number}</p>
-                                            <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium', STATUS_COLORS[order.status] ?? 'bg-slate-100 text-slate-500')}>
+                                            <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-2xs font-medium', STATUS_COLORS[order.status] ?? 'bg-slate-100 text-slate-500')}>
                                                 {STATUS_LABELS[order.status] ?? order.status}
                                             </span>
-                                            <span className={cn('shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium', PAYMENT_CHIPS[order.payment_status] ?? PAYMENT_CHIPS.pending)}>
+                                            <span className={cn('shrink-0 rounded-full border px-2 py-0.5 text-2xs font-medium', PAYMENT_CHIPS[order.payment_status] ?? PAYMENT_CHIPS.pending)}>
                                                 {PAYMENT_LABELS[order.payment_status] ?? order.payment_status}
                                             </span>
                                         </div>
@@ -129,7 +129,7 @@ export default function History({ orders }: Props) {
                                         </p>
                                         <p className="mt-0.5 text-sm font-bold text-slate-800">{fmt(order.total_amount)}</p>
                                     </div>
-                                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-400" />
+                                    <ChevronRight className="h-4 w-4 shrink-0 text-slate-500" />
                                 </Link>
                             ))}
                             <Pagination orders={orders} />
@@ -140,12 +140,12 @@ export default function History({ orders }: Props) {
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b border-slate-100 bg-slate-50">
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Order</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Item</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Status</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Payment</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-400">Date</th>
-                                            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-400">Total</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Order</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Item</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Payment</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Date</th>
+                                            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Total</th>
                                             <th className="w-8 px-4 py-3" />
                                         </tr>
                                     </thead>
@@ -158,19 +158,19 @@ export default function History({ orders }: Props) {
                                                     {order.brand_name ? ` · ${order.brand_name}` : ''}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className={cn('rounded-full px-2.5 py-1 text-[11px] font-medium', STATUS_COLORS[order.status] ?? 'bg-slate-100 text-slate-500')}>
+                                                    <span className={cn('rounded-full px-2.5 py-1 text-2xs font-medium', STATUS_COLORS[order.status] ?? 'bg-slate-100 text-slate-500')}>
                                                         {STATUS_LABELS[order.status] ?? order.status}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className={cn('rounded-full border px-2.5 py-1 text-[11px] font-medium', PAYMENT_CHIPS[order.payment_status] ?? PAYMENT_CHIPS.pending)}>
+                                                    <span className={cn('rounded-full border px-2.5 py-1 text-2xs font-medium', PAYMENT_CHIPS[order.payment_status] ?? PAYMENT_CHIPS.pending)}>
                                                         {PAYMENT_LABELS[order.payment_status] ?? order.payment_status}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-slate-500">{order.created_at}</td>
                                                 <td className="px-4 py-3 text-right font-bold tabular-nums text-slate-800">{fmt(order.total_amount)}</td>
                                                 <td className="px-4 py-3">
-                                                    <ChevronRight className="h-4 w-4 text-slate-300" />
+                                                    <ChevronRight className="h-4 w-4 text-slate-500" />
                                                 </td>
                                             </tr>
                                         ))}

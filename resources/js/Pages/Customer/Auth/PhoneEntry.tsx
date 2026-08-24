@@ -1,4 +1,4 @@
-﻿import GuestLayout from '@/Layouts/GuestLayout';
+import GuestLayout from '@/Layouts/GuestLayout';
 import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import { Phone, ArrowRight, Loader2 } from 'lucide-react';
@@ -35,26 +35,33 @@ export default function PhoneEntry() {
 
             <form onSubmit={onSubmit} className="mt-6 space-y-4">
                 <div>
-                    <Label className="text-sm font-medium text-slate-700">Phone Number</Label>
+                    <Label htmlFor="phone" className="text-sm font-medium text-slate-700">Phone Number</Label>
                     <div className="mt-1.5 flex overflow-hidden rounded-lg border border-slate-200 bg-slate-50 focus-within:border-orange-400 focus-within:ring-2 focus-within:ring-orange-400/20 transition-all">
-                        <span className="flex items-center gap-1.5 border-r border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 select-none">
-                            🇰🇪 +254
+                        <span className="flex items-center gap-1.5 border-r border-slate-200 bg-white px-3 py-2 text-base font-medium text-slate-700 select-none">
+                            +254
                         </span>
                         <Input
+                            id="phone"
+                            name="phone"
                             type="tel"
                             inputMode="numeric"
+                            autoComplete="tel-national"
                             placeholder="0712 345 678"
                             value={local}
                             onChange={e => setLocal(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                            aria-invalid={errors?.phone ? true : undefined}
+                            aria-describedby={errors?.phone ? 'phone-error' : 'phone-hint'}
                             className={cn(
-                                'flex-1 h-10 rounded-none border-0 bg-transparent px-3 text-sm shadow-none focus-visible:ring-0',
+                                // 16px minimum — Safari force-zooms the page on any
+                                // focused input below it.
+                                'flex-1 h-11 rounded-none border-0 bg-transparent px-3 text-base shadow-none focus-visible:ring-0',
                                 errors?.phone && 'text-red-600',
                             )}
                             autoFocus
                         />
                     </div>
                     {errors?.phone && (
-                        <p className="mt-1.5 text-xs text-red-500">{errors.phone}</p>
+                        <p id="phone-error" className="mt-1.5 text-xs text-red-500">{errors.phone}</p>
                     )}
                 </div>
 
@@ -71,7 +78,7 @@ export default function PhoneEntry() {
                 </Button>
             </form>
 
-            <p className="mt-4 text-center text-[11px] text-slate-400">
+            <p id="phone-hint" className="mt-4 text-center text-xs text-slate-500">
                 A 4-digit code will be sent via SMS. Standard rates apply.
             </p>
         </GuestLayout>

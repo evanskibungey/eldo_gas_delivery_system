@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendSmsJob;
+use App\Support\ManagerContacts;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -33,13 +34,19 @@ class SosController extends Controller
             'ip'             => $request->ip(),
         ]);
 
-        $managerPhone = config('shop.manager_phone');
+        $managerPhones = ManagerContacts::phones();
 
-        if ($managerPhone) {
-            $message = "EMERGENCY: {$name} (Tel:{$phone}) reported a gas emergency. "
-                . "{$orderRef}. Call customer immediately and dispatch safety support.";
+        if ($managerPhones === []) {
+            Log::error('[SOS] No manager phones configured — emergency alert could not be sent.', [
+                'customer_id' => $customerId,
+            ]);
+        }
 
-            SendSmsJob::dispatch($managerPhone, $message, 'sos_trigger', 'admin', null)
+        $message = "EMERGENCY: {$name} (Tel:{$phone}) reported a gas emergency. "
+            . "{$orderRef}. Call customer immediately and dispatch safety support.";
+
+        foreach ($managerPhones as $managerPhone) {
+            SendSmsJob::dispatch($managerPhone, $message, 'sos_trigger', 'admin', 0)
                 ->onQueue('high');
         }
 

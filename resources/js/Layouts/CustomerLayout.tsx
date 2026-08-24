@@ -11,9 +11,15 @@ interface Props extends PropsWithChildren {
     title?: string;
     showBack?: boolean;
     backHref?: string;
+    /**
+     * Sticky action bar (e.g. the order builder's total + Place Order button).
+     * Rendered directly above the bottom nav inside a single fixed container, so
+     * the two stack by layout instead of being positioned independently.
+     */
+    stickyAction?: React.ReactNode;
 }
 
-export default function CustomerLayout({ children, title, showBack, backHref }: Props) {
+export default function CustomerLayout({ children, title, showBack, backHref, stickyAction }: Props) {
     const { auth, app_name } = usePage().props as any;
     const customer = auth?.customer;
     const appName  = (app_name as string) ?? 'EldoGas';
@@ -70,9 +76,14 @@ export default function CustomerLayout({ children, title, showBack, backHref }: 
 
             <Footer />
 
-            {/* Bottom nav — mobile only */}
-            <div className="md:hidden">
-                <BottomNav />
+            {/* One fixed container so the action bar and nav stack flush.
+                Previously the action bar was pinned at bottom-16 (64px) over a
+                ~57px nav, leaving a 7px strip of scrolling page between them. */}
+            <div className="fixed inset-x-0 bottom-0 z-40">
+                {stickyAction}
+                <div className="md:hidden">
+                    <BottomNav />
+                </div>
             </div>
 
             <FlashMessage />

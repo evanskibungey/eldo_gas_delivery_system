@@ -97,7 +97,7 @@ function SectionHeader({ title, sub, href, linkLabel = 'View all' }: {
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div>
                 <h2 className="text-sm font-semibold text-slate-900 leading-none">{title}</h2>
-                {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+                {sub && <p className="text-xs text-slate-500 mt-1">{sub}</p>}
             </div>
             {href && (
                 <Link href={href} className="inline-flex items-center gap-1 text-xs font-medium text-orange-500 hover:text-orange-600">
@@ -148,7 +148,7 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                         <p className="mt-4 text-2xl font-bold text-slate-900">{metrics.today_orders}</p>
                         <p className="mt-0.5 text-xs font-medium text-slate-500">Today's Orders</p>
                         {metrics.pending_orders > 0 && (
-                            <p className="mt-2 flex items-center gap-1 text-[11px] text-amber-600">
+                            <p className="mt-2 flex items-center gap-1 text-2xs text-amber-600">
                                 <Clock className="h-3 w-3" />{metrics.pending_orders} pending assignment
                             </p>
                         )}
@@ -165,7 +165,7 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                         </div>
                         <p className="mt-4 text-2xl font-bold text-slate-900">{fmt(metrics.today_revenue)}</p>
                         <p className="mt-0.5 text-xs font-medium text-slate-500">Today's Revenue</p>
-                        <p className="mt-2 flex items-center gap-1 text-[11px] text-emerald-600">
+                        <p className="mt-2 flex items-center gap-1 text-2xs text-emerald-600">
                             <ArrowUpRight className="h-3.5 w-3.5" />Delivered orders only
                         </p>
                     </div>
@@ -178,7 +178,7 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                         </div>
                         <p className="mt-4 text-2xl font-bold text-slate-900">{metrics.active_riders}</p>
                         <p className="mt-0.5 text-xs font-medium text-slate-500">Active & Available Riders</p>
-                        <Link href="/admin/riders" className="mt-2 flex items-center gap-1 text-[11px] text-orange-500">
+                        <Link href="/admin/riders" className="mt-2 flex items-center gap-1 text-2xs text-orange-500">
                             <MapPin className="h-3 w-3" />Manage riders
                         </Link>
                     </div>
@@ -197,7 +197,7 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                         </div>
                         <p className="mt-4 text-2xl font-bold text-slate-900">{metrics.low_stock}</p>
                         <p className="mt-0.5 text-xs font-medium text-slate-500">Low / Depleted Stock</p>
-                        <Link href="/admin/stock" className="mt-2 flex items-center gap-1 text-[11px] text-red-500">
+                        <Link href="/admin/stock" className="mt-2 flex items-center gap-1 text-2xs text-red-500">
                             <ChevronRight className="h-3 w-3" />View stock levels
                         </Link>
                     </div>
@@ -211,7 +211,7 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                         <SectionHeader title="Revenue — Last 7 Days" sub="Cash vs M-Pesa split" href="/admin/reports/revenue" linkLabel="Full report" />
                         <div className="px-5 pb-5 pt-4">
                             {dailyRevenue.length === 0 ? (
-                                <p className="py-8 text-center text-sm text-slate-400">No revenue data yet</p>
+                                <p className="py-8 text-center text-sm text-slate-500">No revenue data yet</p>
                             ) : (
                                 <div className="space-y-2.5">
                                     {dailyRevenue.map(d => {
@@ -220,7 +220,7 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                                         const mpesaPct= total > 0 ? (d.mpesa / maxDaily) * 100 : 0;
                                         return (
                                             <div key={d.date} className="flex items-center gap-3">
-                                                <span className="w-10 shrink-0 text-right text-[10px] font-medium text-slate-400">{d.date}</span>
+                                                <span className="w-10 shrink-0 text-right text-2xs font-medium text-slate-500">{d.date}</span>
                                                 <div className="flex flex-1 h-5 rounded-md overflow-hidden bg-slate-100 gap-px">
                                                     {cashPct > 0 && (
                                                         <div
@@ -244,10 +244,10 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                                         );
                                     })}
                                     <div className="flex items-center gap-4 pt-1">
-                                        <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                                        <span className="flex items-center gap-1.5 text-2xs text-slate-500">
                                             <span className="h-2.5 w-2.5 rounded-sm bg-slate-500" />Cash
                                         </span>
-                                        <span className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                                        <span className="flex items-center gap-1.5 text-2xs text-slate-500">
                                             <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500" />M-Pesa
                                         </span>
                                     </div>
@@ -261,7 +261,7 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                         <SectionHeader title="Orders by Size" sub="Last 30 days" />
                         <div className="px-5 pb-5 pt-4 space-y-3">
                             {bySize.length === 0 ? (
-                                <p className="py-4 text-center text-sm text-slate-400">No data yet</p>
+                                <p className="py-4 text-center text-sm text-slate-500">No data yet</p>
                             ) : (() => {
                                 const total = bySize.reduce((s, b) => s + b.value, 0);
                                 const colors = ['bg-orange-500','bg-orange-400','bg-orange-300','bg-amber-400','bg-amber-300'];
@@ -274,7 +274,7 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                                                     <Flame className="h-3 w-3 text-orange-400" />
                                                     <span className="text-xs font-semibold text-slate-700">{b.name}</span>
                                                 </div>
-                                                <span className="text-[10px] text-slate-400">{b.value} orders · {pct}%</span>
+                                                <span className="text-2xs text-slate-500">{b.value} orders · {pct}%</span>
                                             </div>
                                             <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                                                 <div className={cn('h-1.5 rounded-full transition-all', colors[i % colors.length])} style={{ width: `${pct}%` }} />
@@ -295,7 +295,7 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                         <SectionHeader title="Recent Orders" sub="Last 10 orders" href="/admin/orders" />
                         <div className="divide-y divide-slate-50">
                             {recentOrders.length === 0 ? (
-                                <p className="py-10 text-center text-sm text-slate-400">No orders yet today</p>
+                                <p className="py-10 text-center text-sm text-slate-500">No orders yet today</p>
                             ) : recentOrders.map(o => {
                                 const sc    = STATUS_CFG[o.status];
                                 const isSwap = o.order_number ? true : false;
@@ -308,21 +308,21 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-1.5">
                                                 <span className="text-xs font-semibold text-slate-900">{o.order_number}</span>
-                                                <span className="text-slate-300 text-xs">·</span>
+                                                <span className="text-slate-500 text-xs">·</span>
                                                 <span className="text-xs text-slate-500 truncate">{o.customer_name ?? '—'}</span>
                                             </div>
-                                            <div className="mt-0.5 flex items-center gap-2 text-[10px] text-slate-400">
+                                            <div className="mt-0.5 flex items-center gap-2 text-2xs text-slate-500">
                                                 <span>{o.size_name}</span>
                                                 {o.rider_name && <><span className="text-slate-200">·</span><span>Rider: {o.rider_name}</span></>}
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-1 shrink-0">
                                             {sc && (
-                                                <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold', sc.chip)}>
+                                                <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-2xs font-semibold', sc.chip)}>
                                                     <span className={cn('h-1.5 w-1.5 rounded-full', sc.dot)} />{sc.label}
                                                 </span>
                                             )}
-                                            <span className="text-[10px] text-slate-400">{o.created_ago}</span>
+                                            <span className="text-2xs text-slate-500">{o.created_ago}</span>
                                         </div>
                                         <span className="hidden sm:block w-20 text-right text-sm font-bold text-slate-900 tabular-nums shrink-0">
                                             {fmt(o.total_amount)}
@@ -354,7 +354,7 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                                                 </div>
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="text-xs font-bold text-slate-900 tabular-nums">{s.quantity}</span>
-                                                    <span className={cn('rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase', cfg.chip)}>{cfg.label}</span>
+                                                    <span className={cn('rounded-full border px-1.5 py-0.5 text-2xs font-semibold uppercase', cfg.chip)}>{cfg.label}</span>
                                                 </div>
                                             </div>
                                             <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
@@ -366,7 +366,7 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                                 {badStock.length > 0 && (
                                     <div className="mt-1 flex items-start gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2">
                                         <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500 mt-0.5" />
-                                        <p className="text-[11px] text-red-700 font-medium">
+                                        <p className="text-2xs text-red-700 font-medium">
                                             {badStock.length} size{badStock.length > 1 ? 's' : ''} need restocking
                                         </p>
                                     </div>
@@ -379,10 +379,10 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                             <SectionHeader title="Top Riders" sub="This week" href="/admin/riders" />
                             <div className="px-5 py-4 space-y-3">
                                 {topRiders.length === 0 ? (
-                                    <p className="py-4 text-center text-xs text-slate-400">No deliveries this week yet</p>
+                                    <p className="py-4 text-center text-xs text-slate-500">No deliveries this week yet</p>
                                 ) : topRiders.map((r, i) => (
                                     <div key={r.id} className="flex items-center gap-3">
-                                        <span className="text-[10px] w-4 font-bold text-slate-400">#{i + 1}</span>
+                                        <span className="text-2xs w-4 font-bold text-slate-500">#{i + 1}</span>
                                         {r.avatar_url ? (
                                             <img src={r.avatar_url} className="h-8 w-8 rounded-full object-cover shrink-0" alt={r.name} />
                                         ) : (
@@ -393,13 +393,13 @@ export default function Dashboard({ metrics, dailyRevenue, bySize, recentOrders,
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs font-semibold text-slate-800 truncate">{r.name}</p>
                                             <div className="flex items-center gap-1.5 mt-0.5">
-                                                <Truck className="h-2.5 w-2.5 text-slate-400" />
-                                                <span className="text-[10px] text-slate-400">{r.deliveries} deliveries</span>
+                                                <Truck className="h-2.5 w-2.5 text-slate-500" />
+                                                <span className="text-2xs text-slate-500">{r.deliveries} deliveries</span>
                                                 {r.avg_rating != null && (
                                                     <>
                                                         <span className="text-slate-200">·</span>
                                                         <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
-                                                        <span className="text-[10px] text-amber-600">{r.avg_rating.toFixed(1)}</span>
+                                                        <span className="text-2xs text-amber-600">{r.avg_rating.toFixed(1)}</span>
                                                     </>
                                                 )}
                                             </div>

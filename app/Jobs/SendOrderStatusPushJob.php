@@ -6,12 +6,13 @@ use App\Models\Customer;
 use App\Models\Device;
 use App\Models\NotificationLog;
 use App\Models\Order;
+use App\Services\Push\FcmException;
+use App\Services\Push\FcmService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SendOrderStatusPushJob implements ShouldQueue
@@ -20,7 +21,7 @@ class SendOrderStatusPushJob implements ShouldQueue
 
     public function __construct(public readonly int $orderId) {}
 
-    public function handle(): void
+    public function handle(FcmService $fcm): void
     {
         $order = Order::with('customer:id,name')->find($this->orderId);
         if (! $order || ! $order->customer) {
@@ -45,7 +46,7 @@ class SendOrderStatusPushJob implements ShouldQueue
 
         foreach ($devices as $device) {
             try {
-                $this->sendToDevice(
+                $fcm->send(
                     deviceToken: $device->token,
                     title: $title,
                     body: $body,
@@ -56,7 +57,15 @@ class SendOrderStatusPushJob implements ShouldQueue
                         'deep_link' => "/orders/{$order->id}/tracking",
                     ],
                 );
-            } catch (\Throwable $exception) {
+            } catch (FcmException $exception) {
+                if ($exception->isUnregistered()) {
+                    // Dead token — app uninstalled or token rotated. Prune
+                    // rather than retry; it can never succeed again.
+                    $device->delete();
+
+                    continue;
+                }
+
                 Log::warning('[push] FCM send failed', [
                     'device_id' => $device->id,
                     'error' => $exception->getMessage(),
@@ -121,39 +130,4 @@ class SendOrderStatusPushJob implements ShouldQueue
         ]);
     }
 
-    private function sendToDevice(string $deviceToken, string $title, string $body, array $data): void
-    {
-        $serverKey = (string) config('services.firebase.server_key', '');
-        if ($serverKey !== '') {
-            $response = Http::timeout(10)
-                ->withHeaders([
-                    'Authorization' => 'key=' . $serverKey,
-                    'Content-Type' => 'application/json',
-                ])
-                ->post('https://fcm.googleapis.com/fcm/send', [
-                    'to' => $deviceToken,
-                    'priority' => 'high',
-                    'notification' => [
-                        'title' => $title,
-                        'body' => $body,
-                    ],
-                    'data' => $data,
-                ]);
-
-            if ($response->successful()) {
-                return;
-            }
-
-            throw new \RuntimeException(
-                'FCM request failed: HTTP ' . $response->status() . ' ' . $response->body()
-            );
-        }
-
-        Log::info('[push] would send', [
-            'token' => substr($deviceToken, 0, 12) . '...',
-            'title' => $title,
-            'body' => $body,
-            'data' => $data,
-        ]);
-    }
 }

@@ -63,7 +63,7 @@ export default function Confirmation({ order, mpesa_till }: Props) {
                         <span className="text-xs text-slate-500">Order Number</span>
                         <div className="flex items-center gap-1.5">
                             <span className="font-mono text-sm font-bold text-slate-800">{order.order_number}</span>
-                            <span className={cn('transition-all duration-200', copied ? 'text-emerald-500' : 'text-slate-300 group-hover:text-slate-400')}>
+                            <span className={cn('transition-all duration-200', copied ? 'text-emerald-500' : 'text-slate-500 group-hover:text-slate-500')}>
                                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                             </span>
                         </div>

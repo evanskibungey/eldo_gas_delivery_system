@@ -1,4 +1,4 @@
-﻿import AdminLayout from '@/Layouts/AdminLayout';
+import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { Plus, Pencil, Trash2, MoreHorizontal, Building2, Home, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,7 @@ function DeleteDialog({ size, onCancel, onConfirm }: { size: Size; onCancel: () 
 }
 
 function StockBadge({ stock }: { stock: number | null }) {
-    if (stock == null) return <span className="text-sm text-slate-300">—</span>;
+    if (stock == null) return <span className="text-sm text-slate-500">—</span>;
     const cls = stock === 0
         ? 'border-red-200 bg-red-50 text-red-600'
         : stock <= 5
@@ -82,7 +82,8 @@ export default function SizesIndex({ sizes }: { sizes: Size[] }) {
 
             <div className="relative rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] text-sm">
                     <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/80">
                             <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Size</th>
@@ -99,10 +100,10 @@ export default function SizesIndex({ sizes }: { sizes: Size[] }) {
                                 <td colSpan={6} className="py-16 text-center">
                                     <div className="flex flex-col items-center gap-2">
                                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                                            <Package className="h-6 w-6 text-slate-300" />
+                                            <Package className="h-6 w-6 text-slate-500" />
                                         </div>
-                                        <p className="text-sm font-medium text-slate-400">No cylinder sizes yet</p>
-                                        <p className="text-xs text-slate-300">Add your first size to get started.</p>
+                                        <p className="text-sm font-medium text-slate-500">No cylinder sizes yet</p>
+                                        <p className="text-xs text-slate-500">Add your first size to get started.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -124,17 +125,17 @@ export default function SizesIndex({ sizes }: { sizes: Size[] }) {
                                         )}
                                         <div>
                                             <p className="font-semibold text-slate-900">{s.name}</p>
-                                            <p className="text-xs text-slate-400">{s.weight_kg} kg</p>
+                                            <p className="text-xs text-slate-500">{s.weight_kg} kg</p>
                                         </div>
                                     </div>
                                 </td>
                                 <td className="px-5 py-4">
                                     {s.is_commercial ? (
-                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-2xs font-semibold text-blue-700">
                                             <Building2 className="h-3 w-3" /> Commercial
                                         </span>
                                     ) : (
-                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-2xs font-semibold text-slate-600">
                                             <Home className="h-3 w-3" /> Household
                                         </span>
                                     )}
@@ -145,11 +146,11 @@ export default function SizesIndex({ sizes }: { sizes: Size[] }) {
                                 </td>
                                 <td className="px-5 py-4">
                                     {s.is_active ? (
-                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-2xs font-semibold text-emerald-700">
                                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Active
                                         </span>
                                     ) : (
-                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-2xs font-semibold text-slate-500">
                                             <span className="h-1.5 w-1.5 rounded-full bg-slate-400" /> Inactive
                                         </span>
                                     )}
@@ -157,14 +158,14 @@ export default function SizesIndex({ sizes }: { sizes: Size[] }) {
                                 <td className="px-5 py-4 text-right">
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-700 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end" className="w-40">
                                             <DropdownMenuItem asChild>
                                                 <Link href={`/admin/catalogue/sizes/${s.id}/edit`} className="flex items-center gap-2 cursor-pointer">
-                                                    <Pencil className="h-3.5 w-3.5 text-slate-400" /> Edit
+                                                    <Pencil className="h-3.5 w-3.5 text-slate-500" /> Edit
                                                 </Link>
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
@@ -181,6 +182,7 @@ export default function SizesIndex({ sizes }: { sizes: Size[] }) {
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {deleteTarget && (
