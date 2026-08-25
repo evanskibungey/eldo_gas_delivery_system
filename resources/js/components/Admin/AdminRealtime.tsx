@@ -247,9 +247,38 @@ function notifyDesktop(order: NewOrderPayload): void {
 
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Never throws.
+ *
+ * These hooks used to throw when no provider was above them, which turned one
+ * misplaced hook call into a blank white admin panel — the page component sits
+ * ABOVE the layout that renders the provider, so a hook called in a page body
+ * finds no context. Losing live updates is a bad day; losing the whole dispatch
+ * board mid-shift is a business outage. Degrade instead.
+ */
 function useAdminRealtimeContext(): AdminRealtimeValue {
     const value = useContext(AdminRealtimeContext);
-    if (!value) throw new Error('useAdminRealtime must be used inside AdminRealtimeProvider');
+
+    // Stable identity so effects depending on these do not loop.
+    const fallback = useRef<AdminRealtimeValue>({
+        connected: false,
+        echoAvailable: false,
+        subscribe: () => () => undefined,
+        registerRefreshProps: () => () => undefined,
+    });
+
+    if (!value) {
+        // Warn in production too — this means live updates are silently off for
+        // whoever is looking at the page, which is worth being able to diagnose
+        // from a screenshot of the console.
+        console.warn(
+            '[AdminRealtime] hook used outside AdminRealtimeProvider — live updates disabled here. ' +
+            'Page components render ABOVE AdminLayout: pass liveRefresh to AdminLayout instead.',
+        );
+
+        return fallback.current;
+    }
+
     return value;
 }
 

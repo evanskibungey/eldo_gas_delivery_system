@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useAdminLiveRefresh } from '@/components/Admin/AdminRealtime';
+
 import type { OrderStatus } from '@/types/models';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -145,11 +145,6 @@ function SubTabBtn({ label, count, active, onClick }: {
 export default function OrdersIndex({ orders, filters, counts, stale_pending: stalePendingCount }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
 
-    // The socket subscription, the new-order banner, the chime and the polling
-    // fallback all live in AdminRealtimeProvider now — this page only declares
-    // which props it wants pulled when something happens.
-    useAdminLiveRefresh(['orders', 'counts', 'stale_pending']);
-
     function applyFilter(status?: string) {
         router.get('/admin/orders', {
             status: status || undefined,
@@ -169,7 +164,13 @@ export default function OrdersIndex({ orders, filters, counts, stale_pending: st
     const isActiveGroup = activeTab === 'active' || activeTab === 'rider_assigned' || activeTab === 'picked_up' || activeTab === 'on_the_way';
 
     return (
-        <AdminLayout title="Orders" subtitle="Live order feed and dispatch management">
+        <AdminLayout
+            title="Orders"
+            subtitle="Live order feed and dispatch management"
+            // Registered inside the realtime provider by the layout; a hook here
+            // would sit above it and never see the context.
+            liveRefresh={['orders', 'counts', 'stale_pending']}
+        >
 
             {/* Stale pending orders banner — shown when auto-assignment has found no rider.
                 Counted server-side across the whole table, so it stays truthful on
