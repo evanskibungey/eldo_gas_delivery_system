@@ -41,6 +41,14 @@ return [
         'url' => env('GEOCODING_NOMINATIM_URL', 'https://nominatim.openstreetmap.org'),
     ],
 
+    'google' => [
+        // Server-side only. Keep this distinct from the Maps SDK key the app
+        // ships in its manifest: that one is extractable from the APK and is
+        // restricted by package name plus signing SHA-1, which does not apply
+        // to a key called from a server.
+        'key' => env('GOOGLE_MAPS_API_KEY'),
+    ],
+
     'geoapify' => [
         // Server-side only. Keep this key distinct from the one the app ships
         // for map tiles: that one is extractable from the APK, and a rotation

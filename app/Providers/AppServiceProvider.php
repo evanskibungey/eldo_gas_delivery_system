@@ -8,6 +8,7 @@ use App\Services\GasPointsService;
 use App\Services\Geocoding\GeoapifyProvider;
 use App\Services\Geocoding\GeocodingProvider;
 use App\Services\Geocoding\GeocodingService;
+use App\Services\Geocoding\GoogleProvider;
 use App\Services\Geocoding\NominatimProvider;
 use App\Services\ServiceAreaService;
 use App\Services\Sms\SmsServiceInterface;
@@ -38,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
         // without an app release. Add a case here when adding a provider.
         $this->app->singleton(GeocodingProvider::class, function () {
             return match (config('geocoding.driver', 'nominatim')) {
+                'google' => new GoogleProvider(),
                 'geoapify' => new GeoapifyProvider(),
                 'nominatim' => new NominatimProvider(),
                 default => throw new InvalidArgumentException(
