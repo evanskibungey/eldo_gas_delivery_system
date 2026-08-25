@@ -38,7 +38,13 @@ class PurgeOrders extends Command
         $this->report($counts);
 
         if ($counts['orders'] === 0) {
-            $this->components->info('No orders to purge.');
+            // Still reset the sequence. A previous run can leave the table empty
+            // but the counter high, and this is the only path back to it.
+            if (! $this->option('dry-run')) {
+                $this->resetAutoIncrement();
+            }
+
+            $this->components->info('No orders to purge. Sequence reset — next order will be EG-'.now()->format('Ymd').'-00001.');
 
             return self::SUCCESS;
         }
@@ -61,8 +67,13 @@ class PurgeOrders extends Command
             $this->purgeOrders();
             $this->resetRiderStats();
             $this->resetGamification();
-            $this->resetAutoIncrement();
         });
+
+        // Deliberately outside the transaction. ALTER TABLE is DDL, and MySQL
+        // implicitly commits the open transaction the moment it runs — leaving
+        // Laravel to COMMIT nothing and throw "There is no active transaction"
+        // after the deletes had already been made permanent.
+        $this->resetAutoIncrement();
 
         // Outside the transaction: this reads the audit rows the purge removed,
         // so it works off the survey taken before anything was deleted.
@@ -218,16 +229,33 @@ class PurgeOrders extends Command
         }
     }
 
+    /**
+     * Order numbers embed the row id (EG-20260825-00042), so without this the
+     * first real order carries on from where the test data stopped.
+     *
+     * MUST be called outside a transaction — see the note at the call site.
+     */
     private function resetAutoIncrement(): void
     {
-        if (DB::getDriverName() !== 'mysql') {
-            return;
-        }
+        $tables = ['orders', 'order_addons', 'order_status_history', 'order_ratings'];
+        $driver = DB::getDriverName();
 
-        // Order numbers embed the row id (EG-20260825-00042), so without this
-        // the first real order carries on from the test data's last id.
-        foreach (['orders', 'order_addons', 'order_status_history', 'order_ratings'] as $table) {
-            DB::statement("ALTER TABLE {$table} AUTO_INCREMENT = 1");
+        foreach ($tables as $table) {
+            if (! Schema::hasTable($table) || DB::table($table)->count() > 0) {
+                // Resetting a counter below existing rows would hand out
+                // duplicate ids on the next insert.
+                continue;
+            }
+
+            match ($driver) {
+                'mysql', 'mariadb' => DB::statement("ALTER TABLE {$table} AUTO_INCREMENT = 1"),
+                // SQLite keeps AUTOINCREMENT counters in a side table. Handled
+                // here rather than skipped so the test suite exercises this
+                // path — skipping it is what let the MySQL bug ship.
+                'sqlite' => DB::table('sqlite_sequence')->where('name', $table)->delete(),
+                'pgsql' => DB::statement("ALTER SEQUENCE {$table}_id_seq RESTART WITH 1"),
+                default => null,
+            };
         }
     }
 

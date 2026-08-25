@@ -212,6 +212,46 @@ class PurgeOrdersCommandTest extends TestCase
         $this->assertSame(10, (int) StockLevel::where('size_id', $size->id)->value('filled_count'));
     }
 
+    public function test_ids_restart_at_one_so_order_numbers_are_clean(): void
+    {
+        Order::factory()->count(5)->create();
+        $this->assertGreaterThan(1, Order::max('id'));
+
+        $this->artisan('orders:purge', ['--force' => true])->assertSuccessful();
+
+        // Order numbers embed the row id (EG-20260825-00042). Without a sequence
+        // reset the first real order would carry on from the test data.
+        $this->assertSame(1, Order::factory()->create()->id);
+    }
+
+    public function test_it_survives_the_sequence_reset_committing_the_transaction(): void
+    {
+        // Regression: resetAutoIncrement() used to run inside DB::transaction().
+        // ALTER TABLE is DDL, so MySQL implicitly committed and Laravel then
+        // threw "There is no active transaction" trying to commit nothing. The
+        // deletes had already been made permanent, so the failure was cosmetic
+        // but alarming — and invisible on SQLite, which skipped the whole path.
+        Order::factory()->count(3)->create();
+
+        $this->artisan('orders:purge', ['--force' => true])
+            ->expectsOutputToContain('Orders purged')
+            ->assertSuccessful();
+
+        $this->assertSame(0, Order::count());
+    }
+
+    public function test_rerunning_on_an_empty_table_still_resets_the_sequence(): void
+    {
+        // The recovery path for a purge that deleted rows but died before the
+        // sequence reset landed.
+        Order::factory()->count(4)->create();
+        Order::query()->delete();
+
+        $this->artisan('orders:purge', ['--force' => true])->assertSuccessful();
+
+        $this->assertSame(1, Order::factory()->create()->id);
+    }
+
     public function test_stock_is_left_alone_without_the_flag(): void
     {
         $size = CylinderSize::first() ?? CylinderSize::factory()->create();
