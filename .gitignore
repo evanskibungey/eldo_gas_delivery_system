@@ -2,7 +2,6 @@
 .DS_Store
 .env
 .env.backup
-.env.production
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -13,7 +12,6 @@
 /.zed
 /auth.json
 /node_modules
-/public/build
 /public/hot
 /public/storage
 /storage/*.key
@@ -22,3 +20,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Built assets are COMMITTED. They are produced locally with `npm run build`
+# and shipped in the repo, so the deploy script does not need Node on the
+# server. Rebuild and commit whenever anything under resources/ changes, or
+# production keeps serving the previous bundle.
+#
+# /public/build          <- deliberately NOT ignored
+# .env.production        <- deliberately NOT ignored; VITE_* only, all public
