@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import AlertSettingsButton from './AlertSettingsButton';
 
 interface Props {
     title?: string;
@@ -64,6 +65,9 @@ export default function TopBar({ title, subtitle, onMenuClick }: Props) {
 
             {/* Right — actions */}
             <div className="flex items-center gap-1.5 shrink-0">
+
+                {/* New-order sound toggle + live connection state */}
+                <AlertSettingsButton />
 
                 {/* User menu */}
                 <DropdownMenu>

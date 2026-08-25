@@ -30,10 +30,25 @@ class OrderService
             fn (string $status) => $status !== OrderLifecycle::STATUS_PENDING,
         ));
 
+        $status = $filters['status'] ?? null;
+
+        // Terminal orders read newest-first: nobody scrolls to the oldest
+        // delivery in company history to find this morning's. The dispatch
+        // queue keeps oldest-first so the longest wait is worked first.
+        $terminalView = in_array($status, OrderLifecycle::terminalStatuses(), true);
+
         return Order::with(['customer:id,name,phone', 'rider:id,name', 'size:id,name', 'brand:id,name'])
-            ->when($filters['status'] ?? null, function ($q, $status) use ($activeDispatchStatuses) {
+            ->when($status, function ($q, $status) use ($activeDispatchStatuses) {
                 if ($status === 'active') {
                     $q->whereIn('status', $activeDispatchStatuses);
+                } elseif ($status === OrderLifecycle::STATUS_ON_THE_WAY) {
+                    // correction_in_progress is an on-the-way delivery that hit a
+                    // problem. It is counted in the On the Way badge, so it has to
+                    // be listed under that tab too or the count never reconciles.
+                    $q->whereIn('status', [
+                        OrderLifecycle::STATUS_ON_THE_WAY,
+                        OrderLifecycle::STATUS_CORRECTION_IN_PROGRESS,
+                    ]);
                 } else {
                     $q->where('status', $status);
                 }
@@ -51,7 +66,7 @@ class OrderService
                     ? "FIELD(status, 'pending', 'rider_assigned', 'picked_up', 'on_the_way', 'correction_in_progress', 'delivered', 'cancelled')"
                     : "CASE status WHEN 'pending' THEN 1 WHEN 'rider_assigned' THEN 2 WHEN 'picked_up' THEN 3 WHEN 'on_the_way' THEN 4 WHEN 'correction_in_progress' THEN 5 WHEN 'delivered' THEN 6 ELSE 7 END"
             )
-            ->orderBy('created_at', 'asc')
+            ->orderBy('created_at', $terminalView ? 'desc' : 'asc')
             ->paginate(25)
             ->withQueryString();
     }
@@ -304,5 +319,57 @@ class OrderService
     public function pendingCount(): int
     {
         return Order::where('status', OrderLifecycle::STATUS_PENDING)->count();
+    }
+
+    /**
+     * Tab counts for the dispatch board, as one grouped query rather than the
+     * seven separate COUNT(*)s this used to run on every load, every live
+     * refresh and every poll tick.
+     *
+     * @return array<string, int>
+     */
+    public function statusCounts(): array
+    {
+        $byStatus = Order::query()
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $of = fn (string ...$statuses) => array_sum(array_map(
+            fn (string $status) => (int) $byStatus->get($status, 0),
+            $statuses,
+        ));
+
+        return [
+            'pending' => $of(OrderLifecycle::STATUS_PENDING),
+            'active' => $of(
+                OrderLifecycle::STATUS_RIDER_ASSIGNED,
+                OrderLifecycle::STATUS_PICKED_UP,
+                OrderLifecycle::STATUS_ON_THE_WAY,
+                OrderLifecycle::STATUS_CORRECTION_IN_PROGRESS,
+            ),
+            'rider_assigned' => $of(OrderLifecycle::STATUS_RIDER_ASSIGNED),
+            'picked_up' => $of(OrderLifecycle::STATUS_PICKED_UP),
+            // Grouped with on_the_way here and in the tab filter — a correction
+            // is an on-the-way delivery that hit a problem.
+            'on_the_way' => $of(
+                OrderLifecycle::STATUS_ON_THE_WAY,
+                OrderLifecycle::STATUS_CORRECTION_IN_PROGRESS,
+            ),
+            'delivered' => $of(OrderLifecycle::STATUS_DELIVERED),
+            'cancelled' => $of(OrderLifecycle::STATUS_CANCELLED),
+        ];
+    }
+
+    /**
+     * Orders auto-assignment has given up on. Counted across the whole table,
+     * not just the visible page — an admin sitting on the Delivered tab still
+     * needs to know something has been waiting for a rider for ten minutes.
+     */
+    public function stalePendingCount(int $olderThanMinutes = 5): int
+    {
+        return Order::where('status', OrderLifecycle::STATUS_PENDING)
+            ->where('created_at', '<=', now()->subMinutes($olderThanMinutes))
+            ->count();
     }
 }

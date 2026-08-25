@@ -28,23 +28,12 @@ class OrderController extends Controller
     public function index(Request $request): Response
     {
         $filters = $request->only(['status', 'search', 'date']);
-        $activeDispatchStatuses = array_values(array_filter(
-            OrderLifecycle::activeStatuses(),
-            fn (string $status) => $status !== OrderLifecycle::STATUS_PENDING,
-        ));
 
         return Inertia::render('Admin/Orders/Index', [
             'orders' => $this->orders->paginated($filters)->through(fn (Order $order) => $this->sanitize($this->formatListRow($order))),
             'filters' => $this->sanitize($filters),
-            'counts' => [
-                'pending' => Order::where('status', OrderLifecycle::STATUS_PENDING)->count(),
-                'active' => Order::whereIn('status', $activeDispatchStatuses)->count(),
-                'rider_assigned' => Order::where('status', OrderLifecycle::STATUS_RIDER_ASSIGNED)->count(),
-                'picked_up' => Order::where('status', OrderLifecycle::STATUS_PICKED_UP)->count(),
-                'on_the_way' => Order::whereIn('status', [OrderLifecycle::STATUS_ON_THE_WAY, OrderLifecycle::STATUS_CORRECTION_IN_PROGRESS])->count(),
-                'delivered' => Order::where('status', OrderLifecycle::STATUS_DELIVERED)->count(),
-                'cancelled' => Order::where('status', OrderLifecycle::STATUS_CANCELLED)->count(),
-            ],
+            'counts' => $this->orders->statusCounts(),
+            'stale_pending' => $this->orders->stalePendingCount(),
         ]);
     }
 
@@ -154,11 +143,17 @@ class OrderController extends Controller
             'cylinder_price' => $order->cylinder_price,
             'delivery_fee' => $order->delivery_fee,
             'addons_total' => $order->addons_total,
+            // Without these two the breakdown silently fails to add up to the
+            // total on any order that redeemed points.
+            'gaspoints_redeemed' => $order->gaspoints_redeemed,
+            'gaspoints_discount' => $order->gaspoints_discount,
             'total_amount' => $order->total_amount,
             'payment_method' => $order->payment_method,
             'payment_status' => $order->payment_status,
             'delivery_lat' => $order->delivery_lat,
             'delivery_lng' => $order->delivery_lng,
+            'delivery_label' => $order->delivery_label,
+            'delivery_address' => $order->delivery_address,
             'delivery_notes' => $order->delivery_notes,
             'has_issue' => $order->has_issue,
             'issue_type' => $order->issue_type,

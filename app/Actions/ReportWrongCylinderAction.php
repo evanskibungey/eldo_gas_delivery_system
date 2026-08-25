@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Events\OrderStatusUpdatedEvent;
 use App\Events\WrongCylinderReportedEvent;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
@@ -42,5 +43,9 @@ class ReportWrongCylinderAction
         });
 
         event(new WrongCylinderReportedEvent($order));
+
+        // Moves the order to correction_in_progress — a live delivery in
+        // trouble. The admin board must see that without a manual refresh.
+        event(new OrderStatusUpdatedEvent($order->fresh()));
     }
 }

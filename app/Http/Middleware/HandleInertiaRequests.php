@@ -6,6 +6,7 @@ use App\Models\StockLevel;
 use App\Models\SystemSetting;
 use App\Support\Utf8Sanitizer;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -40,13 +41,17 @@ class HandleInertiaRequests extends Middleware
                 'warning' => fn () => Utf8Sanitizer::clean($request->session()->get('warning')),
             ],
 
-            'low_stock_count' => fn () => auth('admin')->check()
+            // Sidebar badges. These must be `always` props: the admin board
+            // refreshes itself with partial reloads (`only: [...]`), and a plain
+            // lazy prop is filtered out of those responses — leaving the badges
+            // frozen at whatever they were on the last full page load.
+            'low_stock_count' => Inertia::always(fn () => auth('admin')->check()
                 ? StockLevel::whereRaw('filled_count <= low_stock_threshold')->count()
-                : 0,
+                : 0),
 
-            'pending_orders_count' => fn () => auth('admin')->check()
+            'pending_orders_count' => Inertia::always(fn () => auth('admin')->check()
                 ? \App\Models\Order::where('status', 'pending')->count()
-                : 0,
+                : 0),
         ];
     }
 }

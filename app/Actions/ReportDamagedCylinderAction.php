@@ -3,6 +3,7 @@
 namespace App\Actions;
 
 use App\Events\DamagedCylinderReportedEvent;
+use App\Events\OrderStatusUpdatedEvent;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use Illuminate\Support\Facades\DB;
@@ -43,5 +44,9 @@ class ReportDamagedCylinderAction
 
         // Fires P0 — HandleDamagedCylinder writes StockAuditLog + logs critical
         event(new DamagedCylinderReportedEvent($order));
+
+        // The issue flag is what the admin board renders as P0. It only reaches
+        // the board through the status channel, so it has to be announced here.
+        event(new OrderStatusUpdatedEvent($order->fresh()));
     }
 }

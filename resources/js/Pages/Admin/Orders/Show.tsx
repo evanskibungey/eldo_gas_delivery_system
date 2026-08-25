@@ -1,7 +1,7 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import AssignRiderModal from '@/components/Admin/AssignRiderModal';
 import { Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ArrowLeft, Phone, RefreshCw, Package, Star,
     ShieldCheck, MapPin, AlertCircle, CheckCircle2,
@@ -37,11 +37,15 @@ interface OrderDetail {
     cylinder_price:   number;
     delivery_fee:     number;
     addons_total:     number;
+    gaspoints_redeemed: number;
+    gaspoints_discount: number;
     total_amount:     number;
     payment_method:   'cash' | 'mpesa';
     payment_status:   string;
     delivery_lat:     number;
     delivery_lng:     number;
+    delivery_label:   string | null;
+    delivery_address: string | null;
     delivery_notes:   string | null;
     has_issue:            boolean;
     issue_type:           string | null;
@@ -62,6 +66,7 @@ interface OrderDetail {
     can_assign:                   boolean;
     can_reassign:                 boolean;
     can_cancel:                   boolean;
+    inventory_restore_required:   boolean;
     can_report_out_of_stock:      boolean;
     can_resolve_payment_dispute:  boolean;
     can_resume_delivery:          boolean;
@@ -291,6 +296,28 @@ export default function OrdersShow({ order, availableRiders }: Props) {
     const [showDeliveryConfirm, setShowDeliveryConfirm] = useState(false);
     const [advancing, setAdvancing]                   = useState(false);
 
+    // This page used to be frozen from the moment it rendered: a rider could
+    // pick up, deliver and get paid while the admin still saw "Assigned" — and
+    // clicking Advance then failed with an invalid-transition error.
+    useEffect(() => {
+        const echo = window.Echo;
+        if (!echo) return;
+
+        const channelName = `orders.${order.id}`;
+        const channel = echo.private(channelName);
+
+        // Status transitions only. This channel also carries rider GPS pings,
+        // which arrive every few seconds — reloading on those would hammer the
+        // controller for no visible gain on this page.
+        channel.listen('.order.status_updated', () => {
+            router.reload({ only: ['order', 'availableRiders'] });
+        });
+
+        return () => {
+            echo.leave(channelName);
+        };
+    }, [order.id]);
+
     const fmt = (n: number) => `KES ${n.toLocaleString()}`;
     const isSwap = order.order_type === 'swap';
     const statusCfg = STATUS_CFG[order.status] ?? STATUS_CFG.pending;
@@ -494,6 +521,23 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                     <span className="text-slate-800 font-medium">{fmt(order.addons_total)}</span>
                                 </div>
                             )}
+                            {/* Without this line the numbers above simply do not
+                                add up to the total on a redeemed order. */}
+                            {order.gaspoints_discount > 0 && (
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-emerald-600">
+                                        GasPoints discount
+                                        {order.gaspoints_redeemed > 0 && (
+                                            <span className="ml-1 text-2xs text-slate-500">
+                                                ({order.gaspoints_redeemed.toLocaleString()} pts)
+                                            </span>
+                                        )}
+                                    </span>
+                                    <span className="font-medium text-emerald-600">
+                                        −{fmt(order.gaspoints_discount)}
+                                    </span>
+                                </div>
+                            )}
                             <div className="flex justify-between border-t border-slate-100 pt-2 text-sm font-semibold">
                                 <span className="text-slate-800">Total</span>
                                 <span className="text-slate-900 text-base">{fmt(order.total_amount)}</span>
@@ -636,11 +680,28 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                     {/* Delivery location */}
                     <SectionCard title="Delivery Location">
                         <div className="space-y-2">
-                            <div className="flex items-start gap-2 text-sm text-slate-600">
+                            {/* The address leads. Coordinates are for the maps link
+                                and for confirming a pin — they are not something an
+                                admin can read out over the phone. */}
+                            <div className="flex items-start gap-2 text-slate-700">
                                 <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0 mt-0.5" />
-                                <span className="text-xs">
-                                    {order.delivery_lat.toFixed(6)}, {order.delivery_lng.toFixed(6)}
-                                </span>
+                                <div className="min-w-0">
+                                    {order.delivery_label && (
+                                        <p className="text-xs font-semibold text-slate-900">
+                                            {order.delivery_label}
+                                        </p>
+                                    )}
+                                    {order.delivery_address ? (
+                                        <p className="text-xs text-slate-600">{order.delivery_address}</p>
+                                    ) : (
+                                        !order.delivery_label && (
+                                            <p className="text-xs text-slate-500 italic">No saved address</p>
+                                        )
+                                    )}
+                                    <p className="mt-0.5 font-mono text-2xs text-slate-400">
+                                        {order.delivery_lat.toFixed(6)}, {order.delivery_lng.toFixed(6)}
+                                    </p>
+                                </div>
                             </div>
                             {order.delivery_notes && (
                                 <p className="text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2">

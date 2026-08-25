@@ -11,12 +11,22 @@ return new class extends Migration
     {
         $isMysql = DB::getDriverName() === 'mysql';
 
-        // Add correction_in_progress to orders.status enum (MySQL only — SQLite ignores enum constraints)
+        // Add correction_in_progress to orders.status.
         if ($isMysql) {
             DB::statement("ALTER TABLE orders MODIFY status ENUM(
                 'pending','rider_assigned','picked_up','on_the_way',
                 'correction_in_progress','delivered','cancelled'
             ) NOT NULL DEFAULT 'pending'");
+        } else {
+            // SQLite does NOT ignore enums — Laravel compiles them to a CHECK
+            // constraint, so the original six values stay enforced and any
+            // correction_in_progress write fails. That made the whole wrong-
+            // cylinder flow impossible to exercise on the test database.
+            // Widening to a plain string matches the MySQL set; OrderLifecycle
+            // is what actually guards the values.
+            Schema::table('orders', function (Blueprint $table) {
+                $table->string('status')->default('pending')->change();
+            });
         }
 
         Schema::table('orders', function (Blueprint $table) {
@@ -31,12 +41,17 @@ return new class extends Migration
             }
         });
 
-        // Add damaged_cylinder_flag to stock_audit_logs.change_type enum (MySQL only)
+        // Add damaged_cylinder_flag to stock_audit_logs.change_type.
         if ($isMysql) {
             DB::statement("ALTER TABLE stock_audit_logs MODIFY change_type ENUM(
                 'auto_deduction','auto_return','manual_adjustment',
                 'out_of_stock_cancel','damaged_cylinder_flag'
             ) NOT NULL");
+        } else {
+            // Same CHECK-constraint problem as orders.status above.
+            Schema::table('stock_audit_logs', function (Blueprint $table) {
+                $table->string('change_type')->change();
+            });
         }
     }
 
