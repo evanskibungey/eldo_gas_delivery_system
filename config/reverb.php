@@ -30,13 +30,13 @@ return [
 
         'reverb' => [
             'host' => env('REVERB_SERVER_HOST', '0.0.0.0'),
-            'port' => env('REVERB_SERVER_PORT', 8080),
+            'port' => (int) env('REVERB_SERVER_PORT', 8080),
             'path' => env('REVERB_SERVER_PATH', ''),
             'hostname' => env('REVERB_HOST'),
             'options' => [
                 'tls' => [],
             ],
-            'max_request_size' => env('REVERB_MAX_REQUEST_SIZE', 10_000),
+            'max_request_size' => (int) env('REVERB_MAX_REQUEST_SIZE', 10_000),
             'scaling' => [
                 'enabled' => env('REVERB_SCALING_ENABLED', false),
                 'channel' => env('REVERB_SCALING_CHANNEL', 'reverb'),
@@ -78,21 +78,45 @@ return [
                 'app_id' => env('REVERB_APP_ID'),
                 'options' => [
                     'host' => env('REVERB_HOST'),
-                    'port' => env('REVERB_PORT', 443),
+                    'port' => (int) env('REVERB_PORT', 443),
                     'scheme' => env('REVERB_SCHEME', 'https'),
                     'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
                 ],
-                'allowed_origins' => explode(',', env('REVERB_ALLOWED_ORIGINS', '*')),
-                'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),
-                'activity_timeout' => env('REVERB_APP_ACTIVITY_TIMEOUT', 30),
-                'max_connections' => env('REVERB_APP_MAX_CONNECTIONS'),
-                'max_message_size' => env('REVERB_APP_MAX_MESSAGE_SIZE', 10_000),
+                // Hostnames only, no scheme — Reverb compares these against the
+                // host parsed out of the browser's Origin header.
+                // trim() first: a comma-separated list is normally written with
+                // spaces, and " http://host" defeats the ^ anchor below.
+                'allowed_origins' => array_map(
+                    fn (string $origin) => rtrim(
+                        preg_replace('#^https?://#i', '', trim($origin)),
+                        '/',
+                    ),
+                    explode(',', env('REVERB_ALLOWED_ORIGINS', '*')),
+                ),
+
+                // Every numeric option below is cast.
+                //
+                // env() converts "true"/"false"/"null" to real types but leaves
+                // numeric strings as strings. Reverb passes decay_seconds
+                // straight into Laravel's RateLimiter, which passes it to
+                // Carbon::addRealSeconds() — and Carbon is strictly typed
+                // int|float. An uncast "60" from .env therefore throws on every
+                // single client ping, killing the connection and putting the
+                // browser into a permanent reconnect loop.
+                'ping_interval' => (int) env('REVERB_APP_PING_INTERVAL', 60),
+                'activity_timeout' => (int) env('REVERB_APP_ACTIVITY_TIMEOUT', 30),
+                // Nullable — casting null to int would give 0 and cap the server
+                // at zero connections.
+                'max_connections' => env('REVERB_APP_MAX_CONNECTIONS') !== null
+                    ? (int) env('REVERB_APP_MAX_CONNECTIONS')
+                    : null,
+                'max_message_size' => (int) env('REVERB_APP_MAX_MESSAGE_SIZE', 10_000),
                 'accept_client_events_from' => env('REVERB_APP_ACCEPT_CLIENT_EVENTS_FROM', 'members'),
                 'rate_limiting' => [
-                    'enabled' => env('REVERB_APP_RATE_LIMITING_ENABLED', false),
-                    'max_attempts' => env('REVERB_APP_RATE_LIMIT_MAX_ATTEMPTS', 60),
-                    'decay_seconds' => env('REVERB_APP_RATE_LIMIT_DECAY_SECONDS', 60),
-                    'terminate_on_limit' => env('REVERB_APP_RATE_LIMIT_TERMINATE', false),
+                    'enabled' => (bool) env('REVERB_APP_RATE_LIMITING_ENABLED', false),
+                    'max_attempts' => (int) env('REVERB_APP_RATE_LIMIT_MAX_ATTEMPTS', 60),
+                    'decay_seconds' => (int) env('REVERB_APP_RATE_LIMIT_DECAY_SECONDS', 60),
+                    'terminate_on_limit' => (bool) env('REVERB_APP_RATE_LIMIT_TERMINATE', false),
                 ],
             ],
         ],
