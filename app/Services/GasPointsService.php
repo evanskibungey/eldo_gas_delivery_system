@@ -15,8 +15,6 @@ class GasPointsService
 {
     private const REDEMPTION_TIERS_DEFAULT = [500 => 50, 1000 => 100, 2000 => 200, 5000 => 500];
 
-    private const MILESTONES = [500, 1000, 2000, 5000];
-
     private const DEFAULTS = [
         'gaspoints_earn_new_cylinder' => 150,
         'gaspoints_earn_swap' => 100,
@@ -32,6 +30,10 @@ class GasPointsService
         'gaspoints_referral_min_order_amount' => 0,
         'gaspoints_max_balance' => 0,
     ];
+
+    public function __construct(
+        private readonly GamificationService $gamification,
+    ) {}
 
     public function isEnabled(): bool
     {
@@ -164,7 +166,10 @@ class GasPointsService
             $lockedCustomer->update(['gaspoints_balance' => $newBalance]);
             $customer->refresh();
 
-            $this->checkMilestones($lockedCustomer->id, $newBalance);
+            // Points also arrive from ratings, referrals and refunds — not
+            // only deliveries — so the points-badge check belongs here rather
+            // than solely in the delivery path.
+            $this->gamification->checkPointsBadges($lockedCustomer->fresh());
 
             return $awardablePoints;
         });
@@ -338,12 +343,16 @@ class GasPointsService
             ->doesntExist();
 
         if ($isFirstDelivered) {
+            // Despite the `gaspoints_earn_welcome` setting name, this is not a
+            // signup gift — nothing awards points at registration. It pays on
+            // the first order that actually reaches the customer, so the
+            // description says so rather than implying they had it all along.
             $welcome = $this->rate('gaspoints_earn_welcome', self::DEFAULTS['gaspoints_earn_welcome']);
             $awarded += $this->award(
                 customer: $customer,
                 points: $welcome,
                 type: 'bonus',
-                description: "Welcome bonus - first order #{$order->order_number}",
+                description: "First delivery bonus - order #{$order->order_number}",
                 orderId: $order->id,
                 rewardKey: "order:welcome:{$order->id}",
                 eventCode: 'delivery_welcome',
@@ -514,12 +523,4 @@ class GasPointsService
         return $expiredPoints;
     }
 
-    private function checkMilestones(int $customerId, int $newBalance): void
-    {
-        foreach (self::MILESTONES as $threshold) {
-            if ($newBalance >= $threshold) {
-                Log::info("[GASPOINTS] Customer #{$customerId} reached milestone: {$threshold} pts");
-            }
-        }
-    }
 }

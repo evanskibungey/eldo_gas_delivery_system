@@ -33,12 +33,17 @@ class AwardGasPointsOnDelivery implements ShouldQueue
             $deliveredCount = $customer->orders()->where('status', 'delivered')->count();
             $referrer = Customer::find($customer->referred_by);
 
-            if ($referrer && $deliveredCount === 1) {
+            // >= rather than ==. These listeners are queued, so two deliveries
+            // landing close together can run out of order and step the count
+            // straight past the exact value, losing the bonus for good. The
+            // unique reward_key is what stops a repeat payment, so a threshold
+            // test is both safe and recoverable.
+            if ($referrer && $deliveredCount >= 1) {
                 $this->gasPoints->awardReferralBonus($referrer, $customer, $order);
                 $this->gamification->checkReferralBadge($referrer);
             }
 
-            if ($referrer && $deliveredCount === 3) {
+            if ($referrer && $deliveredCount >= 3) {
                 $this->gasPoints->awardReferralThirdOrderBonus($referrer, $customer, $order);
             }
         }

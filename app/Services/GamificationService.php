@@ -108,6 +108,23 @@ class GamificationService
         });
     }
 
+    /**
+     * Award any points-balance badges the customer now qualifies for.
+     *
+     * Split out of the delivery path because points also arrive from ratings,
+     * referrals and refunds. Those used to leave a customer sitting above a
+     * threshold with no badge until their next delivery happened to run the
+     * full check.
+     */
+    public function checkPointsBadges(Customer $customer): void
+    {
+        foreach (self::POINTS_BADGES as $key => $required) {
+            if ((int) $customer->gaspoints_balance >= $required) {
+                $this->awardBadgeIfMissing($customer, $key);
+            }
+        }
+    }
+
     // ── Private helpers ────────────────────────────────────────────────────
 
     private function checkAndAwardBadges(Customer $customer, CustomerStreak $streak): void
