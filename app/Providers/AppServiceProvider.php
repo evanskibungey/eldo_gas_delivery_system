@@ -10,6 +10,7 @@ use App\Services\Geocoding\GeocodingProvider;
 use App\Services\Geocoding\GeocodingService;
 use App\Services\Geocoding\GoogleProvider;
 use App\Services\Geocoding\NominatimProvider;
+use App\Services\Geocoding\OpenCageProvider;
 use App\Services\ServiceAreaService;
 use App\Services\Sms\SmsServiceInterface;
 use App\Services\Sms\SmsTemplateService;
@@ -39,6 +40,7 @@ class AppServiceProvider extends ServiceProvider
         // without an app release. Add a case here when adding a provider.
         $this->app->singleton(GeocodingProvider::class, function () {
             return match (config('geocoding.driver', 'nominatim')) {
+                'opencage' => new OpenCageProvider(),
                 'google' => new GoogleProvider(),
                 'geoapify' => new GeoapifyProvider(),
                 'nominatim' => new NominatimProvider(),

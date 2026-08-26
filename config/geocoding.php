@@ -41,6 +41,12 @@ return [
         'url' => env('GEOCODING_NOMINATIM_URL', 'https://nominatim.openstreetmap.org'),
     ],
 
+    'opencage' => [
+        // Server-side only. Reverse geocoding is what puts a place name on the
+        // delivery card in place of raw coordinates.
+        'key' => env('OPENCAGE_API_KEY'),
+    ],
+
     'google' => [
         // Server-side only. Keep this distinct from the Maps SDK key the app
         // ships in its manifest: that one is extractable from the APK and is
