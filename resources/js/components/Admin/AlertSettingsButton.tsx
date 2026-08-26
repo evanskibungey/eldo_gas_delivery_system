@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Bell, BellOff, BellRing, WifiOff } from 'lucide-react';
-import { armSound, isMuted, isSoundArmed, playNewOrderChime, setMuted } from '@/lib/notificationSound';
+import { armSound, isMuted, isSoundArmed, playNewOrderChime, setMuted, stopRinging } from '@/lib/notificationSound';
 import { useAdminRealtime } from './AdminRealtime';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +36,13 @@ export default function AlertSettingsButton() {
         const next = !muted;
         setMuted(next);
         setMutedState(next);
+
+        if (next) {
+            // Muting has to silence an alarm that is already ringing, not just
+            // suppress the next one. The alert modal stays up — the order still
+            // needs attending — but the noise stops immediately.
+            stopRinging();
+        }
 
         if (!next) {
             // This click is a real user gesture — the one moment the browser

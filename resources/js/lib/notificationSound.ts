@@ -199,8 +199,94 @@ export function setMuted(muted: boolean): void {
 
 // ── Playback ──────────────────────────────────────────────────────────────────
 
+// ── Continuous ringing ────────────────────────────────────────────────────────
+
+let synthLoop: number | null = null;
+
 /**
- * Play the alert. `urgent` repeats it for orders needing immediate action.
+ * Ring until stopRinging() is called.
+ *
+ * Used while any new order is still unacknowledged: the point is that an order
+ * cannot be missed because nobody happened to be at the screen in the two
+ * seconds the sound played.
+ *
+ * Safe to call repeatedly — an already-ringing alarm is left alone rather than
+ * restarted, so a second order arriving does not chop the sound.
+ */
+export function startRinging(): void {
+    if (isMuted()) return;
+
+    const el = audioElement();
+
+    if (el && el.src) {
+        if (!el.paused && el.loop) return; // already ringing
+
+        el.loop = true;
+
+        try {
+            el.currentTime = 0;
+        } catch {
+            // Metadata not loaded yet; play() below still works.
+        }
+
+        const played = el.play();
+
+        if (played && typeof played.then === 'function') {
+            played
+                .then(() => {
+                    armed = true;
+                    stopSynthLoop();
+                })
+                .catch(() => {
+                    // Autoplay blocked or file unavailable — fall back to the
+                    // synth, which may already be permitted.
+                    armed = false;
+                    startSynthLoop();
+                });
+        }
+
+        return;
+    }
+
+    startSynthLoop();
+}
+
+/** Stop the alarm. Safe to call when nothing is ringing. */
+export function stopRinging(): void {
+    stopSynthLoop();
+
+    if (!element) return;
+
+    element.loop = false;
+    element.pause();
+
+    try {
+        element.currentTime = 0;
+    } catch {
+        // Ignore: nothing to rewind.
+    }
+}
+
+function startSynthLoop(): void {
+    if (synthLoop !== null) return;
+
+    playSynthesised(false);
+    // Roughly the length of the synth chime plus a breath, so it reads as a
+    // repeating alarm rather than a stutter.
+    synthLoop = window.setInterval(() => playSynthesised(false), 1400);
+}
+
+function stopSynthLoop(): void {
+    if (synthLoop === null) return;
+
+    window.clearInterval(synthLoop);
+    synthLoop = null;
+}
+
+/**
+ * Play the alert once. `urgent` repeats it for short sounds.
+ *
+ * Used for the bell's confirmation beep. New orders use startRinging().
  *
  * Never throws and never blocks the banner: a silent alert is a degraded alert,
  * not a broken page.

@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Package, RefreshCw, MapPin, Phone, X, BellRing } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { NewOrderPayload } from './AdminRealtime';
@@ -9,84 +9,127 @@ export interface NewOrderAlert {
     receivedAt: number;
 }
 
-/** Cash orders need someone to plan for collection, so they linger longer. */
-function dismissAfter(order: NewOrderPayload): number {
-    return order.payment_method === 'cash' ? 30_000 : 20_000;
-}
+/** Cards rendered in full; the rest are summarised as a count. */
+const VISIBLE = 3;
 
 interface Props {
-    alerts:    NewOrderAlert[];
-    onDismiss: (orderId: number) => void;
+    alerts:       NewOrderAlert[];
+    onDismiss:    (orderId: number) => void;
+    onDismissAll: () => void;
 }
 
 /**
- * New-order banners, rendered above every admin page.
+ * New-order alarm, centred over every admin page.
  *
- * Lives in AdminRealtimeProvider rather than on the Orders page so an admin
- * working in Stock, Riders or Reports still finds out an order came in.
+ * This is deliberately a modal and not a toast. The alarm rings until it is
+ * acknowledged, so it must be impossible to leave ringing without noticing why:
+ * nothing auto-dismisses, and the only ways out are acting on the order or
+ * explicitly dismissing it.
  */
-export default function NewOrderAlertStack({ alerts, onDismiss }: Props) {
-    if (alerts.length === 0) return null;
+export default function NewOrderAlertStack({ alerts, onDismiss, onDismissAll }: Props) {
+    const primaryAction = useRef<HTMLAnchorElement>(null);
+    const open = alerts.length > 0;
+
+    // Escape acknowledges everything — the fastest way to silence the alarm for
+    // someone already looking at the screen.
+    useEffect(() => {
+        if (!open) return;
+
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onDismissAll();
+        };
+
+        window.addEventListener('keydown', onKey);
+
+        return () => window.removeEventListener('keydown', onKey);
+    }, [open, onDismissAll]);
+
+    // Focus the primary action so the alarm is keyboard-actionable, and so the
+    // browser treats the next keypress as an interaction with this dialog.
+    useEffect(() => {
+        if (open) primaryAction.current?.focus();
+    }, [open, alerts[0]?.order.id]);
+
+    // The page behind must not scroll under the modal.
+    useEffect(() => {
+        if (!open) return;
+
+        const previous = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.body.style.overflow = previous;
+        };
+    }, [open]);
+
+    if (!open) return null;
+
+    const visible = alerts.slice(0, VISIBLE);
+    const hidden = alerts.length - visible.length;
 
     return (
         <div
-            // `pointer-events-none` on the column, re-enabled per card, so the
-            // gaps between cards do not block the page underneath.
-            className="pointer-events-none fixed inset-x-0 top-0 z-[100] flex flex-col items-center gap-2 px-3 pt-3 sm:px-4 sm:pt-4"
-            role="region"
-            aria-label="New order alerts"
+            role="alertdialog"
+            aria-modal="true"
+            aria-label={`${alerts.length} new ${alerts.length === 1 ? 'order' : 'orders'}`}
+            className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto p-4"
         >
-            {alerts.map(alert => (
-                <AlertCard
-                    key={alert.order.id}
-                    alert={alert}
-                    onDismiss={() => onDismiss(alert.order.id)}
-                />
-            ))}
+            {/* Backdrop. Deliberately not click-to-dismiss: an accidental click
+                must not silence an order nobody has actually looked at. */}
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px]" aria-hidden="true" />
+
+            <div className="relative flex w-full max-w-lg flex-col gap-3">
+                {visible.map((alert, index) => (
+                    <AlertCard
+                        key={alert.order.id}
+                        alert={alert}
+                        primaryRef={index === 0 ? primaryAction : undefined}
+                        onDismiss={() => onDismiss(alert.order.id)}
+                    />
+                ))}
+
+                {hidden > 0 && (
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/20 bg-slate-900/70 px-4 py-2.5 text-sm text-white">
+                        <span className="font-medium">
+                            and {hidden} more new {hidden === 1 ? 'order' : 'orders'}
+                        </span>
+                        <Link
+                            href="/admin/orders?status=pending"
+                            onClick={onDismissAll}
+                            className="shrink-0 rounded-lg bg-white/15 px-3 py-1 text-xs font-semibold transition-colors hover:bg-white/25"
+                        >
+                            View queue
+                        </Link>
+                    </div>
+                )}
+
+                {alerts.length > 1 && (
+                    <button
+                        onClick={onDismissAll}
+                        className="self-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                    >
+                        Dismiss all and silence
+                    </button>
+                )}
+            </div>
         </div>
     );
 }
 
-function AlertCard({ alert, onDismiss }: { alert: NewOrderAlert; onDismiss: () => void }) {
+function AlertCard({ alert, onDismiss, primaryRef }: {
+    alert: NewOrderAlert;
+    onDismiss: () => void;
+    primaryRef?: React.Ref<HTMLAnchorElement>;
+}) {
     const { order } = alert;
-    const [entered, setEntered] = useState(false);
-    const [paused, setPaused]   = useState(false);
-
-    // Drive the slide-in on the frame after mount so the transition actually runs.
-    useEffect(() => {
-        const raf = requestAnimationFrame(() => setEntered(true));
-        return () => cancelAnimationFrame(raf);
-    }, []);
-
-    useEffect(() => {
-        if (paused) return;
-        const timer = window.setTimeout(onDismiss, dismissAfter(order));
-        return () => window.clearTimeout(timer);
-    }, [paused, order, onDismiss]);
-
     const isSwap = order.order_type === 'swap';
 
     return (
-        <div
-            // assertive: a new order is the one thing in this panel that needs
-            // to interrupt whatever the admin is reading.
-            role="alert"
-            aria-live="assertive"
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-            onFocus={() => setPaused(true)}
-            onBlur={() => setPaused(false)}
-            className={cn(
-                'pointer-events-auto w-full max-w-lg overflow-hidden rounded-2xl border border-orange-300',
-                'bg-white shadow-xl shadow-orange-900/10 ring-1 ring-black/5',
-                'transition-all duration-300 ease-out',
-                entered ? 'translate-y-0 opacity-100' : '-translate-y-3 opacity-0',
-            )}
-        >
+        <div className="overflow-hidden rounded-2xl border border-orange-300 bg-white shadow-2xl shadow-black/30 ring-1 ring-black/5">
             <div className="h-1 w-full bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
 
-            <div className="flex items-start gap-3 p-3.5 sm:p-4">
-                <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50">
+            <div className="flex items-start gap-3 p-4 sm:p-5">
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50">
                     <BellRing className="h-5 w-5 text-orange-500" />
                     <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75" />
@@ -96,14 +139,14 @@ function AlertCard({ alert, onDismiss }: { alert: NewOrderAlert; onDismiss: () =
 
                 <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                        <p className="text-sm font-bold text-slate-900">New order</p>
+                        <p className="text-base font-bold text-slate-900">New order</p>
                         <p className="font-mono text-sm font-semibold text-orange-600">{order.order_number}</p>
-                        <span className="ml-auto text-sm font-bold tabular-nums text-slate-900">
+                        <span className="ml-auto text-base font-bold tabular-nums text-slate-900">
                             KES {order.total_amount.toLocaleString()}
                         </span>
                     </div>
 
-                    <p className="mt-1 truncate text-sm font-medium text-slate-800">
+                    <p className="mt-1.5 truncate text-sm font-medium text-slate-800">
                         {order.customer_name ?? 'Customer'}
                         {order.customer_phone && (
                             <span className="ml-1.5 inline-flex items-center gap-1 text-xs font-normal text-slate-500">
@@ -113,7 +156,7 @@ function AlertCard({ alert, onDismiss }: { alert: NewOrderAlert; onDismiss: () =
                         )}
                     </p>
 
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         <span className={cn(
                             'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-semibold uppercase',
                             isSwap ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600',
@@ -147,27 +190,27 @@ function AlertCard({ alert, onDismiss }: { alert: NewOrderAlert; onDismiss: () =
                     </div>
 
                     {order.address && (
-                        <p className="mt-1.5 flex items-start gap-1 text-xs text-slate-500">
+                        <p className="mt-2 flex items-start gap-1 text-xs text-slate-500">
                             <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
                             <span className="line-clamp-2">{order.address}</span>
                         </p>
                     )}
 
-                    <div className="mt-2.5 flex items-center gap-2">
+                    <div className="mt-3.5 flex items-center gap-2">
                         <Link
+                            ref={primaryRef}
                             href={`/admin/orders/${order.id}`}
                             onClick={onDismiss}
-                            className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-orange-600"
+                            className="inline-flex items-center gap-1 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2"
                         >
                             Assign rider →
                         </Link>
-                        <Link
-                            href="/admin/orders?status=pending"
+                        <button
                             onClick={onDismiss}
-                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
                         >
-                            View queue
-                        </Link>
+                            Dismiss
+                        </button>
                     </div>
                 </div>
 

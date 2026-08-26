@@ -3,7 +3,7 @@ import {
     createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
     type PropsWithChildren,
 } from 'react';
-import { playNewOrderChime, unlockSoundOnFirstGesture } from '@/lib/notificationSound';
+import { startRinging, stopRinging, unlockSoundOnFirstGesture } from '@/lib/notificationSound';
 import NewOrderAlertStack, { type NewOrderAlert } from './NewOrderAlertStack';
 
 // ── Broadcast payloads ────────────────────────────────────────────────────────
@@ -133,18 +133,36 @@ export function AdminRealtimeProvider({ children }: PropsWithChildren) {
         setAlerts(current => current.filter(alert => alert.order.id !== id));
     }, []);
 
+    const dismissAllAlerts = useCallback(() => setAlerts([]), []);
+
     const raiseAlert = useCallback((order: NewOrderPayload) => {
         setAlerts(current => {
             // A poll and a broadcast can surface the same order; and a rider
             // decline re-fires the placed event. Announce each order once.
             if (current.some(alert => alert.order.id === order.id)) return current;
-            // Newest first, capped — a backlog of stacked cards helps nobody.
-            return [{ order, receivedAt: Date.now() }, ...current].slice(0, 4);
+            // Newest first. Capped only to bound memory during an outage — the
+            // alarm is acknowledged by hand, so nothing is auto-expired.
+            return [{ order, receivedAt: Date.now() }, ...current].slice(0, 20);
         });
 
-        playNewOrderChime(order.payment_method === 'cash');
         notifyDesktop(order);
     }, []);
+
+    // Ring for as long as ANY order is unacknowledged, rather than playing once
+    // and hoping somebody was at the screen. Driven off the alert list so every
+    // path that clears an alert — dismiss, dismiss-all, clicking through to the
+    // order — stops the alarm without having to remember to.
+    useEffect(() => {
+        if (alerts.length > 0) {
+            startRinging();
+        } else {
+            stopRinging();
+        }
+    }, [alerts.length]);
+
+    // A navigation away (or a full page swap) must not leave the alarm ringing
+    // with nothing on screen to silence it.
+    useEffect(() => stopRinging, []);
 
     // ── Channel subscription ──────────────────────────────────────────────────
 
@@ -213,7 +231,11 @@ export function AdminRealtimeProvider({ children }: PropsWithChildren) {
     return (
         <AdminRealtimeContext.Provider value={value}>
             {children}
-            <NewOrderAlertStack alerts={alerts} onDismiss={dismissAlert} />
+            <NewOrderAlertStack
+                alerts={alerts}
+                onDismiss={dismissAlert}
+                onDismissAll={dismissAllAlerts}
+            />
         </AdminRealtimeContext.Provider>
     );
 }
