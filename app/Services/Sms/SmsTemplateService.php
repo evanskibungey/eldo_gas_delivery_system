@@ -28,12 +28,12 @@ class SmsTemplateService
      */
     public function orderConfirmation(Order $order): string
     {
-        $name  = $order->customer->name ?: 'valued customer';
+        $name  = $this->firstName($order);
         $total = 'KES ' . number_format($order->total_amount);
 
-        return "{$this->appName}: Hi {$name}! Your order #{$order->order_number} has been received "
-            . "and is being processed. Total: {$total}. "
-            . "Download the {$this->appName} app to track your delivery: {$this->appLink}";
+        return "{$this->appName}: Hi {$name}! Order #{$order->order_number} received, "
+            . "total {$total}. We are preparing it now. "
+            . "Track it on the {$this->appName} app: {$this->appLink}";
     }
 
     /**
@@ -41,22 +41,41 @@ class SmsTemplateService
      */
     public function riderAssigned(Order $order, Rider $rider): string
     {
-        return "{$this->appName}: Great news! {$rider->name} is heading your way with your gas. "
-            . "Order #{$order->order_number}. Expected in ~25 mins. "
-            . "Contact rider: {$rider->phone}. "
-            . "Track live on the {$this->appName} app: {$this->appLink}";
+        $riderName = strtok(trim($rider->name), ' ') ?: $rider->name;
+
+        return "{$this->appName}: {$riderName} is on the way with order #{$order->order_number}, "
+            . "arriving in under 20 mins. Call {$rider->phone}. "
+            . "Track on the {$this->appName} app: {$this->appLink}";
     }
 
     /**
      * Sent to the customer once the order is marked as delivered (thank-you).
+     *
+     * The points sentence is omitted entirely when nothing was earned — which
+     * happens legitimately (GasPoints disabled, order under the minimum spend)
+     * and also when the award job has not finished yet. Reporting "0 points" or
+     * a stale balance would be worse than saying nothing, so the caller passes
+     * what it actually read from the ledger and this prints only what is true.
      */
-    public function deliveryThankYou(Order $order): string
+    public function deliveryThankYou(Order $order, int $pointsEarned = 0, ?int $pointsBalance = null): string
     {
-        $name = $order->customer->name ?: 'valued customer';
+        $name = $this->firstName($order);
 
-        return "{$this->appName}: Thank you for ordering your gas with {$this->appName}, {$name}! "
-            . "It was our pleasure serving you. "
-            . "Order again anytime on the {$this->appName} app: {$this->appLink}";
+        $points = '';
+        if ($pointsEarned > 0) {
+            $points = 'You earned ' . number_format($pointsEarned) . ' GasPoints';
+            $points .= $pointsBalance !== null
+                ? ' (balance: ' . number_format($pointsBalance) . '). '
+                : '. ';
+        }
+
+        // Kept deliberately tight. The previous wording ran to 161 characters —
+        // one past the 160-character limit — so every delivery was billed as
+        // two SMS segments. This version carries the points as well and still
+        // fits in one, halving the cost of the highest-volume message here.
+        return "{$this->appName}: Thanks for your order, {$name}! "
+            . $points
+            . "Order again on the {$this->appName} app: {$this->appLink}";
     }
 
     /**
@@ -64,9 +83,11 @@ class SmsTemplateService
      */
     public function safetyTip(): string
     {
-        return "Safety Tip from {$this->appName}: Smell gas? Do NOT switch on lights or appliances. "
-            . 'Open all windows, leave the building immediately, and call 999 or 0800 723 723. '
-            . "Stay safe — {$this->appName} Team. App: {$this->appLink}";
+        // The em dash that used to sit before the sign-off forced this whole
+        // message into UCS-2, cutting the segment size from 160 characters to
+        // 70 and billing it as four messages. Keep this ASCII.
+        return "{$this->appName} Safety: Smell gas? Do NOT touch lights or appliances. "
+            . 'Open all windows, leave the building, then call 999 or 0800 723 723.';
     }
 
     // ── Admin templates ───────────────────────────────────────────────────────
@@ -76,8 +97,10 @@ class SmsTemplateService
      */
     public function adminNoRiderAvailable(Order $order): string
     {
+        // Plain hyphen, not an em dash: one non-GSM-7 character re-encodes the
+        // whole message as UCS-2 and triples the segment count.
         return "{$this->appName} ALERT: Order #{$order->order_number} could not be auto-assigned "
-            . "— no riders are available. Please assign a rider manually in the admin dashboard.";
+            . "- no riders available. Please assign one manually in the admin dashboard.";
     }
 
     /**
@@ -124,6 +147,18 @@ class SmsTemplateService
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * First name only. Friendlier in an SMS, and it keeps a long full name from
+     * quietly pushing a message past 160 characters into a second billed
+     * segment.
+     */
+    private function firstName(Order $order): string
+    {
+        $full = trim((string) $order->customer?->name);
+
+        return $full !== '' ? strtok($full, ' ') : 'valued customer';
+    }
 
     private function itemsLine(Order $order): string
     {

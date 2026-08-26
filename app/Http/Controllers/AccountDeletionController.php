@@ -3,15 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
-use App\Models\CustomerBadge;
-use App\Models\CustomerStreak;
-use App\Models\NotificationLog;
 use App\Models\OtpToken;
+use App\Services\Customer\AccountDeletionService;
 use App\Services\Customer\OtpService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 /**
@@ -51,7 +47,7 @@ class AccountDeletionController extends Controller
             ->withInput(['phone' => $data['phone']]);
     }
 
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request, AccountDeletionService $deletion): RedirectResponse
     {
         $data = $request->validate([
             'phone' => 'required|string|max:20',
@@ -79,51 +75,9 @@ class AccountDeletionController extends Controller
         }
 
         $otp->update(['used_at' => now()]);
-        $this->purgeCustomer($customer);
+        $deletion->purge($customer);
 
         return redirect()->route('account-deletion')->with('deleted', true);
-    }
-
-    /**
-     * Remove all personal data for a customer and deactivate the account.
-     * Runs in a transaction so a mid-way failure leaves nothing partial.
-     */
-    private function purgeCustomer(Customer $customer): void
-    {
-        DB::transaction(function () use ($customer) {
-            $id = $customer->id;
-
-            // Revoke every API token so all devices are signed out.
-            $customer->tokens()->delete();
-
-            // Purge personal + device-linked data.
-            $customer->addresses()->delete();
-            $customer->devices()->delete();
-            $customer->gasPointsTransactions()->delete();
-            CustomerBadge::where('customer_id', $id)->delete();
-            CustomerStreak::where('customer_id', $id)->delete();
-            NotificationLog::where('recipient_type', 'customer')
-                ->where('recipient_id', $id)
-                ->delete();
-            OtpToken::where('phone', $customer->phone)->delete();
-
-            // Break referral links pointing at this account.
-            Customer::where('referred_by', $id)->update(['referred_by' => null]);
-
-            // Anonymise the row: strips PII and frees the phone number for
-            // reuse, while keeping the (now anonymous) record so retained
-            // order history stays referentially valid.
-            // referral_code is a random share code (not PII) and is NOT NULL
-            // in the schema, so it is left intact.
-            $customer->forceFill([
-                'name' => '',
-                'phone' => 'deleted_' . $id . '_' . Str::random(8),
-                'phone_verified_at' => null,
-                'referred_by' => null,
-                'gaspoints_balance' => 0,
-                'is_active' => false,
-            ])->save();
-        });
     }
 
     private function normalizePhone(string $phone): string

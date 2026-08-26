@@ -55,6 +55,11 @@ Route::middleware(['auth.api.customer', 'throttle:120,1'])->group(function () {
     Route::get('catalogue', [CatalogueController::class, 'index']);
     Route::get('profile', [ProfileController::class, 'show']);
     Route::put('profile', [ProfileController::class, 'update']);
+    // In-app account deletion, required by Google Play alongside the public
+    // web form at /account-deletion. Tighter throttle than the group default:
+    // it is irreversible and one call per account is all anyone ever needs.
+    Route::delete('profile', [ProfileController::class, 'destroy'])
+        ->middleware('throttle:6,1');
 
     // Geocoding proxy. Its own bucket because search is typed-into: a single
     // customer filling in a place name generates a burst that would otherwise

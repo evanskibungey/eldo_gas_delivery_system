@@ -290,6 +290,32 @@ class GasPointsService
         return (int) $customer->gaspoints_balance;
     }
 
+    /**
+     * Points this order actually earned its own customer.
+     *
+     * Read back from the ledger rather than recomputed, so it always matches
+     * what was really credited — one order can produce several rows (base,
+     * large-cylinder bonus, first-delivery bonus).
+     *
+     * Two filters matter:
+     *  - customer_id: a referral bonus carries this order_id but is credited to
+     *    the REFERRER, and must not be reported to the buyer.
+     *  - points > 0: redemptions and expiries are stored negative and can carry
+     *    this order_id too, which would otherwise subtract from the total.
+     */
+    public function earnedForOrder(Order $order): int
+    {
+        if (! $order->customer_id) {
+            return 0;
+        }
+
+        return (int) GasPointsTransaction::query()
+            ->where('order_id', $order->id)
+            ->where('customer_id', $order->customer_id)
+            ->where('points', '>', 0)
+            ->sum('points');
+    }
+
     public function awardForOrder(Order $order): int
     {
         if (! $this->isEnabled()) {
