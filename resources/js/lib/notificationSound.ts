@@ -1,28 +1,70 @@
 /**
- * New-order alert chime.
+ * New-order alert sound.
  *
- * Synthesised with the Web Audio API rather than loaded from an mp3: no asset
- * to ship, cache-bust or 404, and it stays audible over a noisy shop floor.
+ * Plays an audio file, falling back to a synthesised chime if the file is
+ * missing or blocked. To use your own sound, drop an MP3 at
+ * public/sounds/new-order.mp3 — it is preferred automatically, no code change.
  *
- * Browsers refuse to start an AudioContext until the user has interacted with
- * the page, so the context is created lazily and unlocked on the first click or
- * keypress. Until that happens `play()` is a no-op instead of an exception.
+ * The hard part is not playing audio, it is browser autoplay policy: nothing
+ * may make sound until the user has interacted with the page. An admin watching
+ * the dispatch board has usually not clicked anything, so the alert that
+ * matters most is the one most likely to be blocked. Two things follow:
+ *
+ *   1. The first real gesture primes the audio (silent play/pause), which is
+ *      the only reliable way to arm playback for later.
+ *   2. isSoundArmed() lets the UI say "click to enable sound" rather than
+ *      failing silently, which is how this went unnoticed for so long.
  */
 
 const MUTE_KEY = 'eldogas.admin.orderSound.muted';
 
+/** First that loads wins, so dropping in an MP3 overrides the default. */
+const SOUND_URLS = ['/sounds/new-order.mp3', '/sounds/new-order.wav'];
+
+/**
+ * Longest sound that still gets the urgent double-play. Anything above this is
+ * already attention-grabbing on its own; repeating it is just noise.
+ */
+const REPEAT_MAX_SECONDS = 2;
+
+let element: HTMLAudioElement | null = null;
 let ctx: AudioContext | null = null;
 let unlockBound = false;
+let armed = false;
 
-type AudioContextCtor = typeof AudioContext;
+// ── Audio element ─────────────────────────────────────────────────────────────
 
-function audioContextCtor(): AudioContextCtor | null {
-    if (typeof window === 'undefined') return null;
-    return window.AudioContext ?? (window as any).webkitAudioContext ?? null;
+function audioElement(): HTMLAudioElement | null {
+    if (typeof Audio === 'undefined') return null;
+
+    if (!element) {
+        element = new Audio();
+        element.preload = 'auto';
+        // Alert, not media: should not pause the user's music or take over
+        // media keys on a phone.
+        element.loop = false;
+        element.volume = 1;
+
+        let index = 0;
+        const tryNext = () => {
+            if (index >= SOUND_URLS.length) return;
+            element!.src = SOUND_URLS[index++];
+        };
+
+        // A missing file fires `error`; step to the next candidate.
+        element.addEventListener('error', tryNext);
+        tryNext();
+    }
+
+    return element;
 }
 
+// ── Web Audio fallback ────────────────────────────────────────────────────────
+
 function context(): AudioContext | null {
-    const Ctor = audioContextCtor();
+    if (typeof window === 'undefined') return null;
+
+    const Ctor = window.AudioContext ?? (window as any).webkitAudioContext;
     if (!Ctor) return null;
 
     if (!ctx) {
@@ -36,26 +78,107 @@ function context(): AudioContext | null {
     return ctx;
 }
 
+/** One bell-ish note, used only when the audio file cannot play. */
+function tone(audio: AudioContext, freq: number, startAt: number, duration: number, peak: number): void {
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+
+    // Percussive envelope: near-instant attack, exponential decay. A raw gate
+    // would click audibly at both ends.
+    gain.gain.setValueAtTime(0.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(peak, startAt + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
+
+    osc.connect(gain).connect(audio.destination);
+    osc.start(startAt);
+    osc.stop(startAt + duration + 0.02);
+}
+
+function playSynthesised(urgent: boolean): void {
+    const audio = context();
+    if (!audio || audio.state === 'suspended') return;
+
+    const now = audio.currentTime;
+
+    tone(audio, 880, now, 0.16, 0.22);        // A5
+    tone(audio, 1318, now + 0.13, 0.30, 0.20); // E6
+
+    if (urgent) {
+        tone(audio, 880, now + 0.46, 0.16, 0.22);
+        tone(audio, 1318, now + 0.59, 0.34, 0.20);
+    }
+}
+
+// ── Unlocking ─────────────────────────────────────────────────────────────────
+
+/** True once audio is actually allowed to play without a gesture. */
+export function isSoundArmed(): boolean {
+    return armed;
+}
+
 /**
- * Resume the audio context on the first user gesture. Safe to call repeatedly —
- * it binds one set of listeners and removes them once they have fired.
+ * Arm audio using the user gesture currently being handled.
+ *
+ * Safe to call directly from a click handler — that is the only context in
+ * which browsers grant permission.
+ */
+export function armSound(): void {
+    const audio = context();
+    if (audio && audio.state === 'suspended') {
+        void audio.resume().catch(() => undefined);
+    }
+
+    const el = audioElement();
+    if (!el) return;
+
+    // Silent play/pause is the standard priming trick: it consumes the gesture
+    // and leaves the element permitted to play later without one.
+    const wasMuted = el.muted;
+    el.muted = true;
+
+    const played = el.play();
+
+    if (played && typeof played.then === 'function') {
+        played
+            .then(() => {
+                el.pause();
+                el.currentTime = 0;
+                el.muted = wasMuted;
+                armed = true;
+            })
+            .catch(() => {
+                el.muted = wasMuted;
+            });
+    } else {
+        el.pause();
+        el.currentTime = 0;
+        el.muted = wasMuted;
+        armed = true;
+    }
+}
+
+/**
+ * Arm on the first click or keypress anywhere. Safe to call repeatedly — it
+ * binds one set of listeners and removes them once they have fired.
  */
 export function unlockSoundOnFirstGesture(): void {
     if (unlockBound || typeof window === 'undefined') return;
     unlockBound = true;
 
     const unlock = () => {
-        const audio = context();
-        if (audio && audio.state === 'suspended') {
-            void audio.resume().catch(() => undefined);
-        }
+        armSound();
         window.removeEventListener('pointerdown', unlock);
         window.removeEventListener('keydown', unlock);
     };
 
-    window.addEventListener('pointerdown', unlock, { once: false });
-    window.addEventListener('keydown', unlock, { once: false });
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
 }
+
+// ── Mute preference ───────────────────────────────────────────────────────────
 
 export function isMuted(): boolean {
     try {
@@ -70,52 +193,62 @@ export function setMuted(muted: boolean): void {
     try {
         window.localStorage.setItem(MUTE_KEY, muted ? '1' : '0');
     } catch {
-        // Preference simply will not persist — not worth failing the alert over.
+        // Preference will not persist — not worth failing the alert over.
     }
 }
 
-/** One bell-ish note. */
-function tone(audio: AudioContext, freq: number, startAt: number, duration: number, peak: number): void {
-    const osc  = audio.createOscillator();
-    const gain = audio.createGain();
-
-    osc.type            = 'sine';
-    osc.frequency.value = freq;
-
-    // Percussive envelope: near-instant attack, exponential decay. A raw
-    // gate would click audibly at both ends.
-    gain.gain.setValueAtTime(0.0001, startAt);
-    gain.gain.exponentialRampToValueAtTime(peak, startAt + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
-
-    osc.connect(gain).connect(audio.destination);
-    osc.start(startAt);
-    osc.stop(startAt + duration + 0.02);
-}
+// ── Playback ──────────────────────────────────────────────────────────────────
 
 /**
- * Two-note rising chime. `urgent` repeats it once for orders that need someone
- * to act now rather than merely be aware.
+ * Play the alert. `urgent` repeats it for orders needing immediate action.
+ *
+ * Never throws and never blocks the banner: a silent alert is a degraded alert,
+ * not a broken page.
  */
 export function playNewOrderChime(urgent = false): void {
     if (isMuted()) return;
 
-    const audio = context();
-    if (!audio) return;
+    const el = audioElement();
 
-    if (audio.state === 'suspended') {
-        // No gesture yet — resume and let the next alert be the audible one.
-        void audio.resume().catch(() => undefined);
-        if (audio.state === 'suspended') return;
+    if (!el || !el.src) {
+        playSynthesised(urgent);
+        return;
     }
 
-    const now = audio.currentTime;
+    try {
+        // Rewind so rapid consecutive orders each sound, rather than the second
+        // being swallowed by the first still playing.
+        el.currentTime = 0;
+    } catch {
+        // Throws if metadata has not loaded yet; play() below still works.
+    }
 
-    tone(audio, 880,  now,        0.16, 0.22); // A5
-    tone(audio, 1318, now + 0.13, 0.30, 0.20); // E6
+    const played = el.play();
 
-    if (urgent) {
-        tone(audio, 880,  now + 0.46, 0.16, 0.22);
-        tone(audio, 1318, now + 0.59, 0.34, 0.20);
+    if (played && typeof played.then === 'function') {
+        played
+            .then(() => {
+                armed = true;
+
+                // Repeat only for a short sound. The double strike exists to
+                // add urgency to a ~1s chime; on a 4s clip it just means eight
+                // seconds of alarm per order, which people mute.
+                const duration = Number.isFinite(el.duration) ? el.duration : 0;
+
+                if (urgent && duration > 0 && duration <= REPEAT_MAX_SECONDS) {
+                    const again = () => {
+                        el.removeEventListener('ended', again);
+                        void el.play().catch(() => undefined);
+                    };
+                    el.addEventListener('ended', again);
+                }
+            })
+            .catch(() => {
+                // Blocked by autoplay policy, or the file failed to load. Try
+                // the synth, which may already be resumed even when the element
+                // is not permitted.
+                armed = false;
+                playSynthesised(urgent);
+            });
     }
 }
