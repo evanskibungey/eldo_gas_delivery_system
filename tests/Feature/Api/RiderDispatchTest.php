@@ -196,6 +196,73 @@ class RiderDispatchTest extends TestCase
         ]);
     }
 
+    public function test_auto_assign_picks_the_nearest_rider_not_the_busiest(): void
+    {
+        Event::fake();
+
+        // The far rider has far more lifetime deliveries. Ordering used to
+        // collapse to total_deliveries DESC (the pending_load tiebreak was
+        // always zero), so this rider won every time regardless of distance.
+        $near = Rider::factory()->create([
+            'is_active'           => true,
+            'is_available'        => true,
+            'total_deliveries'    => 2,
+            'current_latitude'    => -0.2840,
+            'current_longitude'   => 35.2700,
+            'location_updated_at' => now(),
+        ]);
+
+        Rider::factory()->create([
+            'is_active'           => true,
+            'is_available'        => true,
+            'total_deliveries'    => 500,
+            'current_latitude'    => -0.3600,   // ~8 km away
+            'current_longitude'   => 35.2700,
+            'location_updated_at' => now(),
+        ]);
+
+        $this->rider->update(['is_active' => false]);
+
+        $order = Order::factory()->create([
+            'status'       => 'pending',
+            'delivery_lat' => -0.2833,
+            'delivery_lng' => 35.2697,
+        ]);
+
+        (new AutoAssignRiderToOrder)->handle(new \App\Events\OrderPlacedEvent($order, []));
+
+        $this->assertDatabaseHas('orders', [
+            'id'       => $order->id,
+            'rider_id' => $near->id,
+            'status'   => 'rider_assigned',
+        ]);
+    }
+
+    public function test_auto_assign_sets_an_acceptance_deadline(): void
+    {
+        Event::fake();
+
+        $this->rider->update([
+            'is_active'           => true,
+            'is_available'        => true,
+            'current_latitude'    => -0.2833,
+            'current_longitude'   => 35.2697,
+            'location_updated_at' => now(),
+        ]);
+
+        $order = Order::factory()->create([
+            'status'       => 'pending',
+            'delivery_lat' => -0.2833,
+            'delivery_lng' => 35.2697,
+        ]);
+
+        (new AutoAssignRiderToOrder)->handle(new \App\Events\OrderPlacedEvent($order, []));
+
+        $order->refresh();
+        $this->assertNotNull($order->rider_acceptance_deadline);
+        $this->assertNull($order->rider_accepted_at);
+    }
+
     public function test_decline_records_are_idempotent(): void
     {
         $order = Order::factory()->create();

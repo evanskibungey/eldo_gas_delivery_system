@@ -4,6 +4,8 @@ namespace App\Services\Admin;
 
 use App\Models\Rider;
 use App\Models\SystemSetting;
+use App\Support\OrderLifecycle;
+use App\Support\RiderStatus;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +16,10 @@ class RiderService
     public function paginated(array $filters): LengthAwarePaginator
     {
         return Rider::query()
+            // deriveStatus() needs this; loading it here keeps the roster to
+            // one query instead of one per row.
+            ->withExists(['orders as has_active_order' => fn ($query) => $query
+                ->whereIn('status', OrderLifecycle::riderBusyStatuses())])
             ->when($filters['search'] ?? null, function ($q, $v) {
                 $q->where(fn ($q) => $q->where('name', 'like', "%{$v}%")->orWhere('phone', 'like', "%{$v}%"));
             })
@@ -128,10 +134,9 @@ class RiderService
         return compact('commissionRate', 'totalRevenue', 'totalCommission', 'totalEarnings', 'recentOrders', 'recentRatings');
     }
 
-    public function deriveStatus(Rider $rider): string
+    /** @see RiderStatus for why availability alone does not decide this. */
+    public function deriveStatus(Rider $rider, ?bool $hasActiveOrder = null): string
     {
-        if (! $rider->is_active)  return 'offline';
-        if ($rider->is_available) return 'available';
-        return 'on_delivery';
+        return RiderStatus::for($rider, $hasActiveOrder);
     }
 }

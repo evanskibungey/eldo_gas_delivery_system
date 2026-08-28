@@ -35,6 +35,35 @@ class OrderController extends Controller
         return response()->json(['data' => $orders]);
     }
 
+    /**
+     * Completed and cancelled work, newest first.
+     *
+     * active() deliberately returns only live orders, so without this the rider
+     * app had no source at all for its History tab or its "deliveries today" /
+     * "earnings today" tiles — all three filtered for `delivered` against a
+     * list that by definition never contains it, and rendered empty forever.
+     */
+    public function history(Request $request): JsonResponse
+    {
+        $orders = Order::where('rider_id', $request->user()->id)
+            ->whereIn('status', OrderLifecycle::terminalStatuses())
+            ->with(['customer:id,name,phone', 'size:id,name'])
+            ->orderByDesc('delivered_at')
+            ->orderByDesc('id')
+            ->paginate(30);
+
+        return response()->json([
+            'data' => $orders->getCollection()
+                ->map(fn (Order $order) => $this->formatOrder($order))
+                ->values(),
+            'meta' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'total' => $orders->total(),
+            ],
+        ]);
+    }
+
     public function show(Request $request, Order $order): JsonResponse
     {
         if ($order->rider_id !== $request->user()->id) {
@@ -58,14 +87,38 @@ class OrderController extends Controller
             return response()->json(['message' => 'Order is not awaiting acceptance.'], 422);
         }
 
-        $order->update([
-            'rider_accepted_at' => now(),
-            'rider_acceptance_deadline' => null,
-        ]);
+        // Re-check under a lock: the expiry sweeper runs every 30s and a rider
+        // tapping Accept on the last second would otherwise write
+        // rider_accepted_at onto an order already re-queued to someone else.
+        $accepted = DB::transaction(function () use ($order, $rider): bool {
+            $locked = Order::lockForUpdate()->find($order->id);
+
+            if (! $locked
+                || $locked->rider_id !== $rider->id
+                || $locked->status !== OrderLifecycle::STATUS_RIDER_ASSIGNED) {
+                return false;
+            }
+
+            $locked->update([
+                'rider_accepted_at' => now(),
+                'rider_acceptance_deadline' => null,
+            ]);
+
+            return true;
+        });
+
+        if (! $accepted) {
+            return response()->json([
+                'message' => 'This order is no longer available.',
+            ], 409);
+        }
 
         event(new OrderStatusUpdatedEvent($order->fresh()));
 
-        return response()->json(['message' => 'Order accepted.']);
+        return response()->json([
+            'message' => 'Order accepted.',
+            'status' => OrderLifecycle::STATUS_RIDER_ASSIGNED,
+        ]);
     }
 
     public function decline(Request $request, Order $order): JsonResponse
@@ -82,8 +135,19 @@ class OrderController extends Controller
 
         $declinedRiderId = $rider->id;
 
-        DB::transaction(function () use ($order, $declinedRiderId): void {
-            $order->update([
+        // Same race as accept(): the sweeper may already have re-queued this
+        // order, in which case declining it would clear a rider_id that now
+        // belongs to someone else. Re-check under the lock that does the work.
+        $declined = DB::transaction(function () use ($order, $declinedRiderId): bool {
+            $locked = Order::lockForUpdate()->find($order->id);
+
+            if (! $locked
+                || $locked->rider_id !== $declinedRiderId
+                || $locked->status !== OrderLifecycle::STATUS_RIDER_ASSIGNED) {
+                return false;
+            }
+
+            $locked->update([
                 'rider_id' => null,
                 'status' => OrderLifecycle::STATUS_PENDING,
                 'rider_assigned_at' => null,
@@ -93,17 +157,25 @@ class OrderController extends Controller
 
             // Persisted so the exclusion survives every later re-assignment
             // hop, not just the next one.
-            OrderRiderDecline::record($order->id, $declinedRiderId, 'declined');
+            OrderRiderDecline::record($locked->id, $declinedRiderId, 'declined');
 
             OrderStatusHistory::create([
-                'order_id' => $order->id,
+                'order_id' => $locked->id,
                 'status' => OrderLifecycle::STATUS_PENDING,
                 'note' => 'Rider declined - re-queued for assignment',
                 'actor_type' => 'rider',
                 'actor_id' => $declinedRiderId,
                 'created_at' => now(),
             ]);
+
+            return true;
         });
+
+        if (! $declined) {
+            return response()->json([
+                'message' => 'This order is no longer assigned to you.',
+            ], 409);
+        }
 
         event(new RiderOrderRemovedEvent($declinedRiderId, $order->id, 'declined'));
         event(new OrderPlacedEvent($order->fresh(), [$declinedRiderId]));
@@ -197,6 +269,15 @@ class OrderController extends Controller
             'customer_phone' => $order->customer?->phone,
             'size_name' => $order->size?->name,
             'created_at' => $order->created_at->toIso8601String(),
+            'delivered_at' => $order->delivered_at?->toIso8601String(),
+            // The app can only show an Accept button on an order that is still
+            // awaiting one, and it needs the deadline to draw the countdown.
+            // Both were previously only ever reachable through the assignment
+            // WebSocket payload, which made accepting impossible whenever the
+            // socket was down.
+            'needs_acceptance' => $order->status === OrderLifecycle::STATUS_RIDER_ASSIGNED
+                && $order->rider_accepted_at === null,
+            'acceptance_deadline' => $order->rider_acceptance_deadline?->toIso8601String(),
         ];
     }
 

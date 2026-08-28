@@ -104,7 +104,9 @@ Route::middleware(['auth.api.customer', 'throttle:120,1'])->group(function () {
 
 Route::middleware(['auth.api.rider', 'throttle:120,1'])->prefix('rider')->group(function () {
     Route::get('orders', [RiderOrderController::class, 'active']);
-    Route::get('orders/{order}', [RiderOrderController::class, 'show']);
+    // Declared before orders/{order} so 'history' is not swallowed as an id.
+    Route::get('orders/history', [RiderOrderController::class, 'history']);
+    Route::get('orders/{order}', [RiderOrderController::class, 'show'])->whereNumber('order');
     Route::put('orders/{order}/status', [RiderOrderController::class, 'updateStatus']);
     Route::post('orders/{order}/accept', [RiderOrderController::class, 'accept']);
     Route::post('orders/{order}/decline', [RiderOrderController::class, 'decline']);
@@ -116,6 +118,12 @@ Route::middleware(['auth.api.rider', 'throttle:120,1'])->prefix('rider')->group(
         ->withoutMiddleware('throttle:120,1')
         ->middleware('throttle:60,1');
 
+    // Idempotent: the client sends the state it wants, not "flip whatever you
+    // have". A retry or a double-tap on the old toggle route silently inverted
+    // the rider's availability.
+    Route::put('location/availability', [LocationController::class, 'setAvailability']);
+    // Retained for older installs still on the flip semantics. Remove once the
+    // rider app's minimum supported version is past this release.
     Route::post('location/toggle-availability', [LocationController::class, 'toggleAvailability']);
     Route::get('profile', [RiderProfileController::class, 'show']);
     Route::get('earnings', [EarningsController::class, 'index']);

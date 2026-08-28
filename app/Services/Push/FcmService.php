@@ -26,11 +26,25 @@ class FcmService
 
     /**
      * @param  array<string, scalar|null>  $data  Data payload; FCM v1 requires string values.
+     * @param  string|null  $androidChannelId
+     *   Android notification channel to deliver on. Only pass a channel the
+     *   receiving app creates at startup — on API 26+ Android silently drops a
+     *   notification addressed to a channel that does not exist yet.
+     *
+     *   Omitting it means the app's default channel, which for a message with
+     *   no declared channel is a low-importance one: shown in the tray, but no
+     *   heads-up banner and no sound. Fine for a status update, not fine for a
+     *   rider assignment on a 60-second timer.
      *
      * @throws FcmException when FCM rejects the message.
      */
-    public function send(string $deviceToken, string $title, string $body, array $data = []): void
-    {
+    public function send(
+        string $deviceToken,
+        string $title,
+        string $body,
+        array $data = [],
+        ?string $androidChannelId = null,
+    ): void {
         $projectId = (string) config('services.firebase.project_id', '');
         $accessToken = $this->accessToken();
 
@@ -58,7 +72,10 @@ class FcmService
                     'data'    => $this->stringifyData($data),
                     'android' => [
                         'priority'     => 'HIGH',
-                        'notification' => ['sound' => 'default'],
+                        'notification' => array_filter([
+                            'sound'      => 'default',
+                            'channel_id' => $androidChannelId,
+                        ], static fn ($value) => $value !== null),
                     ],
                     'apns' => [
                         'headers' => ['apns-priority' => '10'],

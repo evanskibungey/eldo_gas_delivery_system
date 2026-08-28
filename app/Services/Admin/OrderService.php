@@ -112,6 +112,16 @@ class OrderService
                 'rider_id' => $locked->id,
                 'status' => OrderLifecycle::STATUS_RIDER_ASSIGNED,
                 'rider_assigned_at' => now(),
+                // Without a deadline the expiry sweeper skips this order
+                // (it filters on rider_acceptance_deadline being set), so a
+                // manually assigned order the rider never touches sits in
+                // rider_assigned forever with no alert and no re-queue.
+                'rider_acceptance_deadline' => now()->addSeconds(
+                    (int) config('tracking.acceptance_window_seconds', 60),
+                ),
+                // A previous rider on this order may have accepted it; leaving
+                // their timestamp would make the new assignment look accepted.
+                'rider_accepted_at' => null,
             ]);
 
             OrderStatusHistory::create([
@@ -172,6 +182,16 @@ class OrderService
             if (! $preserveStatus) {
                 $updates['status'] = OrderLifecycle::STATUS_RIDER_ASSIGNED;
                 $updates['rider_accepted_at'] = null;
+                // Same reason as assign(): an assignment with no deadline is
+                // invisible to the expiry sweeper.
+                $updates['rider_acceptance_deadline'] = now()->addSeconds(
+                    (int) config('tracking.acceptance_window_seconds', 60),
+                );
+            } else {
+                // Mid-delivery handover: the new rider inherits the leg in
+                // progress, so there is nothing to accept and no deadline.
+                $updates['rider_acceptance_deadline'] = null;
+                $updates['rider_accepted_at'] = now();
             }
 
             $order->update($updates);

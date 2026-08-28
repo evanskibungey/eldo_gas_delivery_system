@@ -134,39 +134,57 @@ class AutoAssignRiderToOrder implements ShouldQueue
             ->whereNotNull('current_latitude')
             ->whereNotNull('current_longitude')
             ->whereDoesntHave('orders', fn ($query) => $query->whereIn('status', OrderLifecycle::riderBusyStatuses()))
-            ->when(! empty($excludeRiderIds), fn ($query) => $query->whereNotIn('id', $excludeRiderIds))
-            ->withCount(['orders as pending_load' => fn ($query) => $query->where('status', OrderLifecycle::STATUS_RIDER_ASSIGNED)]);
+            ->when(! empty($excludeRiderIds), fn ($query) => $query->whereNotIn('id', $excludeRiderIds));
 
+        // Nearest first, then the less-experienced rider as the tiebreak so
+        // work still spreads among riders standing in the same place.
+        //
+        // The radius is a filter, not an ordering: the previous version sorted
+        // on a `pending_load` count that the whereDoesntHave above already
+        // forces to zero for every candidate, so ordering collapsed to
+        // total_deliveries DESC and the busiest rider in a 15 km circle won
+        // every time — however far away they were.
         if (DB::connection()->getDriverName() === 'sqlite') {
             return $candidateQuery
                 ->get()
-                ->filter(fn (Rider $rider) => $this->distanceKm(
-                    (float) $order->delivery_lat,
-                    (float) $order->delivery_lng,
-                    (float) $rider->current_latitude,
-                    (float) $rider->current_longitude,
-                ) <= $radiusKm)
-                ->sort(fn (Rider $left, Rider $right) => [$left->pending_load, -$left->total_deliveries] <=> [$right->pending_load, -$right->total_deliveries])
+                ->map(function (Rider $rider) use ($order) {
+                    $rider->distance_km = $this->distanceKm(
+                        (float) $order->delivery_lat,
+                        (float) $order->delivery_lng,
+                        (float) $rider->current_latitude,
+                        (float) $rider->current_longitude,
+                    );
+
+                    return $rider;
+                })
+                ->filter(fn (Rider $rider) => $rider->distance_km <= $radiusKm)
+                ->sort(fn (Rider $left, Rider $right) => [$left->distance_km, $left->total_deliveries]
+                    <=> [$right->distance_km, $right->total_deliveries])
                 ->pluck('id')
                 ->values();
         }
 
+        $haversine = '(6371 * acos(
+            least(1, greatest(-1,
+                cos(radians(?)) * cos(radians(current_latitude))
+                * cos(radians(current_longitude) - radians(?))
+                + sin(radians(?)) * sin(radians(current_latitude))
+            ))
+        ))';
+
+        $distanceBindings = [
+            $order->delivery_lat,
+            $order->delivery_lng,
+            $order->delivery_lat,
+        ];
+
+        // Ordered by the expression rather than a select alias: pluck() swaps
+        // the select list out for the plucked column, which would drop the
+        // alias (and leave its bindings stranded) before the query ran.
         return $candidateQuery
-            ->whereRaw(
-                '(6371 * acos(
-                    cos(radians(?)) * cos(radians(current_latitude))
-                    * cos(radians(current_longitude) - radians(?))
-                    + sin(radians(?)) * sin(radians(current_latitude))
-                )) <= ?',
-                [
-                    $order->delivery_lat,
-                    $order->delivery_lng,
-                    $order->delivery_lat,
-                    $radiusKm,
-                ]
-            )
-            ->orderBy('pending_load')
-            ->orderByDesc('total_deliveries')
+            ->whereRaw("{$haversine} <= ?", [...$distanceBindings, $radiusKm])
+            ->orderByRaw($haversine, $distanceBindings)
+            ->orderBy('total_deliveries')
             ->pluck('id');
     }
 

@@ -4,6 +4,8 @@ namespace App\Services\Admin;
 
 use App\Events\RiderLocationUpdated;
 use App\Models\Rider;
+use App\Support\OrderLifecycle;
+use App\Support\RiderStatus;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -12,7 +14,11 @@ class RiderTrackingService
     public function getActivePositions(): Collection
     {
         return Rider::where('is_active', true)
-            ->get(['id', 'name', 'is_available', 'current_latitude', 'current_longitude', 'heading', 'location_updated_at'])
+            // Loaded up front so deriveStatus() below does not fire one
+            // exists() query per rider while painting the admin map.
+            ->withExists(['orders as has_active_order' => fn ($query) => $query
+                ->whereIn('status', OrderLifecycle::riderBusyStatuses())])
+            ->get(['id', 'name', 'is_active', 'is_available', 'current_latitude', 'current_longitude', 'heading', 'location_updated_at'])
             ->map(fn (Rider $r) => [
                 'id'         => $r->id,
                 'name'       => $r->name,
@@ -48,7 +54,7 @@ class RiderTrackingService
         // — that's how the customer's Flutter tracking page gets live
         // rider position updates.
         $activeOrderIds = $rider->orders()
-            ->whereNotIn('status', ['delivered', 'cancelled'])
+            ->whereNotIn('status', OrderLifecycle::terminalStatuses())
             ->pluck('id')
             ->all();
 
@@ -59,7 +65,9 @@ class RiderTrackingService
             riderName:         $rider->name,
             lat:               (float) $data['lat'],
             lng:               (float) $data['lng'],
-            status:            $this->deriveStatus($rider),
+            // Reuse the query just run rather than letting deriveStatus() fire
+            // its own exists() on the hottest path in the API.
+            status:            $this->deriveStatus($rider, $activeOrderIds !== []),
             heading:           $data['heading'] ?? null,
             orderId:           $primaryOrderId !== null ? '#' . $primaryOrderId : null,
             location:          $data['location'] ?? null,
@@ -67,11 +75,10 @@ class RiderTrackingService
         ));
     }
 
-    public function deriveStatus(Rider $rider): string
+    /** @see RiderStatus for why availability alone does not decide this. */
+    public function deriveStatus(Rider $rider, ?bool $hasActiveOrder = null): string
     {
-        if (! $rider->is_active)  return 'offline';
-        if ($rider->is_available) return 'available';
-        return 'on_delivery';
+        return RiderStatus::for($rider, $hasActiveOrder);
     }
 
     /**

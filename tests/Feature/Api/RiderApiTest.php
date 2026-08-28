@@ -184,6 +184,100 @@ class RiderApiTest extends TestCase
         $this->assertDatabaseHas('riders', ['id' => $this->rider->id, 'is_available' => false]);
     }
 
+    public function test_rider_can_set_availability_explicitly(): void
+    {
+        $this->rider->update(['is_available' => true]);
+
+        // Idempotent: sending the same value twice must not flip it back.
+        foreach ([false, false] as $_) {
+            $this->withToken($this->token)
+                ->putJson('/api/v1/rider/location/availability', ['is_available' => false])
+                ->assertOk()
+                ->assertJsonPath('is_available', false);
+        }
+
+        $this->assertDatabaseHas('riders', ['id' => $this->rider->id, 'is_available' => false]);
+    }
+
+    public function test_location_ping_accepts_android_unknown_heading(): void
+    {
+        // Android sends -1 when it has no bearing. This used to 422 and throw
+        // away the position along with it.
+        $this->withToken($this->token)->putJson('/api/v1/rider/location', [
+            'latitude' => 0.5143,
+            'longitude' => 35.2698,
+            'heading' => -1,
+        ])->assertOk();
+
+        $this->rider->refresh();
+        $this->assertNull($this->rider->heading);
+        $this->assertNotNull($this->rider->location_updated_at);
+    }
+
+    public function test_rider_history_returns_only_completed_orders(): void
+    {
+        Order::factory()->delivered()->create(['rider_id' => $this->rider->id]);
+        Order::factory()->withRider()->create(['rider_id' => $this->rider->id]);
+        Order::factory()->delivered()->create();
+
+        $response = $this->withToken($this->token)->getJson('/api/v1/rider/orders/history');
+
+        $response->assertOk();
+        $this->assertCount(1, $response->json('data'));
+        $this->assertSame('delivered', $response->json('data.0.status'));
+    }
+
+    public function test_active_order_awaiting_acceptance_is_flagged_for_the_app(): void
+    {
+        // The app can only offer Accept when the payload says so; without this
+        // the button existed solely inside the assignment WebSocket sheet.
+        $order = Order::factory()->create([
+            'rider_id' => $this->rider->id,
+            'status' => 'rider_assigned',
+            'rider_accepted_at' => null,
+            'rider_acceptance_deadline' => now()->addSeconds(60),
+        ]);
+
+        $this->withToken($this->token)->getJson('/api/v1/rider/orders')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $order->id)
+            ->assertJsonPath('data.0.needs_acceptance', true);
+    }
+
+    public function test_accepting_clears_the_deadline_and_stops_re_queueing(): void
+    {
+        $order = Order::factory()->create([
+            'rider_id' => $this->rider->id,
+            'status' => 'rider_assigned',
+            'rider_accepted_at' => null,
+            'rider_acceptance_deadline' => now()->addSeconds(60),
+        ]);
+
+        $this->withToken($this->token)
+            ->postJson("/api/v1/rider/orders/{$order->id}/accept")
+            ->assertOk();
+
+        $order->refresh();
+        $this->assertNotNull($order->rider_accepted_at);
+        $this->assertNull($order->rider_acceptance_deadline);
+    }
+
+    public function test_accepting_an_order_already_re_queued_conflicts(): void
+    {
+        // The sweeper got there first: rider_id is cleared and the status is
+        // back to pending. Accepting must not resurrect the assignment.
+        $order = Order::factory()->create([
+            'rider_id' => $this->rider->id,
+            'status' => 'rider_assigned',
+        ]);
+
+        $order->update(['status' => 'pending']);
+
+        $this->withToken($this->token)
+            ->postJson("/api/v1/rider/orders/{$order->id}/accept")
+            ->assertStatus(422);
+    }
+
     public function test_rider_endpoints_require_rider_token(): void
     {
         $customer = \App\Models\Customer::factory()->create();

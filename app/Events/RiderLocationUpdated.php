@@ -48,4 +48,26 @@ class RiderLocationUpdated implements ShouldBroadcast
     {
         return 'rider.location.updated';
     }
+
+    /**
+     * Declared explicitly: without this Laravel serialises every public
+     * property, which put `broadcastOrderIds` — the ids of this rider's *other*
+     * live deliveries — onto each customer's private-orders.{id} channel.
+     * That list is routing information for broadcastOn(), not payload.
+     */
+    public function broadcastWith(): array
+    {
+        // Keys stay camelCase — this is the shape RiderMap.tsx and the
+        // customer tracking page already read.
+        return [
+            'riderId' => $this->riderId,
+            'riderName' => $this->riderName,
+            'lat' => $this->lat,
+            'lng' => $this->lng,
+            'status' => $this->status,
+            'heading' => $this->heading,
+            'orderId' => $this->orderId,
+            'location' => $this->location,
+        ];
+    }
 }

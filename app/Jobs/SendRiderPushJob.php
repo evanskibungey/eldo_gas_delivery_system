@@ -27,6 +27,13 @@ class SendRiderPushJob implements ShouldQueue
     public int $backoff = 10;
 
     /**
+     * Must match the channel the rider app creates in
+     * NotificationService._setupLocalNotifications(). Android drops a
+     * notification addressed to a channel that does not exist.
+     */
+    private const ANDROID_CHANNEL_ID = 'eldogas_orders';
+
+    /**
      * @param  array<string, scalar|null>  $data
      */
     public function __construct(
@@ -52,7 +59,18 @@ class SendRiderPushJob implements ShouldQueue
 
         foreach ($devices as $device) {
             try {
-                $fcm->send($device->token, $this->title, $this->body, $this->data);
+                // The rider app creates this channel at startup with
+                // Importance.max, so an assignment gets a heads-up banner and
+                // a sound. Without an explicit channel the message lands on
+                // Android's low-importance default and a rider looking at
+                // their phone can still miss it inside the 60-second window.
+                $fcm->send(
+                    $device->token,
+                    $this->title,
+                    $this->body,
+                    $this->data,
+                    androidChannelId: self::ANDROID_CHANNEL_ID,
+                );
             } catch (FcmException $exception) {
                 if ($exception->isUnregistered()) {
                     // Dead token — the app was uninstalled or the token
