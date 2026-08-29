@@ -35,6 +35,11 @@ class FcmService
      *   no declared channel is a low-importance one: shown in the tray, but no
      *   heads-up banner and no sound. Fine for a status update, not fine for a
      *   rider assignment on a 60-second timer.
+     * @param  string|null  $androidSound
+     *   Raw resource name (no extension) bundled in the receiving app, e.g.
+     *   'school_bell' for res/raw/school_bell.mp3. Null uses the device's
+     *   default notification tone. Note the channel's own sound wins on API
+     *   26+ — this only matters for older handsets and as a fallback.
      *
      * @throws FcmException when FCM rejects the message.
      */
@@ -44,6 +49,7 @@ class FcmService
         string $body,
         array $data = [],
         ?string $androidChannelId = null,
+        ?string $androidSound = null,
     ): void {
         $projectId = (string) config('services.firebase.project_id', '');
         $accessToken = $this->accessToken();
@@ -59,21 +65,31 @@ class FcmService
             return;
         }
 
+        $message = [
+            'token'        => $deviceToken,
+            'notification' => [
+                'title' => $title,
+                'body'  => $body,
+            ],
+        ];
+
+        // Omitted entirely when empty. An empty PHP array encodes as JSON `[]`,
+        // a list — and FCM v1 requires `data` to be a map, so it answers
+        // 400 "Cannot bind a list to map for field 'data'" rather than
+        // treating it as absent.
+        if ($data !== []) {
+            // v1 rejects non-string data values outright.
+            $message['data'] = $this->stringifyData($data);
+        }
+
         $response = Http::timeout(10)
             ->withToken($accessToken)
             ->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", [
-                'message' => [
-                    'token'        => $deviceToken,
-                    'notification' => [
-                        'title' => $title,
-                        'body'  => $body,
-                    ],
-                    // v1 rejects non-string data values outright.
-                    'data'    => $this->stringifyData($data),
+                'message' => $message + [
                     'android' => [
                         'priority'     => 'HIGH',
                         'notification' => array_filter([
-                            'sound'      => 'default',
+                            'sound'      => $androidSound ?? 'default',
                             'channel_id' => $androidChannelId,
                         ], static fn ($value) => $value !== null),
                     ],

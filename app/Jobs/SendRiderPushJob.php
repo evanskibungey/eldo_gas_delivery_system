@@ -30,8 +30,21 @@ class SendRiderPushJob implements ShouldQueue
      * Must match the channel the rider app creates in
      * NotificationService._setupLocalNotifications(). Android drops a
      * notification addressed to a channel that does not exist.
+     *
+     * Versioned because Android fixes a channel's sound at creation time and
+     * ignores later edits — shipping a new alert tone requires a new channel
+     * id. Bump this in lockstep with `_kChannelId` in the rider app.
      */
-    private const ANDROID_CHANNEL_ID = 'eldogas_orders';
+    private const ANDROID_CHANNEL_ID = 'eldogas_orders_v2';
+
+    /**
+     * Raw resource name (no extension) of the assignment bell bundled in the
+     * rider app at res/raw/school_bell.mp3.
+     *
+     * The channel already carries this sound, so it is belt-and-braces for
+     * handsets where the channel was created before the sound existed.
+     */
+    private const ANDROID_SOUND = 'school_bell';
 
     /**
      * @param  array<string, scalar|null>  $data
@@ -70,6 +83,7 @@ class SendRiderPushJob implements ShouldQueue
                     $this->body,
                     $this->data,
                     androidChannelId: self::ANDROID_CHANNEL_ID,
+                    androidSound: self::ANDROID_SOUND,
                 );
             } catch (FcmException $exception) {
                 if ($exception->isUnregistered()) {
