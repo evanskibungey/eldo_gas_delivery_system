@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Customer;
 use App\Actions\ReportDamagedCylinderAction;
 use App\Actions\ReportWrongCylinderAction;
 use App\Actions\RiderNoShowAction;
+use App\Events\OrderStatusUpdatedEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
@@ -66,6 +67,11 @@ class IssueController extends Controller
                         'actor_id' => $actorId,
                         'created_at' => now(),
                     ]);
+
+                    // The other branches delegate to actions that announce this
+                    // themselves; this one writes has_issue inline, so without
+                    // it a customer complaint never reaches the admin board.
+                    event(new OrderStatusUpdatedEvent($order->fresh()));
                     break;
             }
         } catch (ValidationException $e) {

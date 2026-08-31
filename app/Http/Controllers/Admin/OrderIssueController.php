@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\ReportOutOfStockAction;
 use App\Actions\ResolvePaymentDisputeAction;
+use App\Events\OrderStatusUpdatedEvent;
 use App\Events\PaymentDisputeEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
@@ -50,6 +51,11 @@ class OrderIssueController extends Controller
         ]);
 
         event(new PaymentDisputeEvent($order));
+
+        // Flagging a dispute changes payment_status and has_issue. The rider
+        // carrying this order needs to see it, and so does every other admin
+        // with the board open.
+        event(new OrderStatusUpdatedEvent($order->fresh()));
 
         return redirect()->route('admin.orders.show', $order)
             ->with('success', 'Payment dispute flagged.');

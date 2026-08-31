@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Events\OrderStatusUpdatedEvent;
 use App\Events\RiderDelayAlertEvent;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
@@ -46,5 +47,9 @@ class RiderNoShowAction
         });
 
         event(new RiderDelayAlertEvent($order, 'no_show'));
+
+        // has_issue is order state that both the admin board and the rider app
+        // render. It reaches either of them only through the status channel.
+        event(new OrderStatusUpdatedEvent($order->fresh()));
     }
 }

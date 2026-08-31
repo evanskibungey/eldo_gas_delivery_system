@@ -2,6 +2,7 @@
 
 namespace App\Actions;
 
+use App\Events\OrderStatusUpdatedEvent;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use Illuminate\Support\Facades\DB;
@@ -43,5 +44,9 @@ class ResolvePaymentDisputeAction
                 'created_at' => now(),
             ]);
         });
+
+        // Resolving a dispute changes payment_status, which the rider app shows
+        // on the order and the admin board renders as a chip.
+        event(new OrderStatusUpdatedEvent($order->fresh()));
     }
 }

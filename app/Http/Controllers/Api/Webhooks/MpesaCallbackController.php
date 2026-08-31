@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Webhooks;
 
+use App\Events\OrderStatusUpdatedEvent;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\Admin\OrderService;
@@ -53,6 +54,12 @@ class MpesaCallbackController extends Controller
             if ($order->payment_status !== 'collected') {
                 $order->update(['payment_status' => 'collected']);
                 Log::info("M-Pesa payment auto-confirmed for order #{$order->order_number}");
+
+                // Safaricom confirms out of band, so this is the only moment
+                // anyone learns the money arrived. Without it the rider keeps
+                // seeing "payment pending" and may chase a customer who has
+                // already paid.
+                event(new OrderStatusUpdatedEvent($order->fresh()));
             }
         } else {
             // Payment failed or cancelled by user.

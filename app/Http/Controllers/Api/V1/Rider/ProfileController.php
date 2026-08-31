@@ -13,7 +13,15 @@ class ProfileController extends Controller
     {
         $rider = $request->user();
 
-        $todayEarnings = $rider->orders()
+        // Cast explicitly. Eloquent's $casts do NOT apply to query aggregates,
+        // and MySQL's SUM() returns DECIMAL even over an unsignedInteger
+        // column — which PDO hands back as the string "3000". The rider app
+        // then failed its `as num` cast and the whole Profile screen showed
+        // "type 'String' is not a subtype of type 'num'".
+        //
+        // Invisible on SQLite, where SUM() over integers returns an integer,
+        // so the test suite passes either way.
+        $todayEarnings = (int) $rider->orders()
             ->where('status', 'delivered')
             ->whereDate('delivered_at', today())
             ->sum('total_amount');

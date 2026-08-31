@@ -244,7 +244,7 @@ class CustomerOrderTest extends TestCase
             'status' => 'rider_assigned',
         ]);
 
-        $this->authed()->postJson("/api/v1/orders/{$order->id}/issues", [
+        $this->authed()->postJson("/api/v1/orders/{$order->id}/report-issue", [
             'issue_type' => 'rider_no_show',
         ])->assertCreated();
 
