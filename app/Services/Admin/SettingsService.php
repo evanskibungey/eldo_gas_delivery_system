@@ -5,6 +5,7 @@ namespace App\Services\Admin;
 use App\Models\Admin;
 use App\Models\SystemSetting;
 use App\Services\GasPointsService;
+use App\Support\RiderEarnings;
 use Illuminate\Support\Facades\Auth;
 
 class SettingsService
@@ -23,7 +24,7 @@ class SettingsService
             'delivery_per_km_fee',
             'shop_lat',
             'shop_lng',
-            'commission_rate',
+            'rider_earning_per_delivery',
             'gaspoints_enabled',
             'gaspoints_earn_new_cylinder',
             'gaspoints_earn_swap',
@@ -53,7 +54,7 @@ class SettingsService
             'delivery_per_km_fee' => '0.00',
             'shop_lat' => '',
             'shop_lng' => '',
-            'commission_rate' => '10.00',
+            'rider_earning_per_delivery' => '100',
             'gaspoints_enabled' => '1',
             'gaspoints_earn_new_cylinder' => '150',
             'gaspoints_earn_swap' => '100',
@@ -111,9 +112,16 @@ class SettingsService
         SystemSetting::set('shop_lng', $data['shop_lng'] ?? '');
     }
 
-    public function updateCommission(array $data): void
+    /**
+     * Rider pay. Was a commission percentage of the order value; riders are
+     * paid a flat fee per delivery instead, so the knob is an amount now.
+     */
+    public function updateRiderPay(array $data): void
     {
-        SystemSetting::set('commission_rate', $data['commission_rate']);
+        SystemSetting::set(
+            RiderEarnings::SETTING_KEY,
+            (string) (int) $data[RiderEarnings::SETTING_KEY],
+        );
     }
 
     public function updatePoints(array $data): void

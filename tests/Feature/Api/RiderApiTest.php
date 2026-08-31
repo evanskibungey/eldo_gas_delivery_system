@@ -278,6 +278,52 @@ class RiderApiTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_earnings_are_a_flat_fee_per_delivery_not_the_order_value(): void
+    {
+        // Two deliveries worth wildly different amounts of gas. The rider is
+        // paid the same for both, because it is the same trip. This used to
+        // report sum(total_amount) — the shop's takings, not the rider's pay.
+        \App\Models\SystemSetting::set('rider_earning_per_delivery', '100');
+
+        Order::factory()->delivered()->create([
+            'rider_id' => $this->rider->id,
+            'total_amount' => 3200,
+            'delivered_at' => now(),
+        ]);
+        Order::factory()->delivered()->create([
+            'rider_id' => $this->rider->id,
+            'total_amount' => 1250,
+            'delivered_at' => now(),
+        ]);
+
+        $this->withToken($this->token)->getJson('/api/v1/rider/earnings')
+            ->assertOk()
+            ->assertJsonPath('delivery_count', 2)
+            ->assertJsonPath('rate_per_order', 100)
+            ->assertJsonPath('total', 200)
+            // Each line shows the fee earned, with the order value beside it.
+            ->assertJsonPath('breakdown.0.amount', 100);
+
+        $this->withToken($this->token)->getJson('/api/v1/rider/profile')
+            ->assertOk()
+            ->assertJsonPath('today_deliveries', 2)
+            ->assertJsonPath('today_earnings', 200);
+    }
+
+    public function test_the_pay_rate_is_configurable(): void
+    {
+        \App\Models\SystemSetting::set('rider_earning_per_delivery', '150');
+
+        Order::factory()->delivered()->create([
+            'rider_id' => $this->rider->id,
+            'delivered_at' => now(),
+        ]);
+
+        $this->withToken($this->token)->getJson('/api/v1/rider/earnings')
+            ->assertOk()
+            ->assertJsonPath('total', 150);
+    }
+
     public function test_rider_endpoints_require_rider_token(): void
     {
         $customer = \App\Models\Customer::factory()->create();

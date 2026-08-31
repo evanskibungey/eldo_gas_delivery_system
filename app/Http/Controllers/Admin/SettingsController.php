@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Settings\UpdateAccountRequest;
-use App\Http\Requests\Admin\Settings\UpdateCommissionRequest;
+use App\Http\Requests\Admin\Settings\UpdateRiderPayRequest;
 use App\Http\Requests\Admin\Settings\UpdateDeliveryRequest;
 use App\Http\Requests\Admin\Settings\UpdateGeneralRequest;
 use App\Http\Requests\Admin\Settings\UpdatePointsRequest;
@@ -47,11 +47,11 @@ class SettingsController extends Controller
         return back()->with('success', 'Delivery settings saved.');
     }
 
-    public function updateCommission(UpdateCommissionRequest $request): RedirectResponse
+    public function updateRiderPay(UpdateRiderPayRequest $request): RedirectResponse
     {
-        $this->settings->updateCommission($request->validated());
+        $this->settings->updateRiderPay($request->validated());
 
-        return back()->with('success', 'Commission settings saved.');
+        return back()->with('success', 'Rider pay saved.');
     }
 
     public function updateAccount(UpdateAccountRequest $request): RedirectResponse

@@ -19,7 +19,7 @@ class SystemSettingSeeder extends Seeder
             'delivery_per_km_fee' => '0.00',
             'shop_lat'            => '',
             'shop_lng'            => '',
-            'commission_rate'     => '10.00',
+            'rider_earning_per_delivery' => '100',
         ];
 
         foreach ($defaults as $key => $value) {

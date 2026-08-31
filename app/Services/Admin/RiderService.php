@@ -3,8 +3,8 @@
 namespace App\Services\Admin;
 
 use App\Models\Rider;
-use App\Models\SystemSetting;
 use App\Support\OrderLifecycle;
+use App\Support\RiderEarnings;
 use App\Support\RiderStatus;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
@@ -95,14 +95,22 @@ class RiderService
 
     public function statsFor(Rider $rider): array
     {
-        $commissionRate = (float) SystemSetting::get('commission_rate', '10.00');
+        // Riders are paid a flat fee per delivery. The previous formula here
+        // was `total_amount × (1 − commission_rate)`, which credited a rider
+        // with 90% of every cylinder's sale price — an order of magnitude out.
+        $ratePerDelivery = RiderEarnings::perDelivery();
 
-        $totalRevenue = $rider->orders()
+        $deliveredCount = $rider->orders()
+            ->where('status', 'delivered')
+            ->count();
+
+        // Gas sold through this rider. Shop revenue, shown for context only —
+        // never any part of what the rider is owed.
+        $totalRevenue = (int) $rider->orders()
             ->where('status', 'delivered')
             ->sum('total_amount');
 
-        $totalCommission = round($totalRevenue * $commissionRate / 100, 2);
-        $totalEarnings   = round($totalRevenue - $totalCommission, 2);
+        $totalEarnings = RiderEarnings::forDeliveries($deliveredCount);
 
         $recentOrders = $rider->orders()
             ->orderByDesc('created_at')
@@ -112,8 +120,10 @@ class RiderService
                 'id'            => $o->id,
                 'status'        => $o->status,
                 'total_amount'  => $o->total_amount,
-                'commission'    => round($o->total_amount * $commissionRate / 100, 2),
-                'rider_earning' => round($o->total_amount * (1 - $commissionRate / 100), 2),
+                // Only a delivered order earns the fee.
+                'rider_earning' => $o->status === OrderLifecycle::STATUS_DELIVERED
+                    ? $ratePerDelivery
+                    : 0,
                 'created_at'    => $o->created_at->toDateTimeString(),
             ]);
 
@@ -131,7 +141,7 @@ class RiderService
                 'created_at'    => $r->created_at?->toDateTimeString(),
             ]);
 
-        return compact('commissionRate', 'totalRevenue', 'totalCommission', 'totalEarnings', 'recentOrders', 'recentRatings');
+        return compact('ratePerDelivery', 'deliveredCount', 'totalRevenue', 'totalEarnings', 'recentOrders', 'recentRatings');
     }
 
     /** @see RiderStatus for why availability alone does not decide this. */

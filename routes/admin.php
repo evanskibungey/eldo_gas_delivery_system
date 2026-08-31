@@ -93,7 +93,7 @@ Route::middleware('auth.admin')->group(function () {
     Route::post('settings/general',    [\App\Http\Controllers\Admin\SettingsController::class, 'updateGeneral'])->name('settings.general');
     Route::post('settings/shop-hours', [\App\Http\Controllers\Admin\SettingsController::class, 'updateShopHours'])->name('settings.shop-hours');
     Route::post('settings/delivery',   [\App\Http\Controllers\Admin\SettingsController::class, 'updateDelivery'])->name('settings.delivery');
-    Route::post('settings/commission', [\App\Http\Controllers\Admin\SettingsController::class, 'updateCommission'])->name('settings.commission');
+    Route::post('settings/rider-pay', [\App\Http\Controllers\Admin\SettingsController::class, 'updateRiderPay'])->name('settings.rider-pay');
     Route::post('settings/points',     [\App\Http\Controllers\Admin\SettingsController::class, 'updatePoints'])->name('settings.points');
     Route::post('settings/account',    [\App\Http\Controllers\Admin\SettingsController::class, 'updateAccount'])->name('settings.account');
 });

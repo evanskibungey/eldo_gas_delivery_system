@@ -33,7 +33,7 @@ interface SystemSettings {
     delivery_per_km_fee:                 string;
     shop_lat:                            string;
     shop_lng:                            string;
-    commission_rate:                     string;
+    rider_earning_per_delivery:          string;
     gaspoints_enabled:                   string;
     gaspoints_earn_new_cylinder:         string;
     gaspoints_earn_swap:                 string;
@@ -67,7 +67,7 @@ const TABS = [
     { id: 'general',   label: 'General',       icon: Settings },
     { id: 'shop',      label: 'Shop Hours',     icon: Clock    },
     { id: 'delivery',  label: 'Delivery',       icon: Truck    },
-    { id: 'commission',label: 'Commission',     icon: Percent  },
+    { id: 'riderPay',  label: 'Rider Pay',      icon: Percent  },
     { id: 'points',    label: 'GasPoints',      icon: Gift     },
     { id: 'account',   label: 'My Account',     icon: User     },
 ] as const;
@@ -407,51 +407,54 @@ function DeliveryTab({ settings }: { settings: SystemSettings }) {
     );
 }
 
-function CommissionTab({ settings }: { settings: SystemSettings }) {
+/**
+ * Rider pay. Was a commission percentage of the order value; riders are paid a
+ * flat fee per completed delivery, so this is an amount, not a rate.
+ */
+function RiderPayTab({ settings }: { settings: SystemSettings }) {
     const { data, setData, post, processing, errors } = useForm({
-        commission_rate: settings.commission_rate,
+        rider_earning_per_delivery: settings.rider_earning_per_delivery,
     });
 
     function submit(e: FormEvent) {
         e.preventDefault();
-        post('/admin/settings/commission');
+        post('/admin/settings/rider-pay');
     }
 
-    const rate = parseFloat(data.commission_rate) || 0;
-    const example = 500;
-    const commissionOnExample = ((rate / 100) * example).toFixed(2);
+    const rate = parseInt(data.rider_earning_per_delivery, 10) || 0;
 
     return (
         <SectionCard
-            title="Commission Settings"
-            description="Configure the commission percentage charged per completed order."
+            title="Rider Pay"
+            description="What a rider earns for each completed delivery."
         >
             <form onSubmit={submit} className="space-y-5">
                 <Field
-                    label="Commission Rate (%)"
-                    error={errors.commission_rate}
-                    hint="Percentage of each order's total amount retained as commission."
+                    label="Pay per delivery (KES)"
+                    error={errors.rider_earning_per_delivery}
+                    hint="A flat fee per delivered order. It does not depend on the value of the gas — the same trip pays the same whether the customer bought a refill or a new cylinder."
                 >
                     <div className="relative">
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">KES</span>
                         <Input
                             type="number"
                             min="0"
-                            max="100"
-                            step="0.01"
-                            value={data.commission_rate}
-                            onChange={e => setData('commission_rate', e.target.value)}
-                            error={!!errors.commission_rate}
-                            placeholder="10.00"
-                            className="pr-8"
+                            step="1"
+                            value={data.rider_earning_per_delivery}
+                            onChange={e => setData('rider_earning_per_delivery', e.target.value)}
+                            error={!!errors.rider_earning_per_delivery}
+                            placeholder="100"
+                            className="pl-12"
                         />
-                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">%</span>
                     </div>
                 </Field>
 
                 <div className="rounded-lg border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-600">
-                    Example: On a KES {example.toLocaleString()} order, commission would be{' '}
-                    <span className="font-semibold text-slate-800">KES {commissionOnExample}</span>.
-                    The rider receives the remainder.
+                    Example: a rider completing 8 deliveries in a day earns{' '}
+                    <span className="font-semibold text-slate-800">
+                        KES {(rate * 8).toLocaleString()}
+                    </span>
+                    , whatever those orders were worth.
                 </div>
 
                 <div className="flex justify-end pt-2">
@@ -846,7 +849,7 @@ export default function SettingsIndex({ settings, account }: Props) {
                         {activeTab === 'general'    && <GeneralTab    settings={settings} />}
                         {activeTab === 'shop'       && <ShopHoursTab  settings={settings} />}
                         {activeTab === 'delivery'   && <DeliveryTab   settings={settings} />}
-                        {activeTab === 'commission' && <CommissionTab settings={settings} />}
+                        {activeTab === 'riderPay' && <RiderPayTab settings={settings} />}
                         {activeTab === 'points'     && <PointsTab     settings={settings} />}
                         {activeTab === 'account'    && <AccountTab    account={account}   />}
                     </div>
