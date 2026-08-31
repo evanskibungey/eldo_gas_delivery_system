@@ -231,9 +231,9 @@ class OrderController extends Controller
             return response()->json(['message' => 'Address not found.'], 422);
         }
 
-        // Reject out-of-area pins here rather than letting the order sit at
-        // pending forever: auto-assignment is radius-gated, so an order placed
-        // outside the service area silently matches no rider.
+        // Reject out-of-area pins here rather than taking payment for a
+        // delivery no rider covers. Failing at checkout is better than leaving
+        // an admin to discover it and cancel by hand.
         $serviceArea = app(ServiceAreaService::class);
         if (! $serviceArea->contains((float) $address->latitude, (float) $address->longitude)) {
             $message = $serviceArea->rejectionMessage(

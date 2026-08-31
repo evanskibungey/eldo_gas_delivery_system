@@ -10,13 +10,12 @@ return [
     | this circle are rejected at placement.
     |
     | Without this gate an out-of-area order was accepted and charged, and then
-    | never assigned a rider — auto-assignment *is* radius-gated, so nothing
-    | matched and the order simply sat at pending with nobody looking at it.
-    | Failing loudly at checkout is better than failing silently afterwards.
+    | sat at pending until an admin noticed no rider covered it and cancelled
+    | by hand. Failing loudly at checkout is better than failing silently after
+    | taking the money.
     |
     | These are the defaults. Ops can override the radius at runtime via the
-    | `service_area_radius_km` system setting, the same way
-    | `auto_assign_radius_km` works.
+    | `service_area_radius_km` system setting.
     |
     */
 

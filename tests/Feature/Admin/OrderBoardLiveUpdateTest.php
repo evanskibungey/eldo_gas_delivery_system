@@ -5,6 +5,8 @@ namespace Tests\Feature\Admin;
 use App\Events\OrderPlacedEvent;
 use App\Events\OrderStatusUpdatedEvent;
 use App\Models\Admin;
+use App\Models\CylinderSize;
+use App\Models\GasBrand;
 use App\Models\Order;
 use App\Models\Rider;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -74,17 +76,71 @@ class OrderBoardLiveUpdateTest extends TestCase
         $this->assertArrayHasKey('customer_name', $payload);
         $this->assertArrayHasKey('customer_phone', $payload);
         $this->assertArrayHasKey('address', $payload);
-        $this->assertFalse($payload['is_reoffer']);
+        // The cylinder photo the alert modal shows.
+        $this->assertArrayHasKey('image_url', $payload);
     }
 
-    public function test_a_rider_decline_reoffer_is_flagged_so_it_is_not_announced_as_new(): void
+    public function test_the_payload_carries_the_brand_specific_cylinder_photo(): void
+    {
+        $size = CylinderSize::factory()->create(['image_path' => 'sizes/generic-6kg.jpg']);
+        $brand = GasBrand::factory()->create();
+        // A brand's own photo per size: Lake Gas 6kg looks nothing like Pro Gas 6kg.
+        $size->brands()->attach($brand->id, ['image_path' => 'sizes/lake-6kg.jpg']);
+
+        $order = Order::factory()->create([
+            'status' => 'pending',
+            'size_id' => $size->id,
+            'brand_id' => $brand->id,
+        ]);
+
+        $payload = (new OrderPlacedEvent($order))->broadcastWith();
+
+        $this->assertStringContainsString('lake-6kg.jpg', (string) $payload['image_url']);
+    }
+
+    public function test_the_payload_falls_back_to_the_generic_size_photo(): void
+    {
+        $size = CylinderSize::factory()->create(['image_path' => 'sizes/generic-6kg.jpg']);
+        $brand = GasBrand::factory()->create();
+        // Brand stocked for this size, but with no photo of its own.
+        $size->brands()->attach($brand->id, ['image_path' => null]);
+
+        $order = Order::factory()->create([
+            'status' => 'pending',
+            'size_id' => $size->id,
+            'brand_id' => $brand->id,
+        ]);
+
+        $payload = (new OrderPlacedEvent($order))->broadcastWith();
+
+        $this->assertStringContainsString('generic-6kg.jpg', (string) $payload['image_url']);
+    }
+
+    public function test_the_payload_tolerates_a_product_with_no_photo_at_all(): void
+    {
+        $size = CylinderSize::factory()->create(['image_path' => null]);
+        $order = Order::factory()->create([
+            'status' => 'pending',
+            'size_id' => $size->id,
+            'brand_id' => null,
+        ]);
+
+        $payload = (new OrderPlacedEvent($order))->broadcastWith();
+
+        // The modal falls back to the bell icon rather than a broken image.
+        $this->assertNull($payload['image_url']);
+    }
+
+    public function test_placing_an_order_is_announced_on_the_admin_channel(): void
     {
         $order = Order::factory()->create(['status' => 'pending']);
-        $declined = Rider::factory()->create();
+        $event = new OrderPlacedEvent($order);
 
-        $payload = (new OrderPlacedEvent($order, [$declined->id]))->broadcastWith();
+        $channels = $this->channelNames($event);
 
-        $this->assertTrue($payload['is_reoffer']);
+        // The alert modal listens for exactly this channel and event name.
+        $this->assertContains('private-admin.orders', $channels);
+        $this->assertSame('order.placed', $event->broadcastAs());
     }
 
     public function test_on_the_way_tab_lists_the_corrections_its_badge_counts(): void

@@ -19,11 +19,12 @@ export interface NewOrderPayload {
     payment_method: 'cash' | 'mpesa';
     size_name:      string | null;
     brand_name:     string | null;
+    /** Brand-specific cylinder photo, falling back to the size's generic one. */
+    image_url:      string | null;
     customer_name:  string | null;
     customer_phone: string | null;
     address:        string | null;
     created_ago:    string;
-    is_reoffer:     boolean;
 }
 
 export interface OrderStatusPayload {
@@ -179,7 +180,10 @@ export function AdminRealtimeProvider({ children }: PropsWithChildren) {
         const channel = echo.private('admin.orders');
 
         channel.listen('.order.placed', (payload: NewOrderPayload) => {
-            const isNew = !payload.is_reoffer && !seenOrderIds.current.has(payload.id);
+            // Fires once per order now that assignment is manual — a decline no
+            // longer re-offers. The id check still guards against a duplicate
+            // delivery of the same broadcast.
+            const isNew = !seenOrderIds.current.has(payload.id);
             seenOrderIds.current.add(payload.id);
 
             if (isNew) raiseAlert(payload);

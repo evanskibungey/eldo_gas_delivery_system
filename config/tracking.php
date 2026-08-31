@@ -6,8 +6,9 @@ return [
     | Rider location broadcast throttling
     |--------------------------------------------------------------------------
     |
-    | Every location ping writes to the riders table (auto-assignment needs a
-    | fresh position), but broadcasting each one fans out to the admin map
+    | Every location ping writes to the riders table (the admin map and the
+    | assignment picker need a fresh position), but broadcasting each one fans
+    | out to the admin map
     | plus one channel per active order. These thresholds decide which pings
     | are worth putting on the wire.
     |
@@ -30,8 +31,8 @@ return [
     | Rider acceptance window
     |--------------------------------------------------------------------------
     |
-    | How long a rider has to accept an auto-assigned order before it is
-    | re-queued. The sweeper runs every 30 seconds, so the window a rider
+    | How long a rider has to accept an order an admin assigned them before it
+    | is returned to the pending queue for reassignment. The sweeper runs every 30 seconds, so the window a rider
     | actually experiences is this value plus up to 30 seconds.
     |
     */

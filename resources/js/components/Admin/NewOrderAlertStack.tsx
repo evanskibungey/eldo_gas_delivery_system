@@ -129,9 +129,25 @@ function AlertCard({ alert, onDismiss, primaryRef }: {
             <div className="h-1 w-full bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500" />
 
             <div className="flex items-start gap-3 p-4 sm:p-5">
-                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50">
-                    <BellRing className="h-5 w-5 text-orange-500" />
-                    <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
+                {/* The cylinder itself, so the shop can start picking it before
+                    reading a word. Falls back to the bell when the product has
+                    no photo. */}
+                <div className="relative shrink-0">
+                    {order.image_url ? (
+                        <img
+                            src={order.image_url}
+                            alt={[order.brand_name, order.size_name].filter(Boolean).join(' ') || 'Cylinder'}
+                            // Broken or slow images must not collapse the layout
+                            // or leave a torn-image icon on an alarm dialog.
+                            onError={event => { event.currentTarget.style.display = 'none'; }}
+                            className="h-16 w-16 rounded-xl border border-slate-200 bg-white object-contain p-1"
+                        />
+                    ) : (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-orange-50">
+                            <BellRing className="h-6 w-6 text-orange-500" />
+                        </div>
+                    )}
+                    <span className="absolute -right-1 -top-1 flex h-2.5 w-2.5">
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75" />
                         <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-orange-500" />
                     </span>

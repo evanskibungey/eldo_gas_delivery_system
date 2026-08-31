@@ -5,7 +5,6 @@ namespace Tests\Feature\Api;
 use App\Console\Commands\ExpireRiderAcceptance;
 use App\Events\RiderLocationUpdated;
 use App\Jobs\SendRiderPushJob;
-use App\Listeners\AutoAssignRiderToOrder;
 use App\Models\Device;
 use App\Models\Order;
 use App\Models\OrderRiderDecline;
@@ -143,124 +142,33 @@ class RiderDispatchTest extends TestCase
         $this->assertDatabaseHas('orders', ['id' => $order->id, 'status' => 'pending', 'rider_id' => null]);
     }
 
-    public function test_expired_acceptance_records_an_exclusion(): void
+    public function test_an_assignment_is_not_taken_back_when_the_rider_stays_quiet(): void
     {
         Event::fake();
 
+        // An admin assigns only after seeing the rider at the shop, so the
+        // system must not undo that because no button was tapped. A rider who
+        // truly cannot take it declines; silence is chased by
+        // CheckRiderDelaysJob after 15 minutes, and the admin decides.
         $order = Order::factory()->create([
-            'rider_id'                  => $this->rider->id,
-            'status'                    => 'rider_assigned',
-            'rider_acceptance_deadline' => now()->subSeconds(5),
-            'rider_accepted_at'         => null,
+            'rider_id'           => $this->rider->id,
+            'status'             => 'rider_assigned',
+            'rider_assigned_at'  => now()->subHour(),
+            'rider_accepted_at'  => null,
         ]);
 
-        $this->artisan(ExpireRiderAcceptance::class)->assertSuccessful();
+        $this->artisan('schedule:run')->assertSuccessful();
 
-        $this->assertDatabaseHas('order_rider_declines', [
-            'order_id' => $order->id,
+        $this->assertDatabaseHas('orders', [
+            'id'       => $order->id,
             'rider_id' => $this->rider->id,
-            'reason'   => 'acceptance_expired',
-        ]);
-    }
-
-    public function test_a_declined_order_is_never_reassigned_to_the_same_rider(): void
-    {
-        Event::fake();
-
-        // Only one rider is eligible, and they have already declined — the
-        // order must stay pending rather than boomerang back to them.
-        $this->rider->update([
-            'is_active'           => true,
-            'is_available'        => true,
-            'current_latitude'    => -0.2833,
-            'current_longitude'   => 35.2697,
-            'location_updated_at' => now(),
-        ]);
-
-        $order = Order::factory()->create([
-            'status'       => 'pending',
-            'delivery_lat' => -0.2833,
-            'delivery_lng' => 35.2697,
-        ]);
-
-        OrderRiderDecline::record($order->id, $this->rider->id, 'declined');
-
-        // Note the empty in-memory exclusion list: the persisted row is what
-        // must do the work here.
-        (new AutoAssignRiderToOrder)->handle(new \App\Events\OrderPlacedEvent($order, []));
-
-        $this->assertDatabaseHas('orders', [
-            'id'       => $order->id,
-            'status'   => 'pending',
-            'rider_id' => null,
-        ]);
-    }
-
-    public function test_auto_assign_picks_the_nearest_rider_not_the_busiest(): void
-    {
-        Event::fake();
-
-        // The far rider has far more lifetime deliveries. Ordering used to
-        // collapse to total_deliveries DESC (the pending_load tiebreak was
-        // always zero), so this rider won every time regardless of distance.
-        $near = Rider::factory()->create([
-            'is_active'           => true,
-            'is_available'        => true,
-            'total_deliveries'    => 2,
-            'current_latitude'    => -0.2840,
-            'current_longitude'   => 35.2700,
-            'location_updated_at' => now(),
-        ]);
-
-        Rider::factory()->create([
-            'is_active'           => true,
-            'is_available'        => true,
-            'total_deliveries'    => 500,
-            'current_latitude'    => -0.3600,   // ~8 km away
-            'current_longitude'   => 35.2700,
-            'location_updated_at' => now(),
-        ]);
-
-        $this->rider->update(['is_active' => false]);
-
-        $order = Order::factory()->create([
-            'status'       => 'pending',
-            'delivery_lat' => -0.2833,
-            'delivery_lng' => 35.2697,
-        ]);
-
-        (new AutoAssignRiderToOrder)->handle(new \App\Events\OrderPlacedEvent($order, []));
-
-        $this->assertDatabaseHas('orders', [
-            'id'       => $order->id,
-            'rider_id' => $near->id,
             'status'   => 'rider_assigned',
         ]);
-    }
 
-    public function test_auto_assign_sets_an_acceptance_deadline(): void
-    {
-        Event::fake();
-
-        $this->rider->update([
-            'is_active'           => true,
-            'is_available'        => true,
-            'current_latitude'    => -0.2833,
-            'current_longitude'   => 35.2697,
-            'location_updated_at' => now(),
+        $this->assertDatabaseMissing('order_rider_declines', [
+            'order_id' => $order->id,
+            'reason'   => 'acceptance_expired',
         ]);
-
-        $order = Order::factory()->create([
-            'status'       => 'pending',
-            'delivery_lat' => -0.2833,
-            'delivery_lng' => 35.2697,
-        ]);
-
-        (new AutoAssignRiderToOrder)->handle(new \App\Events\OrderPlacedEvent($order, []));
-
-        $order->refresh();
-        $this->assertNotNull($order->rider_acceptance_deadline);
-        $this->assertNull($order->rider_accepted_at);
     }
 
     public function test_decline_records_are_idempotent(): void

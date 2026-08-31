@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1\Rider;
 
 use App\Events\OrderDeliveredEvent;
-use App\Events\OrderPlacedEvent;
 use App\Events\OrderStatusUpdatedEvent;
 use App\Events\RiderOrderRemovedEvent;
 use App\Http\Controllers\Controller;
@@ -178,7 +177,11 @@ class OrderController extends Controller
         }
 
         event(new RiderOrderRemovedEvent($declinedRiderId, $order->id, 'declined'));
-        event(new OrderPlacedEvent($order->fresh(), [$declinedRiderId]));
+
+        // Assignment is manual, so a decline does not trigger another offer.
+        // Announcing the status change returns the order to the admin board as
+        // pending for someone to reassign by hand.
+        event(new OrderStatusUpdatedEvent($order->fresh()));
 
         return response()->json(['message' => 'Order declined.']);
     }

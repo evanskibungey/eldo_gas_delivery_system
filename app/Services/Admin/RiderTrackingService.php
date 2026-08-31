@@ -32,7 +32,7 @@ class RiderTrackingService
 
     public function updateLocation(Rider $rider, array $data): void
     {
-        // Always persist: auto-assignment filters candidates on
+        // Always persist: the admin rider map and assignment picker filter on
         // location_updated_at being recent, so a skipped write would make
         // an active rider look stale and drop them out of the running.
         $rider->update([

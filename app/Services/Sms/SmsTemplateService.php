@@ -93,14 +93,17 @@ class SmsTemplateService
     // ── Admin templates ───────────────────────────────────────────────────────
 
     /**
-     * Sent when auto-assignment finds no eligible rider for a new order.
+     * Sent when an order has sat unassigned past the stale-pending threshold.
+     *
+     * Assignment is manual, so this is the backstop for an order nobody has
+     * picked up in the admin panel yet.
      */
     public function adminNoRiderAvailable(Order $order): string
     {
         // Plain hyphen, not an em dash: one non-GSM-7 character re-encodes the
         // whole message as UCS-2 and triples the segment count.
-        return "{$this->appName} ALERT: Order #{$order->order_number} could not be auto-assigned "
-            . "- no riders available. Please assign one manually in the admin dashboard.";
+        return "{$this->appName} ALERT: Order #{$order->order_number} is still waiting "
+            . "for a rider. Please assign one in the admin dashboard.";
     }
 
     /**

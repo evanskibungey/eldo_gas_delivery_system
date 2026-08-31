@@ -53,7 +53,7 @@ interface Props {
         delivered:      number;
         cancelled:      number;
     };
-    /** Pending orders older than the auto-assign grace period, table-wide. */
+    /** Pending orders older than the grace period, table-wide. */
     stale_pending: number;
 }
 
@@ -172,7 +172,7 @@ export default function OrdersIndex({ orders, filters, counts, stale_pending: st
             liveRefresh={['orders', 'counts', 'stale_pending']}
         >
 
-            {/* Stale pending orders banner — shown when auto-assignment has found no rider.
+            {/* Stale pending orders banner - orders still waiting for an admin to assign a rider.
                 Counted server-side across the whole table, so it stays truthful on
                 any tab and on any page of the pagination. */}
             {stalePendingCount > 0 && (

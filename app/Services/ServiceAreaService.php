@@ -28,7 +28,7 @@ class ServiceAreaService
         ];
     }
 
-    /** Runtime-overridable, mirroring how `auto_assign_radius_km` works. */
+    /** Runtime-overridable via the `service_area_radius_km` system setting. */
     public function radiusKm(): float
     {
         return (float) SystemSetting::get(

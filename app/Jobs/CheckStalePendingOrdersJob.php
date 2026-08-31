@@ -16,8 +16,8 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Alerts admin when orders have been in `pending` status beyond the configured
- * threshold, meaning auto-assign found no eligible rider and manual intervention
- * is required. Fires at most once per order (tracked via status history note).
+ * threshold. Assignment is manual, so this is the backstop for an order
+ * nobody has picked up in the admin panel yet. Fires at most once per order (tracked via status history note).
  */
 class CheckStalePendingOrdersJob implements ShouldQueue
 {

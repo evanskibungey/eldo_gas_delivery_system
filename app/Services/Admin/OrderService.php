@@ -112,13 +112,14 @@ class OrderService
                 'rider_id' => $locked->id,
                 'status' => OrderLifecycle::STATUS_RIDER_ASSIGNED,
                 'rider_assigned_at' => now(),
-                // Without a deadline the expiry sweeper skips this order
-                // (it filters on rider_acceptance_deadline being set), so a
-                // manually assigned order the rider never touches sits in
-                // rider_assigned forever with no alert and no re-queue.
-                'rider_acceptance_deadline' => now()->addSeconds(
-                    (int) config('tracking.acceptance_window_seconds', 60),
-                ),
+                // No acceptance deadline. An admin assigns only after seeing
+                // the rider physically at the shop, so nothing may hand the
+                // order back on its own because a button went untapped while
+                // they were carrying a cylinder. A rider who genuinely cannot
+                // take it declines explicitly; one who simply goes quiet is
+                // surfaced by CheckRiderDelaysJob after 15 minutes, and the
+                // admin decides.
+                'rider_acceptance_deadline' => null,
                 // A previous rider on this order may have accepted it; leaving
                 // their timestamp would make the new assignment look accepted.
                 'rider_accepted_at' => null,
@@ -182,11 +183,9 @@ class OrderService
             if (! $preserveStatus) {
                 $updates['status'] = OrderLifecycle::STATUS_RIDER_ASSIGNED;
                 $updates['rider_accepted_at'] = null;
-                // Same reason as assign(): an assignment with no deadline is
-                // invisible to the expiry sweeper.
-                $updates['rider_acceptance_deadline'] = now()->addSeconds(
-                    (int) config('tracking.acceptance_window_seconds', 60),
-                );
+                // Same as assign(): the admin's decision stands until a rider
+                // declines or the admin reassigns.
+                $updates['rider_acceptance_deadline'] = null;
             } else {
                 // Mid-delivery handover: the new rider inherits the leg in
                 // progress, so there is nothing to accept and no deadline.
@@ -382,7 +381,8 @@ class OrderService
     }
 
     /**
-     * Orders auto-assignment has given up on. Counted across the whole table,
+     * Orders still waiting for an admin to assign a rider. Counted across the
+     * whole table,
      * not just the visible page — an admin sitting on the Delivered tab still
      * needs to know something has been waiting for a rider for ten minutes.
      */
