@@ -5,11 +5,12 @@ namespace App\Http\Controllers\Api\V1\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\AddonGroup;
 use App\Models\CylinderSize;
+use App\Services\AccessoryPricing;
 use Illuminate\Http\JsonResponse;
 
 class CatalogueController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(AccessoryPricing $pricing): JsonResponse
     {
         // Groups with no size belong to no particular cylinder. They are
         // offered alongside every size *and* stand alone as the accessory
@@ -60,6 +61,10 @@ class CatalogueController extends Controller
             'data' => $sizes,
             // New key. Absent from the shipped app's parser, which ignores it.
             'accessories' => $universal->map(fn ($g) => $this->group($g))->values(),
+            // What an accessory-only order costs to deliver. The app quotes
+            // this before checkout and PlaceOrderAction charges the same
+            // service, so the quote cannot drift away from the bill.
+            'accessory_delivery_fee' => (int) $pricing->deliveryFee(),
         ]);
     }
 

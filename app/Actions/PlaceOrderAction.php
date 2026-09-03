@@ -12,6 +12,7 @@ use App\Models\OrderAddon;
 use App\Models\OrderStatusHistory;
 use App\Models\StockLevel;
 use App\Models\SystemSetting;
+use App\Services\AccessoryPricing;
 use App\Services\Admin\StockService;
 use App\Services\GasPointsService;
 use App\Support\OrderLifecycle;
@@ -24,40 +25,11 @@ class PlaceOrderAction
     /** An order of accessories alone, with no cylinder attached. */
     public const TYPE_ACCESSORY = 'accessory';
 
-    /**
-     * Delivery fee charged on an accessory-only order.
-     *
-     * A rider still rides for a hose, so this is never free by default. The
-     * usual per-size fee cannot be used because such an order names no size,
-     * and delivery_base_fee is only meaningful when the shop is on flat_rate
-     * or per_km — it defaults to '0.00', which would silently give away every
-     * accessory delivery.
-     *
-     * So: an explicit setting first, then the flat base fee if the shop uses
-     * one, then the cheapest cylinder's delivery fee as a floor. Zero only
-     * happens when someone has deliberately set it to zero.
-     */
-    private function accessoryDeliveryFee(): float
-    {
-        $explicit = SystemSetting::get('accessory_delivery_fee');
-        if ($explicit !== null && $explicit !== '') {
-            return (float) $explicit;
-        }
-
-        $feeMode = SystemSetting::get('delivery_fee_mode', 'per_size');
-        if (in_array($feeMode, ['flat_rate', 'per_km'], true)) {
-            $base = (float) SystemSetting::get('delivery_base_fee', '0.00');
-            if ($base > 0) {
-                return $base;
-            }
-        }
-
-        return (float) (CylinderPrice::min('delivery_fee') ?? 0);
-    }
 
     public function __construct(
         private readonly GasPointsService $gasPoints,
         private readonly StockService $stock,
+        private readonly AccessoryPricing $accessoryPricing,
     ) {}
 
     public function execute(Customer $customer, array $data): Order
@@ -114,7 +86,7 @@ class PlaceOrderAction
             if ($isAccessoryOnly) {
                 $gasPrice = 0;
                 $cylinderPrice = 0;
-                $deliveryFee = $this->accessoryDeliveryFee();
+                $deliveryFee = $this->accessoryPricing->deliveryFee();
             } else {
                 $stock = StockLevel::where('size_id', $data['size_id'])
                     ->lockForUpdate()
