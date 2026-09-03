@@ -18,6 +18,9 @@ class GasPointsService
     private const DEFAULTS = [
         'gaspoints_earn_new_cylinder' => 150,
         'gaspoints_earn_swap' => 100,
+        // Accessories carry no gas, so they earn less than a refill by
+        // default. Tunable in admin like every other rate here.
+        'gaspoints_earn_accessory' => 50,
         'gaspoints_earn_large_cylinder' => 200,
         'gaspoints_earn_welcome' => 250,
         'gaspoints_earn_review' => 25,
@@ -83,6 +86,7 @@ class GasPointsService
             'earn_rates' => [
                 'new_cylinder' => $this->rate('gaspoints_earn_new_cylinder', self::DEFAULTS['gaspoints_earn_new_cylinder']),
                 'swap' => $this->rate('gaspoints_earn_swap', self::DEFAULTS['gaspoints_earn_swap']),
+                'accessory' => $this->rate('gaspoints_earn_accessory', self::DEFAULTS['gaspoints_earn_accessory']),
                 'large_cylinder' => $this->rate('gaspoints_earn_large_cylinder', self::DEFAULTS['gaspoints_earn_large_cylinder']),
                 'welcome' => $this->rate('gaspoints_earn_welcome', self::DEFAULTS['gaspoints_earn_welcome']),
                 'review' => $this->rate('gaspoints_earn_review', self::DEFAULTS['gaspoints_earn_review']),
@@ -334,10 +338,28 @@ class GasPointsService
         $customer = $order->customer;
         $awarded = 0;
 
-        $basePoints = $order->order_type === 'new_cylinder'
-            ? $this->rate('gaspoints_earn_new_cylinder', self::DEFAULTS['gaspoints_earn_new_cylinder'])
-            : $this->rate('gaspoints_earn_swap', self::DEFAULTS['gaspoints_earn_swap']);
-        $baseLabel = $order->order_type === 'new_cylinder' ? 'New cylinder' : 'Gas refill';
+        // Three-way. An accessory order used to fall through to the swap
+        // branch and earn refill points for an order containing no gas,
+        // described in the ledger as "Gas refill".
+        $basePoints = match ($order->order_type) {
+            'new_cylinder' => $this->rate(
+                'gaspoints_earn_new_cylinder',
+                self::DEFAULTS['gaspoints_earn_new_cylinder'],
+            ),
+            'accessory' => $this->rate(
+                'gaspoints_earn_accessory',
+                self::DEFAULTS['gaspoints_earn_accessory'],
+            ),
+            default => $this->rate(
+                'gaspoints_earn_swap',
+                self::DEFAULTS['gaspoints_earn_swap'],
+            ),
+        };
+        $baseLabel = match ($order->order_type) {
+            'new_cylinder' => 'New cylinder',
+            'accessory' => 'Accessories',
+            default => 'Gas refill',
+        };
 
         $awarded += $this->award(
             customer: $customer,

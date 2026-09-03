@@ -168,7 +168,14 @@ class SmsTemplateService
         $parts = array_filter([
             $order->size?->name,
             $order->brand?->name,
-            $order->order_type === 'swap' ? 'Swap/Refill' : 'New Cylinder',
+            // A three-way match, not a ternary. An accessory order has no
+            // cylinder, and the old else-branch texted the customer
+            // "New Cylinder" for an order that contained none.
+            match ($order->order_type) {
+                'swap' => 'Swap/Refill',
+                'accessory' => 'Accessories',
+                default => 'New Cylinder',
+            },
         ]);
 
         return implode(', ', $parts);

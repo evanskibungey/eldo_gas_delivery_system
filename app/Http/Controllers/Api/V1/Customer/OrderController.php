@@ -150,11 +150,15 @@ class OrderController extends Controller
     public function store(Request $request, PlaceOrderAction $action, ShopHoursService $shopHours, GasPointsService $gasPoints): JsonResponse
     {
         $input = $request->validate([
-            'order_type' => 'required|in:swap,new_cylinder',
-            'size_id' => 'required|integer|exists:cylinder_sizes,id',
-            'brand_id' => 'required|integer|exists:gas_brands,id',
+            'order_type' => 'required|in:swap,new_cylinder,accessory',
+            // An accessory order has no cylinder to name. Everything else
+            // still must, so the requirement is lifted rather than dropped.
+            'size_id' => 'required_unless:order_type,accessory|nullable|integer|exists:cylinder_sizes,id',
+            'brand_id' => 'required_unless:order_type,accessory|nullable|integer|exists:gas_brands,id',
             'address_id' => 'required|integer|exists:customer_addresses,id',
-            'addon_ids' => 'array',
+            // ...and must then contain at least one accessory, or it is an
+            // order for nothing at all.
+            'addon_ids' => 'required_if:order_type,accessory|array',
             'addon_ids.*' => 'integer|exists:addon_items,id',
             'payment_method' => 'required|in:cash,mpesa',
             'delivery_notes' => 'nullable|string|max:255',
@@ -183,12 +187,18 @@ class OrderController extends Controller
             ], 422);
         }
 
-        $size = CylinderSize::with('brands:id')->find($input['size_id']);
-        if (! $size || ! $size->brands->contains('id', $input['brand_id'])) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => ['brand_id' => ['Selected brand is not available for this cylinder size.']],
-            ], 422);
+        $isAccessoryOnly = $input['order_type'] === 'accessory';
+        $sizeId = $input['size_id'] ?? null;
+
+        // No cylinder means no brand to check against it.
+        if (! $isAccessoryOnly) {
+            $size = CylinderSize::with('brands:id')->find($sizeId);
+            if (! $size || ! $size->brands->contains('id', $input['brand_id'])) {
+                return response()->json([
+                    'message' => 'Validation failed.',
+                    'errors' => ['brand_id' => ['Selected brand is not available for this cylinder size.']],
+                ], 422);
+            }
         }
 
         $addonIds = $input['addon_ids'] ?? [];
@@ -207,10 +217,31 @@ class OrderController extends Controller
             }
 
             foreach ($items as $item) {
-                if (! $item->group || ! $item->group->is_active || (int) $item->group->size_id !== (int) $input['size_id']) {
+                $group = $item->group;
+
+                // A group with no size is universal — valid alongside any
+                // cylinder, and the only kind an accessory-only order may
+                // draw from. A size-scoped group must match this order's
+                // size, which an accessory-only order does not have.
+                //
+                // The old test cast size_id to int, so a universal group's
+                // null became 0 and never matched: universal accessories
+                // would have been rejected from ordinary gas orders too.
+                $allowed = $group !== null
+                    && $group->is_active
+                    && (
+                        $group->size_id === null
+                        || (! $isAccessoryOnly && (int) $group->size_id === (int) $sizeId)
+                    );
+
+                if (! $allowed) {
                     return response()->json([
                         'message' => 'Validation failed.',
-                        'errors' => ['addon_ids' => ['One or more selected add-ons are invalid for this cylinder size.']],
+                        'errors' => ['addon_ids' => [
+                            $isAccessoryOnly
+                                ? 'One or more selected accessories cannot be ordered on their own.'
+                                : 'One or more selected add-ons are invalid for this cylinder size.',
+                        ]],
                     ], 422);
                 }
             }
@@ -249,8 +280,8 @@ class OrderController extends Controller
 
         $data = [
             'order_type' => $input['order_type'],
-            'size_id' => $input['size_id'],
-            'brand_id' => $input['brand_id'],
+            'size_id' => $sizeId,
+            'brand_id' => $input['brand_id'] ?? null,
             'addon_ids' => $addonIds,
             'payment_method' => $input['payment_method'],
             'delivery_lat' => $address->latitude,

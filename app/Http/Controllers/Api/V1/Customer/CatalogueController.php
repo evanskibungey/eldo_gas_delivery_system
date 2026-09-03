@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Customer;
 
 use App\Http\Controllers\Controller;
+use App\Models\AddonGroup;
 use App\Models\CylinderSize;
 use Illuminate\Http\JsonResponse;
 
@@ -10,6 +11,17 @@ class CatalogueController extends Controller
 {
     public function index(): JsonResponse
     {
+        // Groups with no size belong to no particular cylinder. They are
+        // offered alongside every size *and* stand alone as the accessory
+        // catalogue, so they are fetched once and used in both places rather
+        // than duplicated per size the way the old model forced.
+        $universal = AddonGroup::query()
+            ->universal()
+            ->active()
+            ->ordered()
+            ->with(['items' => fn ($q) => $q->where('is_active', true)])
+            ->get();
+
         $sizes = CylinderSize::active()
             ->with(['price', 'brands', 'stockLevel', 'addonGroups.items' => fn ($q) => $q->where('is_active', true)])
             ->ordered()
@@ -35,14 +47,31 @@ class CatalogueController extends Controller
                         ? asset('storage/' . $b->pivot->image_path)
                         : ($b->logo_url ?? null),
                 ]),
-                'addon_groups' => $s->addonGroups->map(fn ($g) => [
-                    'id'             => $g->id,
-                    'name'           => $g->name,
-                    'selection_type' => $g->selection_type,
-                    'items'          => $g->items->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'price' => $i->price]),
-                ]),
+                // Size-specific groups first, then the universal ones. An
+                // older build of the app reads this key and nothing else, so
+                // it simply gains the accessories rather than breaking.
+                'addon_groups' => $s->addonGroups
+                    ->map(fn ($g) => $this->group($g))
+                    ->concat($universal->map(fn ($g) => $this->group($g)))
+                    ->values(),
             ]);
 
-        return response()->json(['data' => $sizes]);
+        return response()->json([
+            'data' => $sizes,
+            // New key. Absent from the shipped app's parser, which ignores it.
+            'accessories' => $universal->map(fn ($g) => $this->group($g))->values(),
+        ]);
+    }
+
+    private function group(AddonGroup $g): array
+    {
+        return [
+            'id'             => $g->id,
+            'name'           => $g->name,
+            'selection_type' => $g->selection_type,
+            'items'          => $g->items->map(
+                fn ($i) => ['id' => $i->id, 'name' => $i->name, 'price' => $i->price],
+            ),
+        ];
     }
 }

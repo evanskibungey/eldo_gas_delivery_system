@@ -21,6 +21,40 @@ use Illuminate\Validation\ValidationException;
 
 class PlaceOrderAction
 {
+    /** An order of accessories alone, with no cylinder attached. */
+    public const TYPE_ACCESSORY = 'accessory';
+
+    /**
+     * Delivery fee charged on an accessory-only order.
+     *
+     * A rider still rides for a hose, so this is never free by default. The
+     * usual per-size fee cannot be used because such an order names no size,
+     * and delivery_base_fee is only meaningful when the shop is on flat_rate
+     * or per_km — it defaults to '0.00', which would silently give away every
+     * accessory delivery.
+     *
+     * So: an explicit setting first, then the flat base fee if the shop uses
+     * one, then the cheapest cylinder's delivery fee as a floor. Zero only
+     * happens when someone has deliberately set it to zero.
+     */
+    private function accessoryDeliveryFee(): float
+    {
+        $explicit = SystemSetting::get('accessory_delivery_fee');
+        if ($explicit !== null && $explicit !== '') {
+            return (float) $explicit;
+        }
+
+        $feeMode = SystemSetting::get('delivery_fee_mode', 'per_size');
+        if (in_array($feeMode, ['flat_rate', 'per_km'], true)) {
+            $base = (float) SystemSetting::get('delivery_base_fee', '0.00');
+            if ($base > 0) {
+                return $base;
+            }
+        }
+
+        return (float) (CylinderPrice::min('delivery_fee') ?? 0);
+    }
+
     public function __construct(
         private readonly GasPointsService $gasPoints,
         private readonly StockService $stock,
@@ -29,6 +63,8 @@ class PlaceOrderAction
     public function execute(Customer $customer, array $data): Order
     {
         $redemptionPoints = (int) ($data['redemption_points'] ?? 0);
+        $data['size_id'] ??= null;
+        $data['brand_id'] ??= null;
         $idempotencyKey = isset($data['idempotency_key'])
             ? trim((string) $data['idempotency_key'])
             : null;
@@ -70,23 +106,34 @@ class PlaceOrderAction
             : null;
 
         $order = DB::transaction(function () use ($customer, $data, $redemptionPoints, $idempotencyKey, $redemptionRewardKey) {
-            $stock = StockLevel::where('size_id', $data['size_id'])
-                ->lockForUpdate()
-                ->first();
+            // An accessory order names no cylinder, so there is no stock to
+            // reserve and no cylinder price row to read. Everything below
+            // that depends on a size is skipped rather than defaulted.
+            $isAccessoryOnly = $data['order_type'] === self::TYPE_ACCESSORY;
 
-            if (! $stock || $stock->filled_count <= 0) {
-                throw new OutOfStockException();
+            if ($isAccessoryOnly) {
+                $gasPrice = 0;
+                $cylinderPrice = 0;
+                $deliveryFee = $this->accessoryDeliveryFee();
+            } else {
+                $stock = StockLevel::where('size_id', $data['size_id'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $stock || $stock->filled_count <= 0) {
+                    throw new OutOfStockException();
+                }
+
+                $price = CylinderPrice::where('size_id', $data['size_id'])->firstOrFail();
+                $isSwap = $data['order_type'] === 'swap';
+                $gasPrice = $isSwap ? $price->gas_refill_price : $price->new_gas_fill_price;
+                $cylinderPrice = $isSwap ? 0 : $price->new_cylinder_price;
+                $feeMode = SystemSetting::get('delivery_fee_mode', 'per_size');
+                $deliveryFee = match ($feeMode) {
+                    'flat_rate', 'per_km' => (float) SystemSetting::get('delivery_base_fee', '0.00'),
+                    default => $price->delivery_fee,
+                };
             }
-
-            $price = CylinderPrice::where('size_id', $data['size_id'])->firstOrFail();
-            $isSwap = $data['order_type'] === 'swap';
-            $gasPrice = $isSwap ? $price->gas_refill_price : $price->new_gas_fill_price;
-            $cylinderPrice = $isSwap ? 0 : $price->new_cylinder_price;
-            $feeMode = SystemSetting::get('delivery_fee_mode', 'per_size');
-            $deliveryFee = match ($feeMode) {
-                'flat_rate', 'per_km' => (float) SystemSetting::get('delivery_base_fee', '0.00'),
-                default => $price->delivery_fee,
-            };
 
             $addonItems = ! empty($data['addon_ids'])
                 ? AddonItem::whereIn('id', $data['addon_ids'])->get()
@@ -125,8 +172,8 @@ class PlaceOrderAction
             $order = Order::create([
                 'order_number' => 'TMP-' . Str::upper(Str::random(16)),
                 'customer_id' => $customer->id,
-                'size_id' => $data['size_id'],
-                'brand_id' => $data['brand_id'],
+                'size_id' => $data['size_id'] ?? null,
+                'brand_id' => $data['brand_id'] ?? null,
                 'order_type' => $data['order_type'],
                 'status' => OrderLifecycle::STATUS_PENDING,
                 'gas_price' => $gasPrice,

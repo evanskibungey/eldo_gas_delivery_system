@@ -46,4 +46,16 @@ class AddonGroup extends Model
     {
         return $query->orderBy('sort_order');
     }
+
+    /// A group with no size belongs to no particular cylinder: it is offered
+    /// alongside every size, and is what an accessory-only order draws from.
+    public function scopeUniversal(Builder $query): Builder
+    {
+        return $query->whereNull('size_id');
+    }
+
+    public function isUniversal(): bool
+    {
+        return $this->size_id === null;
+    }
 }
