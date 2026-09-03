@@ -74,9 +74,15 @@ class CatalogueController extends Controller
             'id'             => $g->id,
             'name'           => $g->name,
             'selection_type' => $g->selection_type,
-            'items'          => $g->items->map(
-                fn ($i) => ['id' => $i->id, 'name' => $i->name, 'price' => $i->price],
-            ),
+            'items'          => $g->items->map(fn ($i) => [
+                'id'    => $i->id,
+                'name'  => $i->name,
+                'price' => $i->price,
+                // Admin has been able to upload these since the catalogue
+                // screens were built; the customer API simply never sent
+                // them, so every accessory rendered as a name and a price.
+                'image_url' => $i->photo_url,
+            ]),
         ];
     }
 }
