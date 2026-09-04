@@ -26,7 +26,7 @@ class OrderController extends Controller
     {
         $orders = $request->user()
             ->orders()
-            ->with(['size:id,name', 'brand:id,name,logo_path'])
+            ->with(['size:id,name', 'brand:id,name,logo_path', 'items.size:id,name', 'items.brand:id,name'])
             ->latest()
             ->paginate(15);
 
@@ -58,6 +58,11 @@ class OrderController extends Controller
                 'order_type' => $order->order_type,
                 'size_name' => $order->size?->name,
                 'brand_name' => $order->brand?->name,
+                // A history row is a glance, so it gets the summary rather
+                // than the lines. The two keys above name the first cylinder
+                // only, which is what a basket would otherwise read as.
+                'items_summary' => $order->itemsSummary(),
+                'cylinder_count' => $order->cylinderCount(),
                 'brand_logo_url' => $brandLogoUrl,
                 'total_amount' => $order->total_amount,
                 'created_at' => $order->created_at->toIso8601String(),
@@ -84,7 +89,7 @@ class OrderController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        $order->load(['size:id,name', 'brand:id,name,logo_path', 'addons.addonItem', 'statusHistory', 'rider:id,name,phone,avg_rating,photo_path,is_safety_certified,current_latitude,current_longitude']);
+        $order->load(['size:id,name', 'brand:id,name,logo_path', 'items.size:id,name', 'items.brand:id,name', 'addons.addonItem', 'statusHistory', 'rider:id,name,phone,avg_rating,photo_path,is_safety_certified,current_latitude,current_longitude']);
 
         $pivotPath = null;
         if ($order->brand_id && $order->size_id) {
@@ -105,6 +110,20 @@ class OrderController extends Controller
             'brand_id' => $order->brand_id,
             'size_name' => $order->size?->name,
             'brand_name' => $order->brand?->name,
+            // Line by line on the detail screen: this is where a customer
+            // checks what they are being charged for, so each cylinder
+            // carries its own quantity and price rather than being folded
+            // into a single figure.
+            'items' => $order->items->map(fn ($item) => [
+                'size_name' => $item->size?->name,
+                'brand_name' => $item->brand?->name,
+                'order_type' => $item->order_type,
+                'quantity' => $item->quantity,
+                'gas_price' => $item->gas_price,
+                'cylinder_price' => $item->cylinder_price,
+                'line_total' => $item->line_total,
+            ])->values(),
+            'cylinder_count' => $order->cylinderCount(),
             'brand_logo_url' => $brandLogoUrl,
             'gas_price' => $order->gas_price,
             'cylinder_price' => $order->cylinder_price,

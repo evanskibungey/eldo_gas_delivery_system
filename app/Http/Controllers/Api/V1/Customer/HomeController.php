@@ -20,13 +20,13 @@ class HomeController extends Controller
         $shopStatus = $shopHours->status();
 
         $lastOrder = Order::where('customer_id', $customer->id)
-            ->with(['size:id,name', 'brand:id,name,logo_path'])
+            ->with(['size:id,name', 'brand:id,name,logo_path', 'items.size:id,name', 'items.brand:id,name'])
             ->latest()
             ->first();
 
         $lastDeliveredOrder = Order::where('customer_id', $customer->id)
             ->where('status', 'delivered')
-            ->with(['size:id,name', 'brand:id,name,logo_path'])
+            ->with(['size:id,name', 'brand:id,name,logo_path', 'items.size:id,name', 'items.brand:id,name'])
             ->latest()
             ->first();
 
@@ -68,6 +68,10 @@ class HomeController extends Controller
                 'order_type' => $lastOrder->order_type,
                 'size_name' => $lastOrder->size?->name,
                 'brand_name' => $lastOrder->brand?->name,
+                // Home's recent-order card names the cylinder. On a basket
+                // its first one is not the order.
+                'items_summary' => $lastOrder->itemsSummary(),
+                'cylinder_count' => $lastOrder->cylinderCount(),
                 'brand_logo_url' => $brandLogoUrl,
                 'total_amount' => (int) $lastOrder->total_amount,
                 'can_reorder' => $lastOrder->canBeReorderedByCustomer(),
@@ -81,6 +85,8 @@ class HomeController extends Controller
                 'order_type' => $lastDeliveredOrder->order_type,
                 'size_name' => $lastDeliveredOrder->size?->name,
                 'brand_name' => $lastDeliveredOrder->brand?->name,
+                'items_summary' => $lastDeliveredOrder->itemsSummary(),
+                'cylinder_count' => $lastDeliveredOrder->cylinderCount(),
                 'brand_logo_url' => $deliveredBrandLogoUrl,
                 'total_amount' => (int) $lastDeliveredOrder->total_amount,
                 'can_reorder' => $lastDeliveredOrder->canBeReorderedByCustomer(),

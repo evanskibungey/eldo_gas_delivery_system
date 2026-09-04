@@ -323,6 +323,53 @@ class MultiItemOrderTest extends TestCase
         $this->assertSame(3, $order->cylinderCount());
     }
 
+    public function test_the_customer_reads_back_every_cylinder_they_ordered(): void
+    {
+        [$small, $smallBrand] = $this->cylinder('6kg', 1500, 100);
+        [$large, $largeBrand] = $this->cylinder('13kg', 3200, 150);
+        [$address, $token] = $this->actor();
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/orders', [
+                'order_type' => 'swap',
+                'address_id' => $address->id,
+                'payment_method' => 'cash',
+                'items' => [
+                    ['size_id' => $small->id, 'brand_id' => $smallBrand->id, 'order_type' => 'swap'],
+                    ['size_id' => $large->id, 'brand_id' => $largeBrand->id, 'order_type' => 'swap', 'quantity' => 2],
+                ],
+            ])
+            ->assertSuccessful();
+
+        $order = Order::firstOrFail();
+
+        // Detail carries the lines: this is where someone checks what they
+        // are being charged for, so each cylinder keeps its own price.
+        $detail = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson("/api/v1/orders/{$order->id}")
+            ->assertOk()
+            ->json();
+
+        $this->assertCount(2, $detail['items']);
+        $this->assertSame(3, $detail['cylinder_count']);
+        $this->assertSame(6400, $detail['items'][1]['line_total']);
+
+        // History is a glance, so it gets the summary instead.
+        $row = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/orders')
+            ->assertOk()
+            ->json('data.0');
+
+        $this->assertStringContainsString('6kg', $row['items_summary']);
+        $this->assertStringContainsString('13kg', $row['items_summary']);
+        $this->assertStringContainsString('×2', $row['items_summary']);
+        $this->assertSame(3, $row['cylinder_count']);
+
+        // The old keys stay populated, because the build in production still
+        // reads them and knows nothing about items.
+        $this->assertNotNull($row['size_name']);
+    }
+
     public function test_a_flat_rate_is_charged_once_for_the_whole_basket(): void
     {
         [$small, $smallBrand] = $this->cylinder('6kg', 1500, 100);
