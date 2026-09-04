@@ -12,15 +12,29 @@ class CatalogueController extends Controller
 {
     public function index(AccessoryPricing $pricing): JsonResponse
     {
-        // Groups with no size belong to no particular cylinder. They are
-        // offered alongside every size *and* stand alone as the accessory
-        // catalogue, so they are fetched once and used in both places rather
-        // than duplicated per size the way the old model forced.
+        // Groups with no size belong to no particular cylinder, so they are
+        // offered alongside every size as well as standing alone.
         $universal = AddonGroup::query()
             ->universal()
             ->active()
             ->ordered()
             ->with(['items' => fn ($q) => $q->where('is_active', true)])
+            ->get();
+
+        // Everything sellable on its own — which is every active group, not
+        // only the universal ones.
+        //
+        // Restricting this to universal groups was wrong in practice: a shop
+        // that has been running has its accessories scoped to sizes already,
+        // and asking it to rebuild them as a parallel universal set to make
+        // the page work is a data migration dressed up as a feature. Nothing
+        // about a hose stops it being delivered without a cylinder; the size
+        // is merchandising, and it travels as a label so the customer can
+        // tell two similar items apart.
+        $sellable = AddonGroup::query()
+            ->active()
+            ->ordered()
+            ->with(['size:id,name', 'items' => fn ($q) => $q->where('is_active', true)])
             ->get();
 
         $sizes = CylinderSize::active()
@@ -60,7 +74,9 @@ class CatalogueController extends Controller
         return response()->json([
             'data' => $sizes,
             // New key. Absent from the shipped app's parser, which ignores it.
-            'accessories' => $universal->map(fn ($g) => $this->group($g))->values(),
+            'accessories' => $sellable
+                ->map(fn ($g) => $this->group($g) + ['size_name' => $g->size?->name])
+                ->values(),
             // What an accessory-only order costs to deliver. The app quotes
             // this before checkout and PlaceOrderAction charges the same
             // service, so the quote cannot drift away from the bill.

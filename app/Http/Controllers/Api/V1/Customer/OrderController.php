@@ -219,19 +219,21 @@ class OrderController extends Controller
             foreach ($items as $item) {
                 $group = $item->group;
 
-                // A group with no size is universal — valid alongside any
-                // cylinder, and the only kind an accessory-only order may
-                // draw from. A size-scoped group must match this order's
-                // size, which an accessory-only order does not have.
+                // On a gas order an addon must belong to this cylinder, or to
+                // no cylinder at all. Casting size_id to int would turn a
+                // universal group's null into 0 and match nothing, which
+                // would have rejected universal accessories from gas orders.
                 //
-                // The old test cast size_id to int, so a universal group's
-                // null became 0 and never matched: universal accessories
-                // would have been rejected from ordinary gas orders too.
+                // An accessory-only order names no cylinder, so there is
+                // nothing to match against and any active addon is fair game.
+                // It sells what the shop sells: a hose does not stop being
+                // deliverable because the catalogue files it under 13kg.
                 $allowed = $group !== null
                     && $group->is_active
                     && (
-                        $group->size_id === null
-                        || (! $isAccessoryOnly && (int) $group->size_id === (int) $sizeId)
+                        $isAccessoryOnly
+                        || $group->size_id === null
+                        || (int) $group->size_id === (int) $sizeId
                     );
 
                 if (! $allowed) {

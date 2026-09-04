@@ -158,6 +158,90 @@ class AccessoryOnlyOrderTest extends TestCase
             ->assertJsonValidationErrors(['size_id', 'brand_id']);
     }
 
+    public function test_a_size_scoped_accessory_can_still_be_bought_alone(): void
+    {
+        [$size] = $this->seedCatalogue();
+        [, $address, $token] = $this->actor();
+
+        // A shop that has been running has its accessories filed under sizes
+        // already. Requiring a parallel set of universal groups before the
+        // page shows anything is a data migration, not a feature — and
+        // nothing about a hose stops it being delivered without a cylinder.
+        $group = AddonGroup::factory()->forSize($size->id)->create([
+            'name' => 'Regulators',
+            'is_active' => true,
+        ]);
+        $item = AddonItem::factory()->create([
+            'group_id' => $group->id,
+            'name' => 'Regulator',
+            'price' => 1200,
+            'is_active' => true,
+        ]);
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/orders', [
+                'order_type' => 'accessory',
+                'address_id' => $address->id,
+                'addon_ids' => [$item->id],
+                'payment_method' => 'cash',
+            ])
+            ->assertSuccessful();
+
+        $this->assertSame(1200, (int) Order::firstOrFail()->addons_total);
+    }
+
+    public function test_a_gas_order_still_rejects_another_sizes_accessory(): void
+    {
+        [$size] = $this->seedCatalogue();
+        [, $address, $token] = $this->actor();
+
+        // Relaxing the rule for accessory-only orders must not relax it for
+        // gas orders, where the addon has to belong to the cylinder bought.
+        $otherSize = CylinderSize::factory()->create(['name' => '6kg']);
+        $otherGroup = AddonGroup::factory()->forSize($otherSize->id)->create();
+        $otherItem = AddonItem::factory()->create(['group_id' => $otherGroup->id]);
+        $brand = $size->brands()->first();
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/orders', [
+                'order_type' => 'swap',
+                'size_id' => $size->id,
+                'brand_id' => $brand?->id ?? 0,
+                'address_id' => $address->id,
+                'addon_ids' => [$otherItem->id],
+                'payment_method' => 'cash',
+            ])
+            ->assertStatus(422);
+    }
+
+    public function test_the_accessories_list_carries_every_active_group(): void
+    {
+        [$size] = $this->seedCatalogue();
+        [, , $token] = $this->actor();
+
+        AddonItem::factory()->create([
+            'group_id' => AddonGroup::factory()
+                ->forSize($size->id)
+                ->create(['name' => 'Regulators'])->id,
+            'is_active' => true,
+        ]);
+
+        $body = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/catalogue')
+            ->assertOk()
+            ->json();
+
+        $names = collect($body['accessories'])->pluck('name')->all();
+        $this->assertContains('Hoses', $names);      // universal
+        $this->assertContains('Regulators', $names); // scoped to 13kg
+
+        // The size travels as a label so two similar items can be told apart.
+        $scoped = collect($body['accessories'])->firstWhere('name', 'Regulators');
+        $this->assertSame('13kg', $scoped['size_name']);
+        $universal = collect($body['accessories'])->firstWhere('name', 'Hoses');
+        $this->assertNull($universal['size_name']);
+    }
+
     public function test_universal_accessories_appear_under_every_size(): void
     {
         [$size] = $this->seedCatalogue();
