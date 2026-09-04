@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\CylinderPrice;
 use App\Models\Order;
 use App\Models\OrderAddon;
+use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
 use App\Models\StockLevel;
 use App\Models\SystemSetting;
@@ -179,6 +180,27 @@ class PlaceOrderAction
                     ->latest('id')
                     ->limit(1)
                     ->update(['order_id' => $order->id]);
+            }
+
+            // One item row per gas order, alongside the legacy columns rather
+            // than instead of them. The API still takes a single cylinder, so
+            // this always writes exactly one line — but it means every order
+            // from here on has items, which is what lets read paths move to
+            // them without a fallback for the gap between phases.
+            //
+            // An accessory order writes none: it carries no cylinder, and its
+            // contents are the addon rows below.
+            if (! $isAccessoryOnly) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'size_id' => $data['size_id'],
+                    'brand_id' => $data['brand_id'],
+                    'order_type' => $data['order_type'],
+                    'quantity' => 1,
+                    'gas_price' => $gasPrice,
+                    'cylinder_price' => $cylinderPrice,
+                    'line_total' => $gasPrice + $cylinderPrice,
+                ]);
             }
 
             foreach ($addonItems as $item) {

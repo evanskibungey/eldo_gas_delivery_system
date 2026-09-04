@@ -127,6 +127,82 @@ class OrderItemsTest extends TestCase
         $this->assertStringNotContainsString('×', $single->load(['size', 'brand'])->label());
     }
 
+    public function test_a_new_cylinder_earns_the_new_cylinder_rate(): void
+    {
+        // The bug this closes: base points read $order->order_type, which
+        // stops saying swap-or-new once the type lives on the item — so every
+        // gas order fell down the default arm and earned the refill rate.
+        $order = Order::factory()->create([
+            'status' => 'delivered',
+            'total_amount' => 8000,
+        ]);
+        OrderItem::factory()->for($order)->create([
+            'order_type' => 'new_cylinder',
+            'quantity' => 1,
+        ]);
+
+        app(\App\Services\GasPointsService::class)->awardForOrder($order->fresh());
+
+        $base = \App\Models\GasPointsTransaction::where('order_id', $order->id)
+            ->where('event_code', 'delivery_base')
+            ->firstOrFail();
+
+        $this->assertSame(150, (int) $base->points, 'earned the refill rate');
+        $this->assertStringContainsString('New cylinder', $base->description);
+    }
+
+    public function test_points_scale_with_quantity(): void
+    {
+        $order = Order::factory()->create([
+            'status' => 'delivered',
+            'total_amount' => 12000,
+        ]);
+        OrderItem::factory()->for($order)->create([
+            'order_type' => 'swap',
+            'quantity' => 3,
+        ]);
+
+        app(\App\Services\GasPointsService::class)->awardForOrder($order->fresh());
+
+        // Three cylinders, three refills' worth. Earning the same for three
+        // as for one is what would make a basket pointless to build.
+        $this->assertSame(
+            300,
+            (int) \App\Models\GasPointsTransaction::where('order_id', $order->id)
+                ->where('event_code', 'delivery_base')
+                ->sum('points'),
+        );
+    }
+
+    public function test_each_line_of_a_mixed_basket_earns_its_own_rate(): void
+    {
+        $order = Order::factory()->create([
+            'status' => 'delivered',
+            'total_amount' => 20000,
+        ]);
+        OrderItem::factory()->for($order)->create([
+            'order_type' => 'swap',
+            'quantity' => 1,
+            'brand_id' => GasBrand::factory()->create()->id,
+        ]);
+        OrderItem::factory()->for($order)->create([
+            'order_type' => 'new_cylinder',
+            'quantity' => 1,
+            'brand_id' => GasBrand::factory()->create()->id,
+        ]);
+
+        app(\App\Services\GasPointsService::class)->awardForOrder($order->fresh());
+
+        // 100 + 150. Per-item reward keys are what let both land — one key
+        // per order would have collapsed them into a single award.
+        $this->assertSame(
+            250,
+            (int) \App\Models\GasPointsTransaction::where('order_id', $order->id)
+                ->where('event_code', 'delivery_base')
+                ->sum('points'),
+        );
+    }
+
     public function test_the_legacy_columns_are_left_alone(): void
     {
         // Phase one adds a table and changes nothing else. Every read path in

@@ -326,7 +326,7 @@ class GasPointsService
             return 0;
         }
 
-        $order->loadMissing(['customer', 'size']);
+        $order->loadMissing(['customer', 'size', 'items.size']);
         if (! $order->customer) {
             return 0;
         }
@@ -338,50 +338,77 @@ class GasPointsService
         $customer = $order->customer;
         $awarded = 0;
 
-        // Three-way. An accessory order used to fall through to the swap
-        // branch and earn refill points for an order containing no gas,
-        // described in the ledger as "Gas refill".
-        $basePoints = match ($order->order_type) {
-            'new_cylinder' => $this->rate(
-                'gaspoints_earn_new_cylinder',
-                self::DEFAULTS['gaspoints_earn_new_cylinder'],
-            ),
-            'accessory' => $this->rate(
-                'gaspoints_earn_accessory',
-                self::DEFAULTS['gaspoints_earn_accessory'],
-            ),
-            default => $this->rate(
-                'gaspoints_earn_swap',
-                self::DEFAULTS['gaspoints_earn_swap'],
-            ),
-        };
-        $baseLabel = match ($order->order_type) {
-            'new_cylinder' => 'New cylinder',
-            'accessory' => 'Accessories',
-            default => 'Gas refill',
-        };
+        // Earned per cylinder, from the items rather than from the order.
+        //
+        // order_type now lives on the item, so reading it off the order sent
+        // every gas basket down the `default` arm and paid the refill rate
+        // for a load of new cylinders. Reading the item also makes the rate
+        // correct for a mixed basket, where the order has no single answer.
+        //
+        // Identical arithmetic to before for every order that exists today:
+        // each has exactly one item of quantity one. It only starts to differ
+        // once a basket can hold more, which is the point.
+        //
+        // An accessory order has no items and keeps its flat award.
+        if ($order->items->isNotEmpty()) {
+            foreach ($order->items as $item) {
+                $rate = $item->order_type === 'new_cylinder'
+                    ? $this->rate(
+                        'gaspoints_earn_new_cylinder',
+                        self::DEFAULTS['gaspoints_earn_new_cylinder'],
+                    )
+                    : $this->rate(
+                        'gaspoints_earn_swap',
+                        self::DEFAULTS['gaspoints_earn_swap'],
+                    );
+                $label = $item->order_type === 'new_cylinder'
+                    ? 'New cylinder'
+                    : 'Gas refill';
 
-        $awarded += $this->award(
-            customer: $customer,
-            points: $basePoints,
-            type: 'earned',
-            description: "{$baseLabel} - order #{$order->order_number}",
-            orderId: $order->id,
-            rewardKey: "order:base:{$order->id}",
-            eventCode: 'delivery_base',
-        );
+                $awarded += $this->award(
+                    customer: $customer,
+                    points: $rate * $item->quantity,
+                    type: 'earned',
+                    description: "{$label} - {$item->label()} on order #{$order->order_number}",
+                    orderId: $order->id,
+                    // Keyed per item, not per order. One key for the whole
+                    // order would let the idempotency guard collapse four
+                    // awards into one the moment a basket holds four lines.
+                    rewardKey: "order:base:{$order->id}:item:{$item->id}",
+                    eventCode: 'delivery_base',
+                );
 
-        $weightKg = (int) ($order->size?->weight_kg ?? 0);
-        if ($weightKg >= 25) {
-            $bonus = $this->rate('gaspoints_earn_large_cylinder', self::DEFAULTS['gaspoints_earn_large_cylinder']);
+                // Per item too. This read $order->size, which is null once
+                // the size lives on the line, so a 50kg cylinder was about to
+                // stop earning its bonus with nothing to say it had.
+                if ((int) ($item->size?->weight_kg ?? 0) >= 25) {
+                    $bonus = $this->rate(
+                        'gaspoints_earn_large_cylinder',
+                        self::DEFAULTS['gaspoints_earn_large_cylinder'],
+                    );
+                    $awarded += $this->award(
+                        customer: $customer,
+                        points: $bonus * $item->quantity,
+                        type: 'earned',
+                        description: "Large cylinder bonus - {$item->size?->name} on order #{$order->order_number}",
+                        orderId: $order->id,
+                        rewardKey: "order:large_bonus:{$order->id}:item:{$item->id}",
+                        eventCode: 'delivery_large_bonus',
+                    );
+                }
+            }
+        } else {
             $awarded += $this->award(
                 customer: $customer,
-                points: $bonus,
+                points: $this->rate(
+                    'gaspoints_earn_accessory',
+                    self::DEFAULTS['gaspoints_earn_accessory'],
+                ),
                 type: 'earned',
-                description: "Large cylinder bonus - {$order->size?->name} order #{$order->order_number}",
+                description: "Accessories - order #{$order->order_number}",
                 orderId: $order->id,
-                rewardKey: "order:large_bonus:{$order->id}",
-                eventCode: 'delivery_large_bonus',
+                rewardKey: "order:base:{$order->id}",
+                eventCode: 'delivery_base',
             );
         }
 
