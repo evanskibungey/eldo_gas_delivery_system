@@ -43,6 +43,8 @@ class OrderController extends Controller
             'customer:id,name,phone',
             'rider:id,name,phone,avg_rating,photo_path,is_safety_certified,is_available',
             'size:id,name',
+            'items.size:id,name',
+            'items.brand:id,name',
             'brand:id,name',
             'addons.addonItem:id,name',
             'statusHistory',
@@ -117,6 +119,12 @@ class OrderController extends Controller
             'order_type' => $order->order_type,
             'size_name' => $order->size?->name,
             'brand_name' => $order->brand?->name,
+            // What is actually on the order. The two above name its first
+            // cylinder, which was all it could hold when this screen was
+            // built — and this is the screen the van is packed from, so it
+            // is the last place a wrong count becomes a wrong delivery.
+            'items_summary' => $order->itemsSummary(),
+            'cylinder_count' => $order->cylinderCount(),
             'customer_name' => $order->customer?->name,
             'customer_phone' => $order->customer?->phone,
             'rider_name' => $order->rider?->name,
@@ -139,6 +147,18 @@ class OrderController extends Controller
             'order_type' => $order->order_type,
             'size_name' => $order->size?->name,
             'brand_name' => $order->brand?->name,
+            // Line by line here rather than a summary string: this is the
+            // packing list, so it carries its own prices and quantities.
+            'items' => $order->items->map(fn ($item) => [
+                'size_name' => $item->size?->name,
+                'brand_name' => $item->brand?->name,
+                'order_type' => $item->order_type,
+                'quantity' => $item->quantity,
+                'gas_price' => $item->gas_price,
+                'cylinder_price' => $item->cylinder_price,
+                'line_total' => $item->line_total,
+            ])->values(),
+            'cylinder_count' => $order->cylinderCount(),
             'gas_price' => $order->gas_price,
             'cylinder_price' => $order->cylinder_price,
             'delivery_fee' => $order->delivery_fee,

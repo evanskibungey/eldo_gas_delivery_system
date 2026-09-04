@@ -14,7 +14,7 @@ export interface NewOrderPayload {
     id:             number;
     order_number:   string;
     status:         string;
-    order_type:     'swap' | 'new_cylinder';
+    order_type:     'swap' | 'new_cylinder' | 'accessory';
     total_amount:   number;
     payment_method: 'cash' | 'mpesa';
     size_name:      string | null;

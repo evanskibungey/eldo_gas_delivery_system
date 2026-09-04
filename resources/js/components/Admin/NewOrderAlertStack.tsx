@@ -1,6 +1,6 @@
 import { Link } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
-import { Package, RefreshCw, MapPin, Phone, X, BellRing } from 'lucide-react';
+import { Package, RefreshCw, MapPin, Phone, X, BellRing, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { NewOrderPayload } from './AdminRealtime';
 
@@ -122,7 +122,13 @@ function AlertCard({ alert, onDismiss, primaryRef }: {
     primaryRef?: React.Ref<HTMLAnchorElement>;
 }) {
     const { order } = alert;
-    const isSwap = order.order_type === 'swap';
+    // Three-way. As a boolean, an accessory order came through as "not a
+    // swap" and was announced to the shop as a new cylinder.
+    const kind = order.order_type === 'swap'
+        ? { label: 'Swap', tone: 'bg-orange-50 text-orange-600', Icon: RefreshCw }
+        : order.order_type === 'accessory'
+        ? { label: 'Accessories', tone: 'bg-violet-50 text-violet-600', Icon: Wrench }
+        : { label: 'New', tone: 'bg-blue-50 text-blue-600', Icon: Package };
 
     return (
         <div className="overflow-hidden rounded-2xl border border-orange-300 bg-white shadow-2xl shadow-black/30 ring-1 ring-black/5">
@@ -175,12 +181,10 @@ function AlertCard({ alert, onDismiss, primaryRef }: {
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
                         <span className={cn(
                             'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-semibold uppercase',
-                            isSwap ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600',
+                            kind.tone,
                         )}>
-                            {isSwap
-                                ? <RefreshCw className="h-2.5 w-2.5" />
-                                : <Package className="h-2.5 w-2.5" />}
-                            {isSwap ? 'Swap' : 'New'}
+                            <kind.Icon className="h-2.5 w-2.5" />
+                            {kind.label}
                         </span>
 
                         {order.size_name && (

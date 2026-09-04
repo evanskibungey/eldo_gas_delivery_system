@@ -37,7 +37,7 @@ class OrderService
         // queue keeps oldest-first so the longest wait is worked first.
         $terminalView = in_array($status, OrderLifecycle::terminalStatuses(), true);
 
-        return Order::with(['customer:id,name,phone', 'rider:id,name', 'size:id,name', 'brand:id,name'])
+        return Order::with(['customer:id,name,phone', 'rider:id,name', 'size:id,name', 'brand:id,name', 'items.size:id,name', 'items.brand:id,name'])
             ->when($status, function ($q, $status) use ($activeDispatchStatuses) {
                 if ($status === 'active') {
                     $q->whereIn('status', $activeDispatchStatuses);

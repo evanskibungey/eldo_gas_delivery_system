@@ -2,7 +2,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import {
-    Eye, RefreshCw, Package, Clock, AlertCircle,
+    Eye, RefreshCw, Package, Clock, AlertCircle, Wrench,
     Search, ShoppingBag, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,9 @@ interface OrderRow {
     id:             number;
     order_number:   string;
     status:         OrderStatus;
-    order_type:     'swap' | 'new_cylinder';
+    order_type:     'swap' | 'new_cylinder' | 'accessory';
+    items_summary:  string;
+    cylinder_count: number;
     size_name:      string | null;
     brand_name:     string | null;
     customer_name:  string | null;
@@ -291,12 +293,20 @@ export default function OrdersIndex({ orders, filters, counts, stale_pending: st
                                 {/* Order */}
                                 <td className="px-5 py-4">
                                     <div className="flex items-center gap-2">
+                                        {/* Three-way. The ternary here put an
+                                            accessory order in the new-cylinder
+                                            branch, so a hose delivery wore a
+                                            cylinder icon. */}
                                         <div className={cn(
                                             'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
-                                            o.order_type === 'swap' ? 'bg-orange-50' : 'bg-blue-50',
+                                            o.order_type === 'swap'      ? 'bg-orange-50'
+                                            : o.order_type === 'accessory' ? 'bg-violet-50'
+                                            : 'bg-blue-50',
                                         )}>
                                             {o.order_type === 'swap'
                                                 ? <RefreshCw className="h-3.5 w-3.5 text-orange-500" />
+                                                : o.order_type === 'accessory'
+                                                ? <Wrench    className="h-3.5 w-3.5 text-violet-500" />
                                                 : <Package   className="h-3.5 w-3.5 text-blue-500"   />}
                                         </div>
                                         <div>
@@ -325,14 +335,27 @@ export default function OrdersIndex({ orders, filters, counts, stale_pending: st
 
                                 {/* Details */}
                                 <td className="px-5 py-4">
-                                    <p className="text-xs font-semibold text-slate-700">{o.size_name}</p>
+                                    {/* Every cylinder, not the first. This is
+                                        the row the van is packed from. */}
+                                    <p className="text-xs font-semibold text-slate-700">
+                                        {o.items_summary || o.size_name || '—'}
+                                    </p>
                                     <div className="mt-0.5 flex items-center gap-1.5">
                                         <span className={cn(
                                             'rounded px-1.5 py-0.5 text-2xs font-semibold uppercase',
-                                            o.order_type === 'swap' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600',
+                                            o.order_type === 'swap'      ? 'bg-orange-50 text-orange-600'
+                                            : o.order_type === 'accessory' ? 'bg-violet-50 text-violet-600'
+                                            : 'bg-blue-50 text-blue-600',
                                         )}>
-                                            {o.order_type === 'swap' ? 'Swap' : 'New'}
+                                            {o.order_type === 'swap' ? 'Swap'
+                                             : o.order_type === 'accessory' ? 'Accessories'
+                                             : 'New'}
                                         </span>
+                                        {o.cylinder_count > 1 && (
+                                            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-bold text-slate-600">
+                                                {o.cylinder_count} cyl
+                                            </span>
+                                        )}
                                         <span className={cn(
                                             'text-2xs font-bold uppercase',
                                             o.payment_method === 'mpesa' ? 'text-emerald-600' : 'text-slate-500',

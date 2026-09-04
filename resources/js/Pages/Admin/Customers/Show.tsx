@@ -3,7 +3,7 @@ import { Link } from '@inertiajs/react';
 import {
     Phone, Star, MapPin, Package, ArrowLeft,
     TrendingUp, TrendingDown, Gift, Users, ShoppingBag,
-    RefreshCw, CreditCard, Hash,
+    RefreshCw, CreditCard, Hash, Wrench,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -187,9 +187,21 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                                             <tr key={o.id} className="hover:bg-slate-50/50 transition-colors group">
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-2">
-                                                        <div className={cn('flex h-7 w-7 items-center justify-center rounded-lg', o.order_type === 'swap' ? 'bg-orange-50' : 'bg-blue-50')}>
+                                                        {/* An accessory order is
+                                                            neither a swap nor a
+                                                            new cylinder, and the
+                                                            ternary called it the
+                                                            latter. */}
+                                                        <div className={cn(
+                                                            'flex h-7 w-7 items-center justify-center rounded-lg',
+                                                            o.order_type === 'swap'      ? 'bg-orange-50'
+                                                            : o.order_type === 'accessory' ? 'bg-violet-50'
+                                                            : 'bg-blue-50',
+                                                        )}>
                                                             {o.order_type === 'swap'
                                                                 ? <RefreshCw className="h-3 w-3 text-orange-500" />
+                                                                : o.order_type === 'accessory'
+                                                                ? <Wrench    className="h-3 w-3 text-violet-500" />
                                                                 : <Package   className="h-3 w-3 text-blue-500" />
                                                             }
                                                         </div>
