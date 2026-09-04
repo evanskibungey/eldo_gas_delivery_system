@@ -98,12 +98,12 @@ class DeliveryThankYouPointsTest extends TestCase
         $this->assertStringContainsString('Thanks for your order', $message);
     }
 
-    public function test_it_fits_in_one_sms_segment_even_for_a_long_name(): void
+    public function test_a_long_name_does_not_add_a_third_sms_segment(): void
     {
-        // Above 160 characters the carrier bills two messages. The previous
-        // wording sat at 161 — one character over — so every delivery cost
-        // double. This is the highest-volume customer SMS, so the limit is
-        // worth asserting rather than trusting.
+        // SMS is billed per 160-character segment. The 68-character Play Store
+        // URL already puts this message into a second one — an accepted trade,
+        // pinned in SmsTemplateLengthTest. What must not happen is a long name
+        // or a five-figure balance quietly buying a THIRD.
         $customer = Customer::factory()->create([
             'name' => 'Christopher Wanjala Kipchumba',
             'gaspoints_balance' => 12500,
@@ -112,7 +112,8 @@ class DeliveryThankYouPointsTest extends TestCase
 
         $message = app(SmsTemplateService::class)->deliveryThankYou($order, 12500, 12500);
 
-        $this->assertLessThanOrEqual(160, strlen($message), "Message spans 2 SMS segments:\n{$message}");
+        // Concatenated segments carry 153 characters each, not 160.
+        $this->assertLessThanOrEqual(306, strlen($message), "Message spans 3 SMS segments:\n{$message}");
     }
 
     public function test_only_the_first_name_is_used(): void

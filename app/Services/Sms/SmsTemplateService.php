@@ -18,7 +18,15 @@ class SmsTemplateService
     public function __construct()
     {
         $this->appName = SystemSetting::get('app_name', 'EldoGas');
-        $this->appLink = SystemSetting::get('app_download_url', 'https://bit.ly/eldogas-app');
+        // Our own short link (22 chars), which 302s to the Play Store. The full
+        // store URL is 68 characters and would push every message carrying it
+        // into a second billed SMS segment — see routes/web.php and
+        // tests/Feature/SmsTemplateLengthTest.php.
+        //
+        // Change the destination via the `play_store_url` setting, not here.
+        // `app_download_url` still overrides the link itself if one is ever
+        // needed that does not point at this site.
+        $this->appLink = SystemSetting::get('app_download_url') ?: url('/get');
     }
 
     // ── Customer templates ────────────────────────────────────────────────────
@@ -83,11 +91,18 @@ class SmsTemplateService
      */
     public function safetyTip(): string
     {
-        // The em dash that used to sit before the sign-off forced this whole
-        // message into UCS-2, cutting the segment size from 160 characters to
-        // 70 and billing it as four messages. Keep this ASCII.
-        return "{$this->appName} Safety: Smell gas? Do NOT touch lights or appliances. "
-            . 'Open all windows, leave the building, then call 999 or 0800 723 723.';
+        // Keep this plain ASCII. A single emoji or dash re-encodes the whole
+        // message from GSM-7 to UCS-2, which cuts the segment size from 160
+        // characters to 70 — this text costs 4 segments with the siren emoji
+        // the spec shows, and 2 without it. The emoji belongs on the push
+        // notification, where it is free.
+        //
+        // Two segments is accepted here rather than trimming the wording:
+        // shortening safety instructions to save a message is the wrong trade.
+        return "{$this->appName} SAFETY: Smell gas? Open doors and windows, "
+            . 'avoid flames and electrical switches, turn off the regulator if safe, '
+            . 'and move the cylinder outside if safe. '
+            . 'Call us now on 0796486683 or 0705898672.';
     }
 
     // ── Admin templates ───────────────────────────────────────────────────────

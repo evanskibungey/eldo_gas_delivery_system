@@ -1211,8 +1211,12 @@ Route::name('customer.')->group(function () {
 ### 12.2 Post-Delivery Safety Push Notification
 
 - [ ] `SafetyTipJob` — dispatched with a 10-minute delay when `OrderDeliveredEvent` fires
-- [ ] Message: "Safety Tip from EldoGas: Smell gas? Do not switch on lights. Open all windows, leave the building, and call 999 or 0800 723 723."
+- [ ] Message: 🚨 **Smell gas? Open doors and windows, avoid flames and electrical switches, turn off the regulator or banner if safe, move the cylinder outside if safe, and contact us on 0796 486 683 or 0705898672.**
 - [ ] Delivered via push (in-app notification) AND SMS
+- [ ] The 🚨 and bold are for push and in-app only. One emoji re-encodes an SMS
+      from GSM-7 to UCS-2, cutting the segment size from 160 characters to 70 —
+      this message costs 4 segments with it and 2 without, per delivery. The SMS
+      copy in `SmsTemplateService::safetyTip()` is therefore plain text.
 
 ### 12.3 Rider Safety Checklist (via API — Phase 14)
 

@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\CylinderSize;
 use App\Models\Order;
 use App\Models\Rider;
+use App\Models\SystemSetting;
 use App\Services\Sms\SmsTemplateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -109,7 +110,7 @@ class SmsTemplateLengthTest extends TestCase
         return [$order->load(['customer', 'size', 'brand']), $rider];
     }
 
-    public function test_customer_templates_fit_in_one_segment(): void
+    public function test_customer_templates_stay_within_their_segment_budget(): void
     {
         [$order, $rider] = $this->fixtures();
         $sms = app(SmsTemplateService::class);
@@ -143,12 +144,51 @@ class SmsTemplateLengthTest extends TestCase
             );
         }
 
+        // These carry the /get short link (22 chars) rather than the full Play
+        // Store URL (68), which is what keeps them inside one segment. Swapping
+        // the raw store URL back in costs a second segment on each — three more
+        // billed messages per delivery.
+        $budget = [
+            'orderConfirmation' => 1,
+            'riderAssigned' => 1,
+            'deliveryThankYou' => 1,
+            // No link, but the full safety instruction set does not fit in 160.
+            // Deliberately not trimmed: see SmsTemplateService::safetyTip().
+            'safetyTip' => 2,
+        ];
+
         foreach ($results as $name => $result) {
-            $this->assertSame(
-                1,
+            $this->assertLessThanOrEqual(
+                $budget[$name],
                 $result['segments'],
-                "{$name} spans {$result['segments']} SMS segments ({$result['units']} units). "
-                .'This one goes to every customer, so each extra segment is billed on every order.',
+                "{$name} now spans {$result['segments']} SMS segments ({$result['units']} units), "
+                ."over its budget of {$budget[$name]}. This goes to every customer, so each "
+                .'extra segment is billed on every order.',
+            );
+        }
+    }
+
+    public function test_the_raw_store_url_would_cost_a_second_segment_each(): void
+    {
+        [$order, $rider] = $this->fixtures();
+
+        // Prices the decision rather than asserting it in a comment: put the
+        // full store URL back and every message carrying it needs two segments.
+        SystemSetting::set(
+            'app_download_url',
+            'https://play.google.com/store/apps/details?id=co.ke.eldogas.customer',
+        );
+        $sms = new SmsTemplateService();
+
+        foreach ([
+            'orderConfirmation' => $sms->orderConfirmation($order),
+            'riderAssigned' => $sms->riderAssigned($order, $rider),
+            'deliveryThankYou' => $sms->deliveryThankYou($order, 170, 1250),
+        ] as $name => $message) {
+            $this->assertSame(
+                2,
+                $this->measure($message)['segments'],
+                "{$name} was expected to need two segments with the raw store URL.",
             );
         }
     }

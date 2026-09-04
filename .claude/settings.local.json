@@ -65,7 +65,10 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code} -> %{redirect_url}\\\\n\" http://127.0.0.1:8000/)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8000/admin/login)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8000/home)",
-      "Bash(curl -s http://127.0.0.1:8000/admin/login)"
+      "Bash(curl -s http://127.0.0.1:8000/admin/login)",
+      "Bash(php -r ' *)",
+      "Bash(sed -i \"s/            'safetyTip' => 1,/            'safetyTip' => 2,/\" tests/Feature/SmsTemplateLengthTest.php)",
+      "Bash(sed -i \"s|            // Carries no link, so it has no excuse to grow.|            // No link, but the full safety instruction set does not fit in 160.\\\\n            // Deliberately not trimmed: see SmsTemplateService::safetyTip\\(\\).|\" tests/Feature/SmsTemplateLengthTest.php)"
     ],
     "additionalDirectories": [
       "C:\\FlutterApplications\\eldogas_rider-app\\eldogas_riderapp"
