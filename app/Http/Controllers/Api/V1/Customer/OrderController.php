@@ -149,12 +149,29 @@ class OrderController extends Controller
 
     public function store(Request $request, PlaceOrderAction $action, ShopHoursService $shopHours, GasPointsService $gasPoints): JsonResponse
     {
+        $hasItems = is_array($request->input('items')) && $request->input('items') !== [];
+
         $input = $request->validate([
             'order_type' => 'required|in:swap,new_cylinder,accessory',
-            // An accessory order has no cylinder to name. Everything else
-            // still must, so the requirement is lifted rather than dropped.
-            'size_id' => 'required_unless:order_type,accessory|nullable|integer|exists:cylinder_sizes,id',
-            'brand_id' => 'required_unless:order_type,accessory|nullable|integer|exists:gas_brands,id',
+            // Two accepted shapes. `items[]` is a basket; a bare size_id and
+            // brand_id is one cylinder, which is what the app already in
+            // customers' hands posts and will keep posting until it updates.
+            //
+            // An accessory order names no cylinder in either shape.
+            'size_id' => $hasItems
+                ? 'nullable|integer|exists:cylinder_sizes,id'
+                : 'required_unless:order_type,accessory|nullable|integer|exists:cylinder_sizes,id',
+            'brand_id' => $hasItems
+                ? 'nullable|integer|exists:gas_brands,id'
+                : 'required_unless:order_type,accessory|nullable|integer|exists:gas_brands,id',
+            'items' => 'sometimes|array|min:1|max:20',
+            'items.*.size_id' => 'required|integer|exists:cylinder_sizes,id',
+            'items.*.brand_id' => 'required|integer|exists:gas_brands,id',
+            'items.*.order_type' => 'required|in:swap,new_cylinder',
+            // No upper bound on a line beyond the array cap: a rider carries
+            // whatever one customer ordered, so the shop's stock is the only
+            // real limit and it is checked per line when the order is placed.
+            'items.*.quantity' => 'sometimes|integer|min:1',
             'address_id' => 'required|integer|exists:customer_addresses,id',
             // ...and must then contain at least one accessory, or it is an
             // order for nothing at all.
@@ -188,15 +205,29 @@ class OrderController extends Controller
         }
 
         $isAccessoryOnly = $input['order_type'] === 'accessory';
-        $sizeId = $input['size_id'] ?? null;
 
+        // Both shapes become one list of lines, so nothing downstream has to
+        // know which the customer's app sent. A single cylinder is a basket
+        // of one.
+        $lines = $this->normaliseLines($input, $isAccessoryOnly);
+
+        // The lead line still fills the legacy columns and the checks below,
+        // which are written against one cylinder until phase three.
+        $sizeId = $lines[0]['size_id'] ?? null;
+
+        // Every line, not just the lead one. Checking only the first would
+        // let a basket smuggle a brand its cylinder is not sold in.
         // No cylinder means no brand to check against it.
-        if (! $isAccessoryOnly) {
-            $size = CylinderSize::with('brands:id')->find($sizeId);
-            if (! $size || ! $size->brands->contains('id', $input['brand_id'])) {
+        foreach ($lines as $line) {
+            $size = CylinderSize::with('brands:id')->find($line['size_id']);
+            if (! $size || ! $size->brands->contains('id', $line['brand_id'])) {
                 return response()->json([
                     'message' => 'Validation failed.',
-                    'errors' => ['brand_id' => ['Selected brand is not available for this cylinder size.']],
+                    'errors' => ['brand_id' => [
+                        $size
+                            ? "{$size->name} is not sold in the brand you picked for it."
+                            : 'Selected brand is not available for this cylinder size.',
+                    ]],
                 ], 422);
             }
         }
@@ -283,7 +314,8 @@ class OrderController extends Controller
         $data = [
             'order_type' => $input['order_type'],
             'size_id' => $sizeId,
-            'brand_id' => $input['brand_id'] ?? null,
+            'brand_id' => $lines[0]['brand_id'] ?? null,
+            'items' => $lines,
             'addon_ids' => $addonIds,
             'payment_method' => $input['payment_method'],
             'delivery_lat' => $address->latitude,
@@ -361,5 +393,56 @@ class OrderController extends Controller
         $cancelOrder->execute($order, $reason, 'customer', $request->user()->id);
 
         return response()->json(['message' => 'Order cancelled.']);
+    }
+
+    /**
+     * Both accepted shapes, as one list of cylinder lines.
+     *
+     * A bare size_id and brand_id - what the app in production
+     * posts - becomes a basket of one. Duplicate configurations are
+     * merged rather than repeated, so the same cylinder sent twice
+     * raises a quantity. The unique key on order_items enforces the
+     * same rule at the database, but a customer should get a merged
+     * order rather than a constraint violation.
+     *
+     * @return list<array{size_id:int,brand_id:int|null,order_type:string,quantity:int}>
+     */
+    private function normaliseLines(array $input, bool $isAccessoryOnly): array
+    {
+        if ($isAccessoryOnly) {
+            return [];
+        }
+
+        $raw = $input['items'] ?? [[
+            'size_id' => $input['size_id'] ?? null,
+            'brand_id' => $input['brand_id'] ?? null,
+            'order_type' => $input['order_type'],
+            'quantity' => 1,
+        ]];
+
+        $merged = [];
+
+        foreach ($raw as $line) {
+            $key = implode(':', [
+                (int) $line['size_id'],
+                (int) ($line['brand_id'] ?? 0),
+                $line['order_type'],
+            ]);
+
+            if (isset($merged[$key])) {
+                $merged[$key]['quantity'] += max(1, (int) ($line['quantity'] ?? 1));
+
+                continue;
+            }
+
+            $merged[$key] = [
+                'size_id' => (int) $line['size_id'],
+                'brand_id' => isset($line['brand_id']) ? (int) $line['brand_id'] : null,
+                'order_type' => $line['order_type'],
+                'quantity' => max(1, (int) ($line['quantity'] ?? 1)),
+            ];
+        }
+
+        return array_values($merged);
     }
 }

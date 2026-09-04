@@ -7,6 +7,7 @@ use App\Exceptions\OutOfStockException;
 use App\Models\AddonItem;
 use App\Models\Customer;
 use App\Models\CylinderPrice;
+use App\Models\CylinderSize;
 use App\Models\Order;
 use App\Models\OrderAddon;
 use App\Models\OrderItem;
@@ -32,6 +33,30 @@ class PlaceOrderAction
         private readonly StockService $stock,
         private readonly AccessoryPricing $accessoryPricing,
     ) {}
+
+    /**
+     * One delivery fee for the whole order, however many cylinders are on it.
+     *
+     * A basket is one journey, so it is charged once. Under a flat rate the
+     * answer is the configured amount — zero included, since a shop that
+     * names a flat rate has answered the question. Under per-size pricing a
+     * basket has several candidate fees and takes the highest, so delivering
+     * a 6kg alongside a 50kg is never cheaper than the 50kg on its own.
+     *
+     * @param  list<float>  $perSizeFees
+     */
+    private function orderDeliveryFee(array $perSizeFees): float
+    {
+        $mode = SystemSetting::get('delivery_fee_mode', 'per_size');
+
+        if (in_array($mode, ['flat_rate', 'per_km'], true)) {
+            $base = SystemSetting::get('delivery_base_fee');
+
+            return $base !== null && $base !== '' ? (float) $base : 0.0;
+        }
+
+        return $perSizeFees ? max($perSizeFees) : 0.0;
+    }
 
     public function execute(Customer $customer, array $data): Order
     {
@@ -84,35 +109,73 @@ class PlaceOrderAction
             // that depends on a size is skipped rather than defaulted.
             $isAccessoryOnly = $data['order_type'] === self::TYPE_ACCESSORY;
 
+            // Canonical lines, already merged by the caller so the same
+            // cylinder twice arrives as one line of quantity two.
+            $lines = $data['items'] ?? [];
+            $priced = [];
+            $itemsSubtotal = 0;
+
             if ($isAccessoryOnly) {
-                $gasPrice = 0;
-                $cylinderPrice = 0;
                 $deliveryFee = $this->accessoryPricing->deliveryFee();
             } else {
-                $stock = StockLevel::where('size_id', $data['size_id'])
-                    ->lockForUpdate()
-                    ->first();
+                $perSizeFees = [];
 
-                if (! $stock || $stock->filled_count <= 0) {
-                    throw new OutOfStockException();
+                foreach ($lines as $line) {
+                    $sizeId = (int) $line['size_id'];
+                    $quantity = max(1, (int) ($line['quantity'] ?? 1));
+
+                    $stock = StockLevel::where('size_id', $sizeId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    // Enough for this line, not merely more than none. A
+                    // customer asking for three when two are left is refused
+                    // and told so, rather than accepted and short-delivered.
+                    if (! $stock || $stock->filled_count < $quantity) {
+                        throw OutOfStockException::forSize(
+                            CylinderSize::find($sizeId)?->name,
+                            $quantity,
+                            (int) ($stock->filled_count ?? 0),
+                        );
+                    }
+
+                    $price = CylinderPrice::where('size_id', $sizeId)->firstOrFail();
+                    $isSwap = $line['order_type'] === 'swap';
+                    $gas = (int) ($isSwap ? $price->gas_refill_price : $price->new_gas_fill_price);
+                    $cylinder = (int) ($isSwap ? 0 : $price->new_cylinder_price);
+
+                    $priced[] = [
+                        'size_id' => $sizeId,
+                        'brand_id' => $line['brand_id'] ?? null,
+                        'order_type' => $line['order_type'],
+                        'quantity' => $quantity,
+                        'gas_price' => $gas,
+                        'cylinder_price' => $cylinder,
+                        'line_total' => ($gas + $cylinder) * $quantity,
+                    ];
+
+                    $itemsSubtotal += ($gas + $cylinder) * $quantity;
+                    $perSizeFees[] = (float) $price->delivery_fee;
                 }
 
-                $price = CylinderPrice::where('size_id', $data['size_id'])->firstOrFail();
-                $isSwap = $data['order_type'] === 'swap';
-                $gasPrice = $isSwap ? $price->gas_refill_price : $price->new_gas_fill_price;
-                $cylinderPrice = $isSwap ? 0 : $price->new_cylinder_price;
-                $feeMode = SystemSetting::get('delivery_fee_mode', 'per_size');
-                $deliveryFee = match ($feeMode) {
-                    'flat_rate', 'per_km' => (float) SystemSetting::get('delivery_base_fee', '0.00'),
-                    default => $price->delivery_fee,
-                };
+                $deliveryFee = $this->orderDeliveryFee($perSizeFees);
             }
+
+            // The legacy columns mirror the first line so every read path
+            // that has not moved to items yet keeps working. On a basket they
+            // describe one of the cylinders rather than all of them — which
+            // is the gap phase three closes, file by file.
+            $lead = $priced[0] ?? null;
+            $gasPrice = $lead['gas_price'] ?? 0;
+            $cylinderPrice = $lead['cylinder_price'] ?? 0;
 
             $addonItems = ! empty($data['addon_ids'])
                 ? AddonItem::whereIn('id', $data['addon_ids'])->get()
                 : collect();
             $addonsTotal = $addonItems->sum('price');
-            $subtotal = $gasPrice + $cylinderPrice + $deliveryFee + $addonsTotal;
+            // Every line, not just the lead one. Summing the legacy columns
+            // here would charge for one cylinder and deliver several.
+            $subtotal = $itemsSubtotal + $deliveryFee + $addonsTotal;
 
             $gaspointsDiscount = 0;
             if ($redemptionPoints > 0) {
@@ -145,8 +208,8 @@ class PlaceOrderAction
             $order = Order::create([
                 'order_number' => 'TMP-' . Str::upper(Str::random(16)),
                 'customer_id' => $customer->id,
-                'size_id' => $data['size_id'] ?? null,
-                'brand_id' => $data['brand_id'] ?? null,
+                'size_id' => $lead['size_id'] ?? null,
+                'brand_id' => $lead['brand_id'] ?? null,
                 'order_type' => $data['order_type'],
                 'status' => OrderLifecycle::STATUS_PENDING,
                 'gas_price' => $gasPrice,
@@ -182,25 +245,14 @@ class PlaceOrderAction
                     ->update(['order_id' => $order->id]);
             }
 
-            // One item row per gas order, alongside the legacy columns rather
-            // than instead of them. The API still takes a single cylinder, so
-            // this always writes exactly one line — but it means every order
-            // from here on has items, which is what lets read paths move to
-            // them without a fallback for the gap between phases.
+            // Every line, priced above. The legacy columns still mirror the
+            // first one, so this sits alongside them rather than instead of
+            // them until the read paths move across.
             //
-            // An accessory order writes none: it carries no cylinder, and its
+            // An accessory order has none: it carries no cylinder, and its
             // contents are the addon rows below.
-            if (! $isAccessoryOnly) {
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'size_id' => $data['size_id'],
-                    'brand_id' => $data['brand_id'],
-                    'order_type' => $data['order_type'],
-                    'quantity' => 1,
-                    'gas_price' => $gasPrice,
-                    'cylinder_price' => $cylinderPrice,
-                    'line_total' => $gasPrice + $cylinderPrice,
-                ]);
+            foreach ($priced as $line) {
+                OrderItem::create($line + ['order_id' => $order->id]);
             }
 
             foreach ($addonItems as $item) {
