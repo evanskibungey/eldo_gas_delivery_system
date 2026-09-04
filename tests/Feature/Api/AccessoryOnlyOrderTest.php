@@ -126,6 +126,37 @@ class AccessoryOnlyOrderTest extends TestCase
         $this->assertSame(80, (int) Order::firstOrFail()->delivery_fee);
     }
 
+    public function test_free_delivery_is_honoured_when_it_is_chosen(): void
+    {
+        [, , $hose] = $this->seedCatalogue();
+        [, $address, $token] = $this->actor();
+
+        // A shop that picks a flat rate and names zero has answered the
+        // question. The guard against giving deliveries away by accident used
+        // to overrule this with the cheapest cylinder's fee.
+        SystemSetting::updateOrCreate(
+            ['key' => 'delivery_fee_mode'],
+            ['value' => 'flat_rate'],
+        );
+        SystemSetting::updateOrCreate(
+            ['key' => 'delivery_base_fee'],
+            ['value' => '0'],
+        );
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/orders', [
+                'order_type' => 'accessory',
+                'address_id' => $address->id,
+                'addon_ids' => [$hose->id],
+                'payment_method' => 'cash',
+            ])
+            ->assertSuccessful();
+
+        $order = Order::firstOrFail();
+        $this->assertSame(0, (int) $order->delivery_fee);
+        $this->assertSame(700, (int) $order->total_amount);
+    }
+
     public function test_an_accessory_order_must_actually_contain_one(): void
     {
         $this->seedCatalogue();

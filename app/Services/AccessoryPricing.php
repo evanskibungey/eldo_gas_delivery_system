@@ -34,12 +34,19 @@ class AccessoryPricing
 
         $feeMode = SystemSetting::get('delivery_fee_mode', 'per_size');
         if (in_array($feeMode, ['flat_rate', 'per_km'], true)) {
-            $base = (float) SystemSetting::get('delivery_base_fee', '0.00');
-            if ($base > 0) {
-                return $base;
+            // Set, not positive. The previous test was `> 0`, which meant a
+            // shop that had deliberately chosen free delivery got overruled
+            // by the cheapest cylinder's fee — the guard against giving
+            // deliveries away by accident was also refusing to give them away
+            // on purpose. A shop that picked a flat rate and named the amount
+            // has answered the question, zero included.
+            $base = SystemSetting::get('delivery_base_fee');
+            if ($base !== null && $base !== '') {
+                return (float) $base;
             }
         }
 
+        // Only a shop that never chose lands here.
         return (float) (CylinderPrice::min('delivery_fee') ?? 0);
     }
 }
