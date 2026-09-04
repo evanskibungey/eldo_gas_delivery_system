@@ -106,6 +106,30 @@ class Order extends Model
         return $this->hasMany(OrderAddon::class);
     }
 
+    /**
+     * The cylinders on this order.
+     *
+     * Empty for an accessory order, which carries none. Until the read paths
+     * move across, `size_id` and `brand_id` on this row still mirror the
+     * first item and remain the columns most of the codebase reads.
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    /** Total cylinders across every line — four means four to load. */
+    public function cylinderCount(): int
+    {
+        return (int) $this->items->sum('quantity');
+    }
+
+    /** "13kg · ProGas ×2, 6kg · Total", for an SMS or an admin row. */
+    public function itemsSummary(): string
+    {
+        return $this->items->map(fn (OrderItem $i) => $i->label())->implode(', ');
+    }
+
     public function statusHistory(): HasMany
     {
         return $this->hasMany(OrderStatusHistory::class)->orderBy('created_at');
