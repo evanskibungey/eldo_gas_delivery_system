@@ -85,64 +85,106 @@ class StockService
             ->withQueryString();
     }
 
-    public function deductForOrder(Order $order): void
+    /**
+     * Every cylinder on the order, by size.
+     *
+     * Both of the methods below moved one cylinder of one size, because that
+     * was all an order could hold. On a basket of four that left the count on
+     * the shelf three higher than reality — the kind of drift nobody notices
+     * until a customer is promised gas that is not there.
+     *
+     * @return list<array{size_id:int,quantity:int}>
+     */
+    private function cylinderLines(Order $order): array
     {
-        $stock = StockLevel::where('size_id', $order->size_id)->lockForUpdate()->first();
+        $order->loadMissing('items');
 
-        if (! $stock || $stock->filled_count <= 0) {
-            return;
+        if ($order->items->isNotEmpty()) {
+            return $order->items
+                ->map(fn ($item) => [
+                    'size_id' => (int) $item->size_id,
+                    'quantity' => max(1, (int) $item->quantity),
+                ])
+                ->all();
         }
 
-        $oldFilled = $stock->filled_count;
-        $newFilled = $oldFilled - 1;
+        // An accessory order carries no cylinder and must not move stock at
+        // all. Anything else without items predates them and is one cylinder
+        // by definition.
+        return $order->size_id
+            ? [['size_id' => (int) $order->size_id, 'quantity' => 1]]
+            : [];
+    }
 
-        $stock->update(['filled_count' => $newFilled]);
+    public function deductForOrder(Order $order): void
+    {
+        foreach ($this->cylinderLines($order) as $line) {
+            $stock = StockLevel::where('size_id', $line['size_id'])
+                ->lockForUpdate()
+                ->first();
 
-        StockAuditLog::create([
-            'size_id'       => $order->size_id,
-            'change_type'   => 'auto_deduction',
-            'change_amount' => -1,
-            'new_count'     => $newFilled,
-            'order_id'      => $order->id,
-            'created_at'    => now(),
-        ]);
+            if (! $stock || $stock->filled_count <= 0) {
+                continue;
+            }
 
-        $stock->refresh();
+            // Never below zero. The order was accepted because the shelf held
+            // enough, but a concurrent order can land between the two, and a
+            // negative count is worse than an under-deduction to reconcile.
+            $taken = min($line['quantity'], $stock->filled_count);
+            $newFilled = $stock->filled_count - $taken;
 
-        if ($stock->isEmpty()) {
-            event(new StockDepletedEvent($stock));
-        } elseif ($stock->isCritical()) {
-            event(new CriticalStockAlertEvent($stock));
-        } elseif ($stock->isLow()) {
-            event(new LowStockAlertEvent($stock));
+            $stock->update(['filled_count' => $newFilled]);
+
+            StockAuditLog::create([
+                'size_id'       => $line['size_id'],
+                'change_type'   => 'auto_deduction',
+                'change_amount' => -$taken,
+                'new_count'     => $newFilled,
+                'order_id'      => $order->id,
+                'created_at'    => now(),
+            ]);
+
+            $stock->refresh();
+
+            if ($stock->isEmpty()) {
+                event(new StockDepletedEvent($stock));
+            } elseif ($stock->isCritical()) {
+                event(new CriticalStockAlertEvent($stock));
+            } elseif ($stock->isLow()) {
+                event(new LowStockAlertEvent($stock));
+            }
         }
     }
 
     public function restoreForOrder(Order $order): void
     {
-        $stock = StockLevel::where('size_id', $order->size_id)->lockForUpdate()->first();
+        foreach ($this->cylinderLines($order) as $line) {
+            $stock = StockLevel::where('size_id', $line['size_id'])
+                ->lockForUpdate()
+                ->first();
 
-        if (! $stock) {
-            return;
-        }
+            if (! $stock) {
+                continue;
+            }
 
-        $wasEmpty  = $stock->isEmpty();
-        $newFilled = $stock->filled_count + 1;
+            $wasEmpty  = $stock->isEmpty();
+            $newFilled = $stock->filled_count + $line['quantity'];
 
-        $stock->update(['filled_count' => $newFilled]);
+            $stock->update(['filled_count' => $newFilled]);
 
-        StockAuditLog::create([
-            'size_id'       => $order->size_id,
-            'change_type'   => 'auto_return',
-            'change_amount' => 1,
-            'new_count'     => $newFilled,
-            'order_id'      => $order->id,
-            'created_at'    => now(),
-        ]);
+            StockAuditLog::create([
+                'size_id'       => $line['size_id'],
+                'change_type'   => 'auto_return',
+                'change_amount' => $line['quantity'],
+                'new_count'     => $newFilled,
+                'order_id'      => $order->id,
+                'created_at'    => now(),
+            ]);
 
-        if ($wasEmpty) {
-            $stock->refresh();
-            event(new StockRestoredEvent($stock));
+            if ($wasEmpty) {
+                $stock->refresh();
+                event(new StockRestoredEvent($stock));
+            }
         }
     }
 

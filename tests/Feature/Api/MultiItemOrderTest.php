@@ -229,6 +229,100 @@ class MultiItemOrderTest extends TestCase
         $this->assertSame(3200, (int) $order->gas_price);
     }
 
+    public function test_stock_moves_by_the_number_actually_ordered(): void
+    {
+        [$size, $brand] = $this->cylinder('13kg', 3200, 150, stock: 10);
+        [$address, $token] = $this->actor();
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/orders', [
+                'order_type' => 'swap',
+                'address_id' => $address->id,
+                'payment_method' => 'cash',
+                'items' => [
+                    ['size_id' => $size->id, 'brand_id' => $brand->id, 'order_type' => 'swap', 'quantity' => 3],
+                ],
+            ])
+            ->assertSuccessful();
+
+        // Placing the order deducts on its own — no second call here, which
+        // is what made the first version of this test read 4 instead of 7.
+        //
+        // Three off the shelf, not one. Deducting a single cylinder for an
+        // order of three leaves the count two higher than reality, which is
+        // the kind of drift nobody notices until a customer is promised gas
+        // that is not there.
+        $this->assertSame(
+            7,
+            (int) StockLevel::where('size_id', $size->id)->value('filled_count'),
+        );
+    }
+
+    public function test_stock_comes_back_for_every_cylinder_on_a_cancelled_order(): void
+    {
+        [$size, $brand] = $this->cylinder('13kg', 3200, 150, stock: 10);
+        [$address, $token] = $this->actor();
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/orders', [
+                'order_type' => 'swap',
+                'address_id' => $address->id,
+                'payment_method' => 'cash',
+                'items' => [
+                    ['size_id' => $size->id, 'brand_id' => $brand->id, 'order_type' => 'swap', 'quantity' => 2],
+                ],
+            ])
+            ->assertSuccessful();
+
+        // Placing took two. Cancelling has to put back the same two.
+        $this->assertSame(
+            8,
+            (int) StockLevel::where('size_id', $size->id)->value('filled_count'),
+        );
+
+        app(\App\Services\Admin\StockService::class)
+            ->restoreForOrder(Order::firstOrFail());
+
+        // Out and back must agree, or a cancellation quietly invents or
+        // destroys cylinders.
+        $this->assertSame(
+            10,
+            (int) StockLevel::where('size_id', $size->id)->value('filled_count'),
+        );
+    }
+
+    public function test_the_rider_is_told_about_every_cylinder(): void
+    {
+        [$small, $smallBrand] = $this->cylinder('6kg', 1500, 100);
+        [$large, $largeBrand] = $this->cylinder('13kg', 3200, 150);
+        [$address, $token] = $this->actor();
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/orders', [
+                'order_type' => 'swap',
+                'address_id' => $address->id,
+                'payment_method' => 'cash',
+                'items' => [
+                    ['size_id' => $small->id, 'brand_id' => $smallBrand->id, 'order_type' => 'swap'],
+                    ['size_id' => $large->id, 'brand_id' => $largeBrand->id, 'order_type' => 'swap', 'quantity' => 2],
+                ],
+            ])
+            ->assertSuccessful();
+
+        $order = Order::with(['items.size', 'items.brand'])->firstOrFail();
+        $rider = \App\Models\Rider::factory()->create();
+
+        // A rider sent for three and told about one collects one and drives
+        // off. The SMS is where that failure actually reaches them.
+        $sms = app(\App\Services\Sms\SmsTemplateService::class)
+            ->riderOrderDetails($order, $rider);
+
+        $this->assertStringContainsString('6kg', $sms);
+        $this->assertStringContainsString('13kg', $sms);
+        $this->assertStringContainsString('x2', $sms);
+        $this->assertSame(3, $order->cylinderCount());
+    }
+
     public function test_a_flat_rate_is_charged_once_for_the_whole_basket(): void
     {
         [$small, $smallBrand] = $this->cylinder('6kg', 1500, 100);

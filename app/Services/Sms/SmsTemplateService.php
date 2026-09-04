@@ -180,20 +180,31 @@ class SmsTemplateService
 
     private function itemsLine(Order $order): string
     {
-        $parts = array_filter([
-            $order->size?->name,
-            $order->brand?->name,
-            // A three-way match, not a ternary. An accessory order has no
-            // cylinder, and the old else-branch texted the customer
-            // "New Cylinder" for an order that contained none.
-            match ($order->order_type) {
-                'swap' => 'Swap/Refill',
-                'accessory' => 'Accessories',
-                default => 'New Cylinder',
-            },
-        ]);
+        $order->loadMissing(['items.size', 'items.brand']);
 
-        return implode(', ', $parts);
+        // Every cylinder, not the one on the order row. A rider sent for four
+        // and told about one collects one and drives off — the failure this
+        // costs most to get wrong.
+        //
+        // Kept terse because these are SMS: "13kg ProGas x2, 6kg Total"
+        // rather than a line each. Segment budgets are asserted by a test.
+        if ($order->items->isNotEmpty()) {
+            return $order->items
+                ->map(function ($item) {
+                    $name = implode(' ', array_filter([
+                        $item->size?->name,
+                        $item->brand?->name,
+                    ])) ?: 'Cylinder';
+                    $type = $item->order_type === 'swap' ? '' : ' (new)';
+                    $qty = $item->quantity > 1 ? " x{$item->quantity}" : '';
+
+                    return $name . $type . $qty;
+                })
+                ->implode(', ');
+        }
+
+        // No items means an accessory order, which carries no cylinder.
+        return 'Accessories';
     }
 
     private function locationLine(Order $order): string

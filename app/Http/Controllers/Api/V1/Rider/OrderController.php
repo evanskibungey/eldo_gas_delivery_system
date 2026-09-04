@@ -26,7 +26,7 @@ class OrderController extends Controller
 
         $orders = Order::where('rider_id', $rider->id)
             ->whereIn('status', OrderLifecycle::activeStatuses())
-            ->with(['customer:id,name,phone', 'size:id,name'])
+            ->with(['customer:id,name,phone', 'size:id,name', 'items.size:id,name', 'items.brand:id,name'])
             ->latest()
             ->get()
             ->map(fn (Order $order) => $this->formatOrder($order));
@@ -46,7 +46,7 @@ class OrderController extends Controller
     {
         $orders = Order::where('rider_id', $request->user()->id)
             ->whereIn('status', OrderLifecycle::terminalStatuses())
-            ->with(['customer:id,name,phone', 'size:id,name'])
+            ->with(['customer:id,name,phone', 'size:id,name', 'items.size:id,name', 'items.brand:id,name'])
             ->orderByDesc('delivered_at')
             ->orderByDesc('id')
             ->paginate(30);
@@ -69,7 +69,7 @@ class OrderController extends Controller
             return response()->json(['message' => 'Not found.'], 404);
         }
 
-        $order->load(['customer:id,name,phone', 'size:id,name', 'brand:id,name', 'addons.addonItem', 'statusHistory']);
+        $order->load(['customer:id,name,phone', 'size:id,name', 'brand:id,name', 'items.size:id,name', 'items.brand:id,name', 'addons.addonItem', 'statusHistory']);
 
         return response()->json($this->formatOrderDetail($order));
     }
@@ -271,6 +271,20 @@ class OrderController extends Controller
             'customer_name' => $order->customer?->name,
             'customer_phone' => $order->customer?->phone,
             'size_name' => $order->size?->name,
+            // What to actually load. size_name above names one cylinder,
+            // which is all an order could hold when the rider app was built
+            // and is now the first of however many — a rider told about one
+            // of four collects one and drives off.
+            //
+            // Both keys ship: the rider build in the field reads size_name
+            // and keeps working, a newer one reads items.
+            'items' => $order->items->map(fn ($item) => [
+                'size_name' => $item->size?->name,
+                'brand_name' => $item->brand?->name,
+                'order_type' => $item->order_type,
+                'quantity' => $item->quantity,
+            ])->values(),
+            'cylinder_count' => $order->cylinderCount(),
             'created_at' => $order->created_at->toIso8601String(),
             'delivered_at' => $order->delivered_at?->toIso8601String(),
             // The app can only show an Accept button on an order that is still
