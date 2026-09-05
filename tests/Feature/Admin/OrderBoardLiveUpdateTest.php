@@ -14,6 +14,7 @@ use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\AlwaysProp;
 use Tests\TestCase;
 
@@ -108,6 +109,116 @@ class OrderBoardLiveUpdateTest extends TestCase
         $this->assertSame(3, $payload['cylinder_count']);
         $this->assertStringContainsString('13kg', $payload['items_summary']);
         $this->assertStringContainsString('6kg', $payload['items_summary']);
+    }
+
+    public function test_each_line_carries_its_own_photo(): void
+    {
+        // A mixed basket. These are two different cylinders to pull off the
+        // shelf, so one shared thumbnail cannot represent them.
+        $small = CylinderSize::factory()->create(['name' => '6kg', 'image_path' => 'sizes/6kg.jpg']);
+        $large = CylinderSize::factory()->create(['name' => '13kg', 'image_path' => 'sizes/13kg.jpg']);
+        $total = GasBrand::factory()->create(['name' => 'Total']);
+        $kgas = GasBrand::factory()->create(['name' => 'K-Gas']);
+
+        $small->brands()->attach($total->id, ['image_path' => 'sizes/total-6kg.jpg']);
+        // K-Gas has no photo for 13kg, so that line falls back to the size's.
+        $large->brands()->attach($kgas->id, ['image_path' => null]);
+
+        $order = Order::factory()->create(['status' => 'pending']);
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'size_id' => $small->id,
+            'brand_id' => $total->id,
+            'quantity' => 1,
+        ]);
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'size_id' => $large->id,
+            'brand_id' => $kgas->id,
+            'quantity' => 2,
+        ]);
+
+        $items = (new OrderPlacedEvent($order->fresh()))->broadcastWith()['items'];
+
+        $this->assertCount(2, $items);
+
+        $this->assertSame('6kg', $items[0]['size_name']);
+        $this->assertSame('Total', $items[0]['brand_name']);
+        $this->assertSame(1, $items[0]['quantity']);
+        $this->assertStringContainsString('total-6kg.jpg', (string) $items[0]['image_url']);
+
+        $this->assertSame('13kg', $items[1]['size_name']);
+        $this->assertSame(2, $items[1]['quantity']);
+        // Brand had none of its own for this size.
+        $this->assertStringContainsString('13kg.jpg', (string) $items[1]['image_url']);
+    }
+
+    public function test_a_line_with_no_photo_anywhere_is_null_not_a_broken_url(): void
+    {
+        $size = CylinderSize::factory()->create(['image_path' => null]);
+        $order = Order::factory()->create(['status' => 'pending']);
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'size_id' => $size->id,
+            'brand_id' => null,
+        ]);
+
+        $items = (new OrderPlacedEvent($order->fresh()))->broadcastWith()['items'];
+
+        // The row renders its type icon instead of a torn image.
+        $this->assertNull($items[0]['image_url']);
+    }
+
+    public function test_the_item_list_resolves_every_photo_in_one_query(): void
+    {
+        $order = Order::factory()->create(['status' => 'pending']);
+
+        foreach (range(1, 4) as $ignored) {
+            $size = CylinderSize::factory()->create(['image_path' => 'sizes/x.jpg']);
+            $brand = GasBrand::factory()->create();
+            $size->brands()->attach($brand->id, ['image_path' => 'sizes/branded.jpg']);
+
+            OrderItem::factory()->create([
+                'order_id' => $order->id,
+                'size_id' => $size->id,
+                'brand_id' => $brand->id,
+            ]);
+        }
+
+        $order = $order->fresh();
+        $order->loadMissing(['customer', 'size', 'brand', 'items.size', 'items.brand']);
+
+        $queries = 0;
+        DB::listen(function () use (&$queries) {
+            $queries++;
+        });
+
+        (new OrderPlacedEvent($order))->broadcastWith();
+
+        // This runs in a queued job for every order placed. A four-line basket
+        // must not cost four extra round trips for its pictures.
+        $this->assertLessThanOrEqual(
+            2,
+            $queries,
+            "Resolving item photos took {$queries} queries — it should be one bulk lookup.",
+        );
+    }
+
+    public function test_an_accessory_order_carries_no_cylinder_lines(): void
+    {
+        // Accessories live in order_addons and were deliberately excluded from
+        // the order_items backfill, so there is no cylinder to picture.
+        $order = Order::factory()->create([
+            'status' => 'pending',
+            'order_type' => 'accessory',
+            'size_id' => null,
+            'brand_id' => null,
+        ]);
+
+        $payload = (new OrderPlacedEvent($order))->broadcastWith();
+
+        $this->assertSame([], $payload['items']);
+        $this->assertNull($payload['image_url']);
     }
 
     public function test_the_payload_carries_the_brand_specific_cylinder_photo(): void

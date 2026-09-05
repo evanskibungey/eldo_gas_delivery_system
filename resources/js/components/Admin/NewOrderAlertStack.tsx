@@ -2,7 +2,7 @@ import { Link } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import { Package, RefreshCw, MapPin, Phone, X, BellRing, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { NewOrderPayload } from './AdminRealtime';
+import type { NewOrderItem, NewOrderPayload } from './AdminRealtime';
 
 export interface NewOrderAlert {
     order:      NewOrderPayload;
@@ -116,19 +116,76 @@ export default function NewOrderAlertStack({ alerts, onDismiss, onDismissAll }: 
     );
 }
 
+/**
+ * Three-way, not a boolean. As `isSwap` an accessory order came through as
+ * "not a swap" and was announced to the shop as a new cylinder.
+ */
+const KIND = {
+    swap:         { label: 'Swap',        tone: 'bg-orange-50 text-orange-600', Icon: RefreshCw },
+    accessory:    { label: 'Accessories', tone: 'bg-violet-50 text-violet-600', Icon: Wrench },
+    new_cylinder: { label: 'New',         tone: 'bg-blue-50 text-blue-600',     Icon: Package },
+} as const;
+
+function kindFor(type: string) {
+    return KIND[type as keyof typeof KIND] ?? KIND.new_cylinder;
+}
+
+/** One line of a basket: its photo, what it is, and how many. */
+function ItemRow({ item }: { item: NewOrderItem }) {
+    const kind = kindFor(item.order_type);
+
+    return (
+        <li className="flex items-center gap-2.5 px-2.5 py-2">
+            {item.image_url ? (
+                <img
+                    src={item.image_url}
+                    alt={[item.brand_name, item.size_name].filter(Boolean).join(' ') || 'Cylinder'}
+                    onError={event => { event.currentTarget.style.visibility = 'hidden'; }}
+                    className="h-10 w-10 shrink-0 rounded-lg border border-slate-200 bg-white object-contain p-0.5"
+                />
+            ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50">
+                    <kind.Icon className="h-4 w-4 text-slate-400" />
+                </div>
+            )}
+
+            <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-slate-800">
+                    {[item.size_name, item.brand_name].filter(Boolean).join(' · ') || 'Cylinder'}
+                </p>
+                <span className={cn(
+                    'mt-0.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-2xs font-semibold uppercase',
+                    kind.tone,
+                )}>
+                    <kind.Icon className="h-2.5 w-2.5" />
+                    {kind.label}
+                </span>
+            </div>
+
+            {/* Quantity is the number the shop counts out, so it gets its own
+                column rather than being buried in the label. */}
+            <span className="shrink-0 rounded-md bg-slate-100 px-2 py-1 text-xs font-bold tabular-nums text-slate-700">
+                ×{item.quantity}
+            </span>
+        </li>
+    );
+}
+
 function AlertCard({ alert, onDismiss, primaryRef }: {
     alert: NewOrderAlert;
     onDismiss: () => void;
     primaryRef?: React.Ref<HTMLAnchorElement>;
 }) {
     const { order } = alert;
-    // Three-way. As a boolean, an accessory order came through as "not a
-    // swap" and was announced to the shop as a new cylinder.
-    const kind = order.order_type === 'swap'
-        ? { label: 'Swap', tone: 'bg-orange-50 text-orange-600', Icon: RefreshCw }
-        : order.order_type === 'accessory'
-        ? { label: 'Accessories', tone: 'bg-violet-50 text-violet-600', Icon: Wrench }
-        : { label: 'New', tone: 'bg-blue-50 text-blue-600', Icon: Package };
+    const kind = kindFor(order.order_type);
+
+    // A payload broadcast before this field existed, or read from an older
+    // cached bundle, must not blank the alarm.
+    const items = order.items ?? [];
+    // One line reads better as the hero image the card already had; a basket
+    // needs every cylinder listed, because they are different things to pull
+    // off the shelf.
+    const listItems = items.length > 1;
 
     return (
         <div className="overflow-hidden rounded-2xl border border-orange-300 bg-white shadow-2xl shadow-black/30 ring-1 ring-black/5">
@@ -139,7 +196,13 @@ function AlertCard({ alert, onDismiss, primaryRef }: {
                     reading a word. Falls back to the bell when the product has
                     no photo. */}
                 <div className="relative shrink-0">
-                    {order.image_url ? (
+                    {listItems ? (
+                        // Every cylinder is shown in the list below, so a single
+                        // photo up here would just be one of them, arbitrarily.
+                        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-orange-50">
+                            <BellRing className="h-6 w-6 text-orange-500" />
+                        </div>
+                    ) : order.image_url ? (
                         <img
                             src={order.image_url}
                             alt={[order.brand_name, order.size_name].filter(Boolean).join(' ') || 'Cylinder'}
@@ -196,9 +259,14 @@ function AlertCard({ alert, onDismiss, primaryRef }: {
                                 <span className="rounded bg-orange-100 px-1.5 py-0.5 text-2xs font-bold text-orange-700">
                                     {order.cylinder_count} cyl
                                 </span>
-                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">
-                                    {order.items_summary}
-                                </span>
+                                {/* The summary chip only earns its place when
+                                    the itemised list is not being rendered —
+                                    otherwise it repeats it in miniature. */}
+                                {! listItems && (
+                                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">
+                                        {order.items_summary}
+                                    </span>
+                                )}
                             </>
                         ) : (
                             <>
@@ -225,6 +293,14 @@ function AlertCard({ alert, onDismiss, primaryRef }: {
                             {order.payment_method}
                         </span>
                     </div>
+
+                    {listItems && (
+                        <ul className="mt-2.5 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/60">
+                            {items.map(item => (
+                                <ItemRow key={item.id} item={item} />
+                            ))}
+                        </ul>
+                    )}
 
                     {order.address && (
                         <p className="mt-2 flex items-start gap-1 text-xs text-slate-500">

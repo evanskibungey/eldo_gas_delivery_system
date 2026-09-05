@@ -10,6 +10,18 @@ import NewOrderAlertStack, { type NewOrderAlert } from './NewOrderAlertStack';
 // Mirror OrderPlacedEvent::broadcastWith() and
 // OrderStatusUpdatedEvent::broadcastWith() on the PHP side.
 
+/** One cylinder configuration on the order: size, brand, type and how many. */
+export interface NewOrderItem {
+    id:         number;
+    size_name:  string | null;
+    brand_name: string | null;
+    order_type: 'swap' | 'new_cylinder' | 'accessory';
+    quantity:   number;
+    /** "13kg · ProGas ×2" — already formatted server-side. */
+    label:      string;
+    image_url:  string | null;
+}
+
 export interface NewOrderPayload {
     id:             number;
     order_number:   string;
@@ -22,7 +34,9 @@ export interface NewOrderPayload {
     /** Every cylinder on the order — "13kg · ProGas ×2, 6kg · Total". */
     items_summary:  string;
     cylinder_count: number;
-    /** Brand-specific cylinder photo, falling back to the size's generic one. */
+    /** Each line with its own photo, in the order the customer built it. */
+    items:          NewOrderItem[];
+    /** First line's photo, used for the compact single-item layout. */
     image_url:      string | null;
     customer_name:  string | null;
     customer_phone: string | null;
