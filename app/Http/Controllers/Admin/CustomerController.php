@@ -47,7 +47,9 @@ class CustomerController extends Controller
             'addresses',
             'referrer',
             'referrals',
-            'orders' => fn ($q) => $q->latest()->with(['size', 'brand', 'rider'])->limit(10),
+            'orders' => fn ($q) => $q->latest()
+                ->with(['size', 'brand', 'rider', 'items.size:id,name', 'items.brand:id,name'])
+                ->limit(10),
             'gasPointsTransactions' => fn ($q) => $q->orderByDesc('created_at')->limit(20),
         ]);
 
@@ -61,6 +63,9 @@ class CustomerController extends Controller
             'order_type'   => $o->order_type,
             'size_name'    => $o->size?->name,
             'brand_name'   => $o->brand?->name,
+            // Every cylinder, so a basket in someone's history does not read
+            // as the single cylinder that happened to be first.
+            'items_summary' => $o->itemsSummary(),
             'rider_name'   => $o->rider?->name,
             'total_amount' => $o->total_amount,
             'payment_method' => $o->payment_method,

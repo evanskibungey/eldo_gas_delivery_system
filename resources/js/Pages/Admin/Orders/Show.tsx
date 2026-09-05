@@ -26,13 +26,28 @@ interface Addon {
     price: number;
 }
 
+/// One cylinder line on the order. An order holds several, each with its own
+/// size, brand, type and count — this is the packing list the rider loads
+/// from, so it carries every line rather than a summary.
+interface OrderItem {
+    size_name:      string | null;
+    brand_name:     string | null;
+    order_type:     'swap' | 'new_cylinder';
+    quantity:       number;
+    gas_price:      number;
+    cylinder_price: number;
+    line_total:     number;
+}
+
 interface OrderDetail {
     id:               number;
     order_number:     string;
     status:           OrderStatus;
-    order_type:       'swap' | 'new_cylinder';
+    order_type:       'swap' | 'new_cylinder' | 'accessory';
     size_name:        string | null;
     brand_name:       string | null;
+    items:            OrderItem[];
+    cylinder_count:   number;
     gas_price:        number;
     cylinder_price:   number;
     delivery_fee:     number;
@@ -320,6 +335,11 @@ export default function OrdersShow({ order, availableRiders }: Props) {
 
     const fmt = (n: number) => `KES ${n.toLocaleString()}`;
     const isSwap = order.order_type === 'swap';
+    const isAccessory = order.order_type === 'accessory';
+    const items = order.items ?? [];
+    // A basket can hold a refill and a new cylinder at once, and then no
+    // single label describes the summed gas line honestly.
+    const mixedTypes = new Set(items.map(i => i.order_type)).size > 1;
     const statusCfg = STATUS_CFG[order.status] ?? STATUS_CFG.pending;
 
     function advanceStatus() {
@@ -481,30 +501,82 @@ export default function OrdersShow({ order, availableRiders }: Props) {
 
                     {/* Order items */}
                     <SectionCard title="Order Summary">
-                        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
-                            <div className={cn(
-                                'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
-                                isSwap ? 'bg-orange-50' : 'bg-blue-50',
-                            )}>
-                                {isSwap
-                                    ? <RefreshCw className="h-5 w-5 text-orange-500" />
-                                    : <Package   className="h-5 w-5 text-blue-500"   />}
+                        {/* The cylinders on the order, one row each.
+                            This used to name whichever cylinder happened to be
+                            first — on a basket of three that is a packing list
+                            wrong twice over, and the rider loads from it. */}
+                        {items.length > 0 ? (
+                            <div className="mb-4 pb-4 border-b border-slate-100 space-y-3">
+                                {items.map((item, i) => {
+                                    const itemSwap = item.order_type === 'swap';
+                                    return (
+                                        <div key={i} className="flex items-center gap-3">
+                                            <div className={cn(
+                                                'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+                                                itemSwap ? 'bg-orange-50' : 'bg-blue-50',
+                                            )}>
+                                                {itemSwap
+                                                    ? <RefreshCw className="h-5 w-5 text-orange-500" />
+                                                    : <Package   className="h-5 w-5 text-blue-500"   />}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-slate-900 truncate">
+                                                    {item.size_name ?? '—'}
+                                                    {item.brand_name ? ` · ${item.brand_name}` : ''}
+                                                </p>
+                                                <p className="text-sm text-slate-500">
+                                                    {itemSwap ? 'Gas Refill (Swap)' : 'New Cylinder'}
+                                                </p>
+                                            </div>
+                                            <div className="ml-auto shrink-0 text-right">
+                                                <p className="font-semibold text-slate-900">
+                                                    ×{item.quantity}
+                                                </p>
+                                                <p className="text-xs text-slate-500">
+                                                    {fmt(item.line_total)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                            <div>
-                                <p className="font-semibold text-slate-900">
-                                    {isSwap ? 'Gas Refill (Swap)' : 'New Cylinder'}
-                                </p>
-                                <p className="text-sm text-slate-500">
-                                    {order.size_name}{order.brand_name ? ` · ${order.brand_name}` : ''}
-                                </p>
+                        ) : (
+                            /* Accessory-only orders carry no cylinder, and
+                               orders placed before order_items existed carry
+                               their cylinder in these two columns instead. */
+                            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-slate-100">
+                                <div className={cn(
+                                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+                                    isSwap ? 'bg-orange-50' : isAccessory ? 'bg-violet-50' : 'bg-blue-50',
+                                )}>
+                                    {isSwap
+                                        ? <RefreshCw className="h-5 w-5 text-orange-500" />
+                                        : isAccessory
+                                            ? <Wrench  className="h-5 w-5 text-violet-500" />
+                                            : <Package className="h-5 w-5 text-blue-500"   />}
+                                </div>
+                                <div>
+                                    <p className="font-semibold text-slate-900">
+                                        {isSwap ? 'Gas Refill (Swap)' : isAccessory ? 'Accessories' : 'New Cylinder'}
+                                    </p>
+                                    {order.size_name && (
+                                        <p className="text-sm text-slate-500">
+                                            {order.size_name}{order.brand_name ? ` · ${order.brand_name}` : ''}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                                <span className="text-slate-500">{isSwap ? 'Gas refill' : 'Gas fill'}</span>
-                                <span className="text-slate-800 font-medium">{fmt(order.gas_price)}</span>
-                            </div>
+                            {order.gas_price > 0 && (
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-500">
+                                        {mixedTypes ? 'Gas' : isSwap ? 'Gas refill' : 'Gas fill'}
+                                    </span>
+                                    <span className="text-slate-800 font-medium">{fmt(order.gas_price)}</span>
+                                </div>
+                            )}
                             {order.cylinder_price > 0 && (
                                 <div className="flex justify-between text-sm">
                                     <span className="text-slate-500">Cylinder</span>

@@ -20,6 +20,8 @@ interface OrderRow {
     customer_phone: string | null;
     size_name:      string | null;
     brand_name:     string | null;
+    /** Every cylinder on the order — "13kg · ProGas ×2, 6kg · Total". */
+    items_summary:  string;
     rider_name:     string | null;
     total_amount:   number;
     payment_method: string;
@@ -236,7 +238,9 @@ export default function OrdersReport({ orders, sizes, riders, filters, summary }
 
                                 {/* Details */}
                                 <td className="px-4 py-3.5">
-                                    <p className="text-xs font-semibold text-slate-700">{o.size_name}</p>
+                                    <p className="text-xs font-semibold text-slate-700">
+                                        {o.items_summary || o.size_name || '—'}
+                                    </p>
                                     <div className="flex items-center gap-1.5 mt-0.5">
                                         <span className={cn('text-2xs font-bold uppercase', o.payment_method === 'mpesa' ? 'text-emerald-600' : 'text-slate-500')}>
                                             {o.payment_method}

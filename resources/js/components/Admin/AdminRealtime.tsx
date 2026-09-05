@@ -19,6 +19,9 @@ export interface NewOrderPayload {
     payment_method: 'cash' | 'mpesa';
     size_name:      string | null;
     brand_name:     string | null;
+    /** Every cylinder on the order — "13kg · ProGas ×2, 6kg · Total". */
+    items_summary:  string;
+    cylinder_count: number;
     /** Brand-specific cylinder photo, falling back to the size's generic one. */
     image_url:      string | null;
     customer_name:  string | null;
@@ -260,7 +263,7 @@ function notifyDesktop(order: NewOrderPayload): void {
         new Notification('New order ' + order.order_number, {
             body: [
                 order.customer_name ?? 'Customer',
-                order.size_name ?? 'Cylinder',
+                order.items_summary || order.size_name || 'Cylinder',
                 'KES ' + amount,
             ].join(' · ') + where,
             tag: 'eldogas-order-' + order.id,

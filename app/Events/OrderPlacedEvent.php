@@ -43,6 +43,8 @@ class OrderPlacedEvent implements ShouldBroadcast
             'customer:id,name,phone',
             'size:id,name,image_path',
             'brand:id,name',
+            'items.size:id,name',
+            'items.brand:id,name',
         ]);
 
         return [
@@ -54,6 +56,12 @@ class OrderPlacedEvent implements ShouldBroadcast
             'payment_method' => $this->order->payment_method,
             'size_name'      => $this->order->size?->name,
             'brand_name'     => $this->order->brand?->name,
+            // The whole basket, not just the cylinder that happened to be
+            // first. The alert is what a dispatcher reads before choosing a
+            // rider, and "13kg · Total" for a load of three sends the wrong
+            // one.
+            'items_summary'  => $this->order->itemsSummary(),
+            'cylinder_count' => $this->order->cylinderCount(),
             'image_url'      => $this->productImageUrl(),
             'customer_name'  => $this->order->customer?->name,
             'customer_phone' => $this->order->customer?->phone,

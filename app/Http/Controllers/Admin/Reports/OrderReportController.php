@@ -31,6 +31,10 @@ class OrderReportController extends Controller
             'customer_phone' => $o->customer?->phone,
             'size_name'      => $o->size?->name,
             'brand_name'     => $o->brand?->name,
+            // Every cylinder on the order. Note the size filter still matches
+            // on the order's lead cylinder, so a mixed basket is findable by
+            // its first size only — worth knowing when reading a filtered set.
+            'items_summary'  => $o->itemsSummary(),
             'rider_name'     => $o->rider?->name,
             'total_amount'   => $o->total_amount,
             'payment_method' => $o->payment_method,
@@ -62,7 +66,10 @@ class OrderReportController extends Controller
 
         $rows = $query->limit(5000)->get();
 
-        $csv = "Order Number,Date,Customer,Phone,Size,Brand,Order Type,Status,Payment Method,Amount (KES),Rider,Has Issue,Issue Type\n";
+        // Size and Brand stay, naming the order's lead cylinder, so anything
+        // downstream that reads those columns keeps working. Items is the
+        // whole basket, and it is quoted because a summary contains commas.
+        $csv = "Order Number,Date,Customer,Phone,Size,Brand,Items,Cylinders,Order Type,Status,Payment Method,Amount (KES),Rider,Has Issue,Issue Type\n";
         foreach ($rows as $o) {
             $csv .= implode(',', [
                 $o->order_number,
@@ -71,6 +78,8 @@ class OrderReportController extends Controller
                 $o->customer?->phone ?? '',
                 $o->size?->name ?? '',
                 $o->brand?->name ?? '',
+                '"' . str_replace('"', '""', $o->itemsSummary()) . '"',
+                $o->cylinderCount(),
                 $o->order_type,
                 $o->status,
                 $o->payment_method,
@@ -102,12 +111,26 @@ class OrderReportController extends Controller
 
         $toEnd = Carbon::parse($to)->endOfDay();
 
-        $query = Order::with(['customer:id,name,phone', 'size:id,name', 'brand:id,name', 'rider:id,name'])
+        $query = Order::with([
+            'customer:id,name,phone', 'size:id,name', 'brand:id,name', 'rider:id,name',
+            'items.size:id,name', 'items.brand:id,name',
+        ])
             ->whereBetween('created_at', [Carbon::parse($from)->startOfDay(), $toEnd])
             ->when($status,    fn ($q) => $q->where('status', $status))
             ->when($orderType, fn ($q) => $q->where('order_type', $orderType))
             ->when($riderId,   fn ($q) => $q->where('rider_id', $riderId))
-            ->when($sizeId,    fn ($q) => $q->where('size_id', $sizeId))
+            // Any cylinder on the order, not the one that happens to lead it.
+            // An order is a basket: filtering on the order's own size_id hid
+            // every basket whose 6kg was not the first line, which quietly
+            // understated the totals people read this report for.
+            //
+            // The orWhere keeps orders written before order_items existed
+            // findable, since those carry their cylinder in the column.
+            ->when($sizeId, fn ($q) => $q->where(
+                fn ($w) => $w
+                    ->whereHas('items', fn ($i) => $i->where('size_id', $sizeId))
+                    ->orWhere('size_id', $sizeId)
+            ))
             ->orderByDesc('created_at');
 
         $filters = compact('from', 'to', 'status', 'orderType', 'riderId', 'sizeId');

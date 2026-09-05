@@ -8,6 +8,7 @@ use App\Models\Admin;
 use App\Models\CylinderSize;
 use App\Models\GasBrand;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Rider;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -78,6 +79,35 @@ class OrderBoardLiveUpdateTest extends TestCase
         $this->assertArrayHasKey('address', $payload);
         // The cylinder photo the alert modal shows.
         $this->assertArrayHasKey('image_url', $payload);
+    }
+
+    public function test_the_payload_lists_every_cylinder_on_the_order(): void
+    {
+        $order = Order::factory()->create(['status' => 'pending']);
+        $six = CylinderSize::factory()->create(['name' => '6kg']);
+        $thirteen = CylinderSize::factory()->create(['name' => '13kg']);
+        $total = GasBrand::factory()->create(['name' => 'Total']);
+
+        OrderItem::factory()->for($order)->create([
+            'size_id' => $thirteen->id,
+            'brand_id' => $total->id,
+            'order_type' => 'swap',
+            'quantity' => 2,
+        ]);
+        OrderItem::factory()->for($order)->create([
+            'size_id' => $six->id,
+            'brand_id' => $total->id,
+            'order_type' => 'swap',
+            'quantity' => 1,
+        ]);
+
+        $payload = (new OrderPlacedEvent($order->fresh()))->broadcastWith();
+
+        // The alert is read before a rider is picked, so a load of three that
+        // announces itself as one cylinder sends the wrong rider.
+        $this->assertSame(3, $payload['cylinder_count']);
+        $this->assertStringContainsString('13kg', $payload['items_summary']);
+        $this->assertStringContainsString('6kg', $payload['items_summary']);
     }
 
     public function test_the_payload_carries_the_brand_specific_cylinder_photo(): void

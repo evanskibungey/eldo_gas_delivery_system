@@ -31,6 +31,8 @@ interface Order {
     order_type:     string;
     size_name:      string | null;
     brand_name:     string | null;
+    /** Every cylinder on the order — "13kg · ProGas ×2, 6kg · Total". */
+    items_summary:  string;
     rider_name:     string | null;
     total_amount:   number;
     payment_method: string;
@@ -214,7 +216,9 @@ export default function CustomerShow({ customer, orders, transactions, addresses
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <p className="text-xs font-medium text-slate-700">{o.size_name}</p>
+                                                    <p className="text-xs font-medium text-slate-700">
+                                                        {o.items_summary || o.size_name || '—'}
+                                                    </p>
                                                     <p className="text-2xs text-slate-500">{o.rider_name ?? 'No rider'}</p>
                                                 </td>
                                                 <td className="px-4 py-3">

@@ -187,16 +187,33 @@ function AlertCard({ alert, onDismiss, primaryRef }: {
                             {kind.label}
                         </span>
 
-                        {order.size_name && (
-                            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">
-                                {order.size_name}
-                            </span>
-                        )}
+                        {/* A basket gets listed in full, with its count. The
+                            chips named the first cylinder only, and this is
+                            what the shop picks from before a rider is even
+                            chosen. */}
+                        {order.cylinder_count > 1 ? (
+                            <>
+                                <span className="rounded bg-orange-100 px-1.5 py-0.5 text-2xs font-bold text-orange-700">
+                                    {order.cylinder_count} cyl
+                                </span>
+                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">
+                                    {order.items_summary}
+                                </span>
+                            </>
+                        ) : (
+                            <>
+                                {order.size_name && (
+                                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-semibold text-slate-700">
+                                        {order.size_name}
+                                    </span>
+                                )}
 
-                        {order.brand_name && (
-                            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-600">
-                                {order.brand_name}
-                            </span>
+                                {order.brand_name && (
+                                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-600">
+                                        {order.brand_name}
+                                    </span>
+                                )}
+                            </>
                         )}
 
                         <span className={cn(
