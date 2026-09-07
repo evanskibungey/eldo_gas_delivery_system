@@ -272,6 +272,57 @@ class SmsCampaignTest extends TestCase
         Queue::assertNothingPushed();
     }
 
+    public function test_the_composer_can_search_customers_without_leaving_the_page(): void
+    {
+        $admin = Admin::factory()->create();
+        $this->customer(['name' => 'Novenah Shellomith', 'phone' => '+254741252274']);
+        $this->customer(['name' => 'Someone Else', 'phone' => '+254700000001']);
+
+        $this->actingAs($admin, 'admin')
+            ->getJson(route('admin.sms.customers', ['q' => 'Novenah']))
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonFragment(['name' => 'Novenah Shellomith']);
+
+        // Phone works too — it is often what the shop has to hand.
+        $this->actingAs($admin, 'admin')
+            ->getJson(route('admin.sms.customers', ['q' => '741252274']))
+            ->assertOk()
+            ->assertJsonCount(1);
+    }
+
+    public function test_the_picker_flags_who_has_opted_out(): void
+    {
+        $admin = Admin::factory()->create();
+        $this->customer(['name' => 'Optee', 'sms_opt_out_at' => now()]);
+
+        // Shown rather than hidden: the admin should see that ticking this
+        // person will not actually text them.
+        $this->actingAs($admin, 'admin')
+            ->getJson(route('admin.sms.customers', ['q' => 'Optee']))
+            ->assertOk()
+            ->assertJsonFragment(['opted_out' => true]);
+    }
+
+    public function test_the_picker_never_offers_someone_who_cannot_be_texted(): void
+    {
+        $admin = Admin::factory()->create();
+        $this->customer(['name' => 'Gone Away', 'is_active' => false]);
+        $this->customer(['name' => 'No Number', 'phone' => '']);
+
+        $this->actingAs($admin, 'admin')
+            ->getJson(route('admin.sms.customers'))
+            ->assertOk()
+            ->assertJsonCount(0);
+    }
+
+    public function test_a_guest_cannot_search_customers(): void
+    {
+        $this->customer();
+
+        $this->get(route('admin.sms.customers'))->assertRedirect();
+    }
+
     public function test_an_admin_can_toggle_a_customers_consent(): void
     {
         $admin = Admin::factory()->create();

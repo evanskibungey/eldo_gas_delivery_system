@@ -74,6 +74,7 @@ Route::middleware('auth.admin')->group(function () {
     // swallowed as an id.
     Route::get('sms', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'index'])->name('sms.index');
     Route::get('sms/create', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'create'])->name('sms.create');
+    Route::get('sms/customers', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'customers'])->name('sms.customers');
     Route::post('sms/preview', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'preview'])->name('sms.preview');
     Route::post('sms', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'store'])
         // A bulk send cannot be recalled, so a double-submit must not become

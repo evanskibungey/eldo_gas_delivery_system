@@ -79,6 +79,42 @@ class SmsCampaignController extends Controller
     }
 
     /**
+     * Customer search for the composer's picker.
+     *
+     * Capped rather than paginated: this is a "find the two people I mean"
+     * box, not a browse. Anyone reaching for hundreds of recipients wants an
+     * audience filter instead, which is one control away.
+     */
+    public function customers(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->query('q'));
+
+        $customers = Customer::query()
+            ->where('is_active', true)
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->when($search !== '', fn ($q) => $q->where(
+                fn ($inner) => $inner
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%"),
+            ))
+            // Newest first with no search: the people just added are the ones
+            // most likely to be wanted.
+            ->orderByDesc('created_at')
+            ->limit(25)
+            ->get(['id', 'name', 'phone', 'sms_opt_out_at']);
+
+        return response()->json(
+            $this->sanitize($customers->map(fn (Customer $c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'phone' => $c->phone,
+                'opted_out' => $c->sms_opt_out_at !== null,
+            ])->all()),
+        );
+    }
+
+    /**
      * Live cost of the message being typed.
      *
      * Server-side so the number the admin confirms is the number the sender
