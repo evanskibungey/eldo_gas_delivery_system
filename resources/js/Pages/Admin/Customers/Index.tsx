@@ -1,6 +1,6 @@
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Link, router } from '@inertiajs/react';
-import { Search, Eye, Users, Star, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Eye, Users, Star, ShoppingBag, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
@@ -47,17 +47,56 @@ function CustomerAvatar({ name }: { name: string }) {
 
 export default function CustomersIndex({ customers, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
+    const [picked, setPicked] = useState<number[]>([]);
 
     function applySearch() {
         router.get('/admin/customers', { search: search || undefined }, { preserveState: true });
+    }
+
+    function toggle(id: number) {
+        setPicked(current =>
+            current.includes(id) ? current.filter(x => x !== id) : [...current, id],
+        );
+    }
+
+    // Only the customers visible on this page. Ticking "all" across a filtered
+    // 2,000-row result would be a bulk send nobody actually reviewed.
+    const pageIds = customers.data.map(c => c.id);
+    const allOnPagePicked = pageIds.length > 0 && pageIds.every(id => picked.includes(id));
+
+    function togglePage() {
+        setPicked(current => allOnPagePicked
+            ? current.filter(id => !pageIds.includes(id))
+            : [...new Set([...current, ...pageIds])]);
     }
 
     return (
         <AdminLayout title="Customers" subtitle="Browse and manage registered customers">
 
             {/* Header */}
-            <div className="mb-5 flex items-center justify-between">
+            <div className="mb-5 flex items-center justify-between gap-3">
                 <p className="text-sm text-slate-500">{customers.total.toLocaleString()} customer{customers.total !== 1 ? 's' : ''} registered</p>
+
+                {picked.length > 0 && (
+                    <div className="mr-auto flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5">
+                        <span className="text-xs font-semibold text-orange-700">
+                            {picked.length} selected
+                        </span>
+                        <Link
+                            href={`/admin/sms/create?customers=${picked.join(',')}`}
+                            className="inline-flex items-center gap-1 rounded-md bg-orange-500 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-orange-600"
+                        >
+                            <MessageSquare className="h-3 w-3" /> Send SMS
+                        </Link>
+                        <button
+                            onClick={() => setPicked([])}
+                            className="text-xs font-medium text-orange-700 hover:text-orange-900"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                )}
+
                 <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
                     <Input
@@ -78,6 +117,15 @@ export default function CustomersIndex({ customers, filters }: Props) {
                 <table className="w-full min-w-[860px] text-sm">
                     <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/80">
+                            <th className="w-10 px-4 py-3.5">
+                                <input
+                                    type="checkbox"
+                                    checked={allOnPagePicked}
+                                    onChange={togglePage}
+                                    aria-label="Select all customers on this page"
+                                    className="h-4 w-4 cursor-pointer rounded border-slate-300 text-orange-500 focus:ring-orange-400"
+                                />
+                            </th>
                             <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Customer</th>
                             <th className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Phone</th>
                             <th className="px-5 py-3.5 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">Orders</th>
@@ -91,7 +139,7 @@ export default function CustomersIndex({ customers, filters }: Props) {
 
                         {customers.data.length === 0 && (
                             <tr>
-                                <td colSpan={7} className="py-16 text-center">
+                                <td colSpan={8} className="py-16 text-center">
                                     <div className="flex flex-col items-center gap-2">
                                         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
                                             <Users className="h-6 w-6 text-slate-500" />
@@ -105,6 +153,16 @@ export default function CustomersIndex({ customers, filters }: Props) {
 
                         {customers.data.map(c => (
                             <tr key={c.id} className={cn('transition-colors group', !c.is_active ? 'opacity-60' : 'hover:bg-slate-50/50')}>
+                                <td className="w-10 px-4 py-4">
+                                    <input
+                                        type="checkbox"
+                                        checked={picked.includes(c.id)}
+                                        onChange={() => toggle(c.id)}
+                                        aria-label={`Select ${c.name}`}
+                                        className="h-4 w-4 cursor-pointer rounded border-slate-300 text-orange-500 focus:ring-orange-400"
+                                    />
+                                </td>
+
                                 {/* Customer */}
                                 <td className="px-5 py-4">
                                     <div className="flex items-center gap-3">

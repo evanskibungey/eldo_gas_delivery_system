@@ -67,6 +67,21 @@ Route::middleware('auth.admin')->group(function () {
     // Customers
     Route::get('customers', [\App\Http\Controllers\Admin\CustomerController::class, 'index'])->name('customers.index');
     Route::get('customers/{customer}', [\App\Http\Controllers\Admin\CustomerController::class, 'show'])->name('customers.show');
+    Route::post('customers/{customer}/sms-opt-out', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'toggleOptOut'])
+        ->name('customers.sms-opt-out');
+
+    // Bulk SMS. `create` and `preview` sit above `{campaign}` so they are not
+    // swallowed as an id.
+    Route::get('sms', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'index'])->name('sms.index');
+    Route::get('sms/create', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'create'])->name('sms.create');
+    Route::post('sms/preview', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'preview'])->name('sms.preview');
+    Route::post('sms', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'store'])
+        // A bulk send cannot be recalled, so a double-submit must not become
+        // two campaigns.
+        ->middleware('throttle:10,1')
+        ->name('sms.store');
+    Route::get('sms/{campaign}', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'show'])
+        ->whereNumber('campaign')->name('sms.show');
 
     // Reports
     Route::get('reports/revenue', [\App\Http\Controllers\Admin\Reports\RevenueReportController::class, 'index'])->name('reports.revenue');

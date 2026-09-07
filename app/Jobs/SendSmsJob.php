@@ -40,9 +40,18 @@ class SendSmsJob implements ShouldQueue
 
         if ($success) {
             $log->update(['sent_at' => now()]);
-        } else {
-            $log->update(['failed_at' => now(), 'error' => 'SMS gateway returned failure']);
-            $this->fail('SMS gateway returned failure status');
+
+            return;
         }
+
+        // Record what the gateway actually said. "Gateway returned failure"
+        // sends whoever is on support into the log files; "Invalid sender id"
+        // tells them what to fix.
+        $reason = method_exists($sms, 'lastError')
+            ? ($sms->lastError() ?: 'SMS gateway returned failure')
+            : 'SMS gateway returned failure';
+
+        $log->update(['failed_at' => now(), 'error' => $reason]);
+        $this->fail("SMS gateway rejected the message: {$reason}");
     }
 }

@@ -10,6 +10,7 @@ import {
     SlidersHorizontal,
     Flame,
     ChevronDown,
+    MessageSquare,
     Database,
     Tag,
     Layers,
@@ -68,6 +69,7 @@ const navSections: { title?: string; items: NavItem[] }[] = [
         title: 'People',
         items: [
             { label: 'Customers', href: '/admin/customers', icon: Users },
+            { label: 'SMS', href: '/admin/sms', icon: MessageSquare },
         ],
     },
     {

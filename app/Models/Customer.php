@@ -22,6 +22,8 @@ class Customer extends Authenticatable
         'referred_by',
         'referral_applied_at',
         'is_active',
+        'sms_opt_out_at',
+        'sms_opt_out_source',
     ];
 
     protected $hidden = [
@@ -34,6 +36,7 @@ class Customer extends Authenticatable
             'phone_verified_at' => 'datetime',
             'referral_applied_at' => 'datetime',
             'is_active' => 'boolean',
+            'sms_opt_out_at' => 'datetime',
             'gaspoints_balance' => 'integer',
         ];
     }

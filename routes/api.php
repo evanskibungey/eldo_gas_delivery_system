@@ -135,6 +135,9 @@ Route::middleware(['auth.api.rider', 'throttle:120,1'])->prefix('rider')->group(
 
 Route::post('/webhooks/mpesa/callback', [MpesaCallbackController::class, 'handle']);
 
+// Inbound SMS, used to honour STOP. Point the gateway's callback URL here.
+Route::post('/webhooks/sms/inbound', [\App\Http\Controllers\Api\Webhooks\SmsInboundController::class, 'handle']);
+
 Route::post('/broadcasting/auth', function (Request $request) {
     $user = auth('rider-api')->user() ?? auth('customer-api')->user();
     if (! $user) {
