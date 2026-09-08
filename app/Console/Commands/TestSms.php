@@ -123,19 +123,36 @@ class TestSms extends Command
 
             $this->line("  status: <fg=yellow>{$state}</>");
 
-            if ($state === '' || $state === 'accepted' || $state === 'pending' || $state === 'queued') {
+            // Still working through the batch.
+            if ($state === '' || in_array($state, ['accepted', 'pending', 'queued', 'processing'], true)) {
                 continue;
             }
 
             $this->newLine();
 
-            if (in_array($state, ['delivered', 'sent', 'success'], true)) {
-                $this->components->info('DELIVERED. The chain is working end to end.');
+            // Judge on the counts, not the status word. This endpoint reports
+            // on the batch, and "completed" only means it finished processing
+            // — failed_count is what says whether anything actually went.
+            $failed = (int) ($data['failed_count'] ?? 0);
+            $error = $data['error'] ?? null;
+
+            if ($failed === 0 && $error === null) {
+                $cost = $data['total_cost'] ?? '?';
+
+                $this->components->info("TalkSasa processed the message and charged {$cost} credit(s).");
+                $this->line('  No failures reported on their side, so it left the gateway.');
+                $this->newLine();
+                $this->line('  If it still does not reach the handset, the rejection is at the');
+                $this->line('  carrier, which this endpoint does not report. Open the TalkSasa');
+                $this->line('  message log and read the status of this send:');
+                $this->line('    queue_uid: <fg=yellow>'.($data['queue_uid'] ?? '?').'</>');
+                $this->line('  A "source_address filter mismatch" there means the sender ID is');
+                $this->line('  not approved for your account.');
 
                 return self::SUCCESS;
             }
 
-            $this->components->error('The carrier REJECTED the message after accepting it.');
+            $this->components->error("The gateway failed {$failed} of {$data['recipient_count']} message(s).");
             $this->line('  Gateway said: <fg=red>'.json_encode($data).'</>');
             $this->newLine();
             $this->line('  Common causes, in the order worth checking:');

@@ -38,6 +38,7 @@ export default function SmsCreate({ audiences, selected, selectedCustomers, optO
     const [message, setMessage]   = useState('');
     const [kind, setKind]         = useState<'promo' | 'info'>('promo');
     const [preview, setPreview]   = useState<Preview | null>(null);
+    const [previewError, setPreviewError] = useState<string | null>(null);
     const [sending, setSending]   = useState(false);
 
     // Whole records, not just ids: the panel has to show who was picked without
@@ -108,6 +109,9 @@ export default function SmsCreate({ audiences, selected, selectedCustomers, optO
                 const response = await fetch('/admin/sms/preview', {
                     method: 'POST',
                     signal: controller.signal,
+                    // Sends the session cookie. Without it the endpoint sees a
+                    // guest and redirects to the login page.
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
@@ -117,9 +121,24 @@ export default function SmsCreate({ audiences, selected, selectedCustomers, optO
                     body: JSON.stringify({ message, kind, audience, customer_ids: pickedIds }),
                 });
 
-                if (response.ok) setPreview(await response.json());
-            } catch {
-                // Aborted or offline. The local estimate still shows.
+                if (response.ok) {
+                    setPreview(await response.json());
+                    setPreviewError(null);
+                } else {
+                    // Say what happened. Left silent, this hung the panel on
+                    // "Checking recipients…" with no way to tell whether the
+                    // count was slow or the request had died.
+                    setPreviewError(
+                        response.status === 419
+                            ? 'Session expired — reload the page.'
+                            : `Could not check recipients (HTTP ${response.status}).`,
+                    );
+                }
+            } catch (error) {
+                // An abort is this effect superseding itself, not a failure.
+                if ((error as Error)?.name !== 'AbortError') {
+                    setPreviewError('Could not reach the server to check recipients.');
+                }
             }
         }, 400);
 
@@ -132,7 +151,12 @@ export default function SmsCreate({ audiences, selected, selectedCustomers, optO
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [message, kind, audience, pickedIds.join(',')]);
 
-    const recipients = preview?.recipients ?? 0;
+    // Hand-picked recipients are known here without asking the server, so a
+    // failed preview degrades to a local count rather than blocking the send.
+    // The server re-resolves the audience at send time and refuses an empty
+    // one, so nothing is trusted that should not be.
+    const localRecipients = audience === 'selected' ? picked.length : 0;
+    const recipients = preview?.recipients ?? localRecipients;
     const totalSegments = local.segments * recipients;
 
     // Why the button is off, in the order somebody fills the form in. A greyed
@@ -141,7 +165,10 @@ export default function SmsCreate({ audiences, selected, selectedCustomers, optO
     const blocker =
         title.trim() === '' ? 'Give the campaign a name first'
         : message.trim() === '' ? 'Write the message first'
-        : preview === null ? 'Checking recipients…'
+        // Only wait on the server when it is the only thing that knows the
+        // count — an audience filter. A stuck preview must not strand a
+        // hand-picked send that is already fully specified.
+        : preview === null && previewError === null && audience !== 'selected' ? 'Checking recipients…'
         : recipients === 0 ? 'This audience has nobody to text'
         : null;
 
@@ -315,7 +342,7 @@ export default function SmsCreate({ audiences, selected, selectedCustomers, optO
                             <Row
                                 icon={<Users className="h-4 w-4 text-slate-400" />}
                                 label="Recipients"
-                                value={preview ? String(recipients) : '…'}
+                                value={preview || audience === 'selected' ? String(recipients) : '…'}
                                 strong
                             />
                             {(preview?.skipped_opted_out ?? 0) > 0 && (
@@ -328,7 +355,7 @@ export default function SmsCreate({ audiences, selected, selectedCustomers, optO
                             <Row
                                 icon={<MessageSquare className="h-4 w-4 text-slate-400" />}
                                 label="Total SMS billed"
-                                value={preview ? String(totalSegments) : '…'}
+                                value={preview || audience === 'selected' ? String(totalSegments) : '…'}
                                 strong
                             />
                         </div>
@@ -343,12 +370,20 @@ export default function SmsCreate({ audiences, selected, selectedCustomers, optO
                             {sending ? 'Queueing…' : `Send to ${recipients}`}
                         </Button>
 
+                        {previewError && (
+                            <p className="mt-2 flex items-start gap-1.5 text-2xs font-medium text-amber-700">
+                                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                                {previewError}
+                                {audience === 'selected' && ' Using your picked list instead.'}
+                            </p>
+                        )}
+
                         {blocker ? (
                             <p className="mt-2 flex items-start gap-1.5 text-2xs font-medium text-amber-700">
                                 <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                                 {blocker}
                             </p>
-                        ) : (
+                        ) : !previewError && (
                             <p className="mt-2 text-2xs text-slate-500">
                                 Messages are queued and sent in the background. A send cannot be
                                 recalled once it starts.

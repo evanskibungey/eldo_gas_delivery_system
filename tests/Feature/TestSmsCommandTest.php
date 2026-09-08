@@ -43,32 +43,57 @@ class TestSmsCommandTest extends TestCase
     {
         Http::fake([
             '*/send' => Http::response($this->accepted(), 202),
-            '*/queue/*' => Http::response(['data' => ['status' => 'delivered']], 200),
+            '*/queue/*' => Http::response(['data' => ['status' => 'completed', 'recipient_count' => 1, 'failed_count' => 0, 'total_cost' => 1, 'error' => null]], 200),
         ]);
 
         $this->artisan('sms:test', ['phone' => '+254700000000'])
-            ->expectsOutputToContain('DELIVERED')
+            ->expectsOutputToContain('charged')
             ->assertSuccessful();
     }
 
-    public function test_it_catches_a_rejection_that_arrives_after_acceptance(): void
+    public function test_it_catches_a_batch_that_reports_failures(): void
     {
-        // The failure that cost days: the send succeeds, then the carrier
-        // refuses it, and nothing in the app ever hears about it.
         Http::fake([
             '*/send' => Http::response($this->accepted(), 202),
             '*/queue/*' => Http::response([
                 'data' => [
-                    'status' => 'failed',
-                    'reason' => 'Message rejected: source_address filter mismatch',
+                    'status' => 'completed',
+                    'recipient_count' => 1,
+                    'failed_count' => 1,
+                    'error' => 'Message rejected: source_address filter mismatch',
                 ],
             ], 200),
         ]);
 
         $this->artisan('sms:test', ['phone' => '+254700000000'])
-            ->expectsOutputToContain('REJECTED')
-            ->expectsOutputToContain('Sender ID not approved')
+            ->expectsOutputToContain('failed 1 of 1')
             ->assertFailed();
+    }
+
+    public function test_completed_with_no_failures_is_not_read_as_a_rejection(): void
+    {
+        // TalkSasa reports on the BATCH here, and "completed" only means it
+        // finished processing. Judging on the status word rather than
+        // failed_count made a perfectly good send look like a carrier
+        // rejection, and sent us hunting a problem that did not exist.
+        Http::fake([
+            '*/send' => Http::response($this->accepted(), 202),
+            '*/queue/*' => Http::response([
+                'data' => [
+                    'queue_uid' => 'abc-123',
+                    'status' => 'completed',
+                    'recipient_count' => 1,
+                    'processed_count' => 1,
+                    'failed_count' => 0,
+                    'total_cost' => 1,
+                    'error' => null,
+                ],
+            ], 200),
+        ]);
+
+        $this->artisan('sms:test', ['phone' => '+254700000000'])
+            ->doesntExpectOutputToContain('failed')
+            ->assertSuccessful();
     }
 
     public function test_it_fails_loudly_when_the_gateway_refuses_outright(): void
