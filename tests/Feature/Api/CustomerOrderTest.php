@@ -133,6 +133,11 @@ class CustomerOrderTest extends TestCase
 
     public function test_customer_cannot_place_order_when_shop_is_closed(): void
     {
+        // Without this the opening hours are never consulted: shop_always_open
+        // seeds to '1', and ShopHoursService short-circuits on it before it
+        // ever looks at the clock. Setting only the times left the shop open
+        // and this test asserting against behaviour it had not switched on.
+        SystemSetting::set('shop_always_open', '0');
         SystemSetting::set('shop_open_time', '07:00');
         SystemSetting::set('shop_close_time', '21:00');
         $this->travelTo(Carbon::create(2026, 1, 1, 22, 0, 0, config('app.timezone')));

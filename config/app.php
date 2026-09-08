@@ -60,12 +60,19 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | will be used by the PHP date and date-time functions.
+    |
+    | This was hardcoded to 'UTC' while .env and .env.example both set
+    | APP_TIMEZONE=Africa/Nairobi, so the setting silently did nothing and every
+    | timestamp — order times, SMS bodies, admin screens — ran three hours
+    | behind local time.
+    |
+    | Kenya is UTC+3 year round with no daylight saving, so a fixed local
+    | timezone is unambiguous here in a way it would not be elsewhere.
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'UTC'),
 
     /*
     |--------------------------------------------------------------------------
