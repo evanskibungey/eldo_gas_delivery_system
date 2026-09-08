@@ -8,9 +8,17 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
+/**
+ * `sms:test` exists because acceptance is not delivery. TalkSasa answers a send
+ * with 202 "accepted" before the carrier has seen it, so a refused sender ID,
+ * an empty account and a blocked recipient all look identical to success. The
+ * command follows the message to its real conclusion.
+ */
 class TestSmsCommandTest extends TestCase
 {
     use RefreshDatabase;
+
+    private const STATUS_URL = 'https://bulksms.talksasa.test/api/v3/sms/queue/abc-123';
 
     protected function setUp(): void
     {
@@ -21,15 +29,49 @@ class TestSmsCommandTest extends TestCase
         config()->set('services.talksasa.sender_id', 'ELDOGAS');
     }
 
-    public function test_it_reports_success_when_the_gateway_accepts(): void
+    /** The real shape: 202, queued, with a URL to follow up on. */
+    private function accepted(): array
     {
-        Http::fake(['*' => Http::response(['status' => 'success'], 202)]);
+        return [
+            'status' => 'success',
+            'message' => 'Your SMS is being processed and will be delivered',
+            'data' => ['queue_uid' => 'abc-123', 'status' => 'accepted', 'check_status_url' => self::STATUS_URL],
+        ];
+    }
+
+    public function test_it_reports_delivery_when_the_carrier_confirms(): void
+    {
+        Http::fake([
+            '*/send' => Http::response($this->accepted(), 202),
+            '*/queue/*' => Http::response(['data' => ['status' => 'delivered']], 200),
+        ]);
 
         $this->artisan('sms:test', ['phone' => '+254700000000'])
+            ->expectsOutputToContain('DELIVERED')
             ->assertSuccessful();
     }
 
-    public function test_it_fails_loudly_when_the_gateway_refuses(): void
+    public function test_it_catches_a_rejection_that_arrives_after_acceptance(): void
+    {
+        // The failure that cost days: the send succeeds, then the carrier
+        // refuses it, and nothing in the app ever hears about it.
+        Http::fake([
+            '*/send' => Http::response($this->accepted(), 202),
+            '*/queue/*' => Http::response([
+                'data' => [
+                    'status' => 'failed',
+                    'reason' => 'Message rejected: source_address filter mismatch',
+                ],
+            ], 200),
+        ]);
+
+        $this->artisan('sms:test', ['phone' => '+254700000000'])
+            ->expectsOutputToContain('REJECTED')
+            ->expectsOutputToContain('Sender ID not approved')
+            ->assertFailed();
+    }
+
+    public function test_it_fails_loudly_when_the_gateway_refuses_outright(): void
     {
         Http::fake(['*' => Http::response(['status' => 'error', 'message' => 'Invalid sender id'], 200)]);
 
@@ -52,7 +94,7 @@ class TestSmsCommandTest extends TestCase
 
     public function test_it_refuses_without_a_number_to_text(): void
     {
-        config()->set('services.shop.manager_phones', '');
+        config()->set('shop.manager_phones', '');
 
         $this->artisan('sms:test')->assertFailed();
     }

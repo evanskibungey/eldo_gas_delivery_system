@@ -7,6 +7,7 @@ use App\Services\Sms\SmsServiceInterface;
 use App\Support\SmsSegments;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 /**
  * End-to-end SMS check.
@@ -52,39 +53,104 @@ class TestSms extends Command
     }
 
     /**
-     * Straight to the gateway from this process. Isolates "the API refuses us"
-     * from "the worker never ran the job".
+     * Straight to the gateway from this process, then follow the message to its
+     * real conclusion.
+     *
+     * Acceptance is not delivery. TalkSasa answers a send with 202 and
+     * "accepted" before the SMSC has seen it, so a refused sender ID, an empty
+     * account or a blocked recipient all look like success at this point. The
+     * only place the truth appears is the queue status endpoint the response
+     * hands back — so this polls it rather than telling somebody to go and read
+     * a dashboard.
      */
     private function sendDirect(SmsServiceInterface $sms, string $phone, string $message): int
     {
         $this->newLine();
         $this->line('  Sending directly (queue bypassed)...');
 
-        $ok = $sms->send($phone, $message);
+        // Called here rather than through the service so the full response,
+        // including the status URL, is available to follow up.
+        $response = Http::withToken((string) config('services.talksasa.api_token'))
+            ->acceptJson()
+            ->timeout(15)
+            ->post((string) config('services.talksasa.api_url'), [
+                'recipient' => $phone,
+                'sender_id' => config('services.talksasa.sender_id'),
+                'type' => 'plain',
+                'message' => $message,
+            ]);
 
+        $body = $response->json();
         $this->newLine();
 
-        if ($ok) {
-            $this->components->info('The gateway ACCEPTED the message.');
-            $this->line('  That is not the same as delivered. If it does not arrive:');
-            $this->line('   - check the TalkSasa dashboard for this message');
-            $this->line('   - a "source_address filter mismatch" there means the sender ID');
-            $this->line('     is not approved on the account, which the API does not tell us');
+        if ($response->failed() || strtolower((string) ($body['status'] ?? '')) === 'error') {
+            $this->components->error('The gateway REFUSED the message outright.');
+            $this->line('  Reason: <fg=red>'.($body['message'] ?? $response->body()).'</>');
+            $this->line('  Check TALKSASA_API_TOKEN and TALKSASA_SENDER_ID.');
+
+            return self::FAILURE;
+        }
+
+        $this->components->info('Accepted for delivery. Following it up...');
+
+        $statusUrl = $body['data']['check_status_url'] ?? null;
+
+        if (! $statusUrl) {
+            $this->components->warn('No status URL returned, so the outcome cannot be checked from here.');
 
             return self::SUCCESS;
         }
 
-        $reason = method_exists($sms, 'lastError') ? $sms->lastError() : null;
+        return $this->followUp($statusUrl);
+    }
 
-        $this->components->error('The gateway REFUSED the message.');
+    /**
+     * Poll the queue status until the gateway stops saying "accepted".
+     *
+     * A few seconds is usually enough; the point is to catch the rejection that
+     * arrives after the send call has already returned success.
+     */
+    private function followUp(string $statusUrl): int
+    {
+        $token = (string) config('services.talksasa.api_token');
 
-        if ($reason) {
-            $this->line("  Reason: <fg=red>{$reason}</>");
+        foreach ([3, 5, 7] as $wait) {
+            sleep($wait);
+
+            $status = Http::withToken($token)->acceptJson()->timeout(15)->get($statusUrl);
+            $data = $status->json('data') ?? $status->json();
+            $state = strtolower((string) ($data['status'] ?? ''));
+
+            $this->line("  status: <fg=yellow>{$state}</>");
+
+            if ($state === '' || $state === 'accepted' || $state === 'pending' || $state === 'queued') {
+                continue;
+            }
+
+            $this->newLine();
+
+            if (in_array($state, ['delivered', 'sent', 'success'], true)) {
+                $this->components->info('DELIVERED. The chain is working end to end.');
+
+                return self::SUCCESS;
+            }
+
+            $this->components->error('The carrier REJECTED the message after accepting it.');
+            $this->line('  Gateway said: <fg=red>'.json_encode($data).'</>');
+            $this->newLine();
+            $this->line('  Common causes, in the order worth checking:');
+            $this->line('   1. Sender ID not approved  ("source_address filter mismatch")');
+            $this->line('   2. No credit left on the TalkSasa account');
+            $this->line('   3. Recipient on a do-not-disturb / blocked list');
+
+            return self::FAILURE;
         }
 
-        $this->line('  Check TALKSASA_API_TOKEN and TALKSASA_SENDER_ID, then storage/logs.');
+        $this->newLine();
+        $this->components->warn('Still queued at the gateway after 15s.');
+        $this->line('  Check it yourself: <fg=yellow>'.$statusUrl.'</>');
 
-        return self::FAILURE;
+        return self::SUCCESS;
     }
 
     /**
