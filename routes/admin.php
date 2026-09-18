@@ -49,9 +49,18 @@ Route::middleware('auth.admin')->group(function () {
     Route::resource('riders', \App\Http\Controllers\Admin\RiderController::class)
         ->names('riders');
 
-    // Orders
+    // Orders. `create` and `catalogue` sit above `{order}` so they are not
+    // swallowed as an id.
     Route::get('orders', [\App\Http\Controllers\Admin\OrderController::class, 'index'])->name('orders.index');
-    Route::get('orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'show'])->name('orders.show');
+    Route::get('orders/create', [\App\Http\Controllers\Admin\OrderController::class, 'create'])->name('orders.create');
+    Route::get('orders/catalogue', [\App\Http\Controllers\Admin\OrderController::class, 'catalogue'])->name('orders.catalogue');
+    Route::post('orders', [\App\Http\Controllers\Admin\OrderController::class, 'store'])
+        // Stock is deducted and, for a counter sale, the order is closed and
+        // paid — a double-submit must not become two sales.
+        ->middleware('throttle:20,1')
+        ->name('orders.store');
+    Route::get('orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'show'])
+        ->whereNumber('order')->name('orders.show');
     Route::post('orders/{order}/assign', [\App\Http\Controllers\Admin\OrderController::class, 'assign'])->name('orders.assign');
     Route::post('orders/{order}/reassign', [\App\Http\Controllers\Admin\OrderController::class, 'reassign'])->name('orders.reassign');
     Route::post('orders/{order}/status', [\App\Http\Controllers\Admin\OrderController::class, 'updateStatus'])->name('orders.status');
@@ -64,17 +73,25 @@ Route::middleware('auth.admin')->group(function () {
     Route::post('orders/{order}/issues/payment-dispute/resolve',   [\App\Http\Controllers\Admin\OrderIssueController::class, 'resolvePaymentDispute'])->name('orders.issues.payment-dispute.resolve');
     Route::post('orders/{order}/issues/resolve-correction',        [\App\Http\Controllers\Admin\OrderIssueController::class, 'resolveCorrection'])->name('orders.issues.resolve-correction');
 
-    // Customers
+    // Customers. `search` sits above `{customer}` so it is not swallowed as an id.
     Route::get('customers', [\App\Http\Controllers\Admin\CustomerController::class, 'index'])->name('customers.index');
-    Route::get('customers/{customer}', [\App\Http\Controllers\Admin\CustomerController::class, 'show'])->name('customers.show');
+    Route::get('customers/search', [\App\Http\Controllers\Admin\CustomerController::class, 'search'])->name('customers.search');
+    Route::post('customers', [\App\Http\Controllers\Admin\CustomerController::class, 'store'])->name('customers.store');
+    Route::get('customers/{customer}', [\App\Http\Controllers\Admin\CustomerController::class, 'show'])
+        ->whereNumber('customer')->name('customers.show');
+    Route::post('customers/{customer}/addresses', [\App\Http\Controllers\Admin\CustomerController::class, 'storeAddress'])
+        ->whereNumber('customer')->name('customers.addresses.store');
     Route::post('customers/{customer}/sms-opt-out', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'toggleOptOut'])
-        ->name('customers.sms-opt-out');
+        ->whereNumber('customer')->name('customers.sms-opt-out');
+
+    // Address lookup for the order composer — a phone order needs coordinates,
+    // and nobody taking a call is going to type latitude and longitude.
+    Route::get('geocode/search', [\App\Http\Controllers\Admin\GeocodeController::class, 'search'])->name('geocode.search');
 
     // Bulk SMS. `create` and `preview` sit above `{campaign}` so they are not
     // swallowed as an id.
     Route::get('sms', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'index'])->name('sms.index');
     Route::get('sms/create', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'create'])->name('sms.create');
-    Route::get('sms/customers', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'customers'])->name('sms.customers');
     Route::post('sms/preview', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'preview'])->name('sms.preview');
     Route::post('sms', [\App\Http\Controllers\Admin\SmsCampaignController::class, 'store'])
         // A bulk send cannot be recalled, so a double-submit must not become

@@ -279,14 +279,14 @@ class SmsCampaignTest extends TestCase
         $this->customer(['name' => 'Someone Else', 'phone' => '+254700000001']);
 
         $this->actingAs($admin, 'admin')
-            ->getJson(route('admin.sms.customers', ['q' => 'Novenah']))
+            ->getJson(route('admin.customers.search', ['q' => 'Novenah']))
             ->assertOk()
             ->assertJsonCount(1)
             ->assertJsonFragment(['name' => 'Novenah Shellomith']);
 
         // Phone works too — it is often what the shop has to hand.
         $this->actingAs($admin, 'admin')
-            ->getJson(route('admin.sms.customers', ['q' => '741252274']))
+            ->getJson(route('admin.customers.search', ['q' => '741252274']))
             ->assertOk()
             ->assertJsonCount(1);
     }
@@ -299,7 +299,7 @@ class SmsCampaignTest extends TestCase
         // Shown rather than hidden: the admin should see that ticking this
         // person will not actually text them.
         $this->actingAs($admin, 'admin')
-            ->getJson(route('admin.sms.customers', ['q' => 'Optee']))
+            ->getJson(route('admin.customers.search', ['q' => 'Optee']))
             ->assertOk()
             ->assertJsonFragment(['opted_out' => true]);
     }
@@ -311,7 +311,7 @@ class SmsCampaignTest extends TestCase
         $this->customer(['name' => 'No Number', 'phone' => '']);
 
         $this->actingAs($admin, 'admin')
-            ->getJson(route('admin.sms.customers'))
+            ->getJson(route('admin.customers.search'))
             ->assertOk()
             ->assertJsonCount(0);
     }
@@ -320,7 +320,7 @@ class SmsCampaignTest extends TestCase
     {
         $this->customer();
 
-        $this->get(route('admin.sms.customers'))->assertRedirect();
+        $this->get(route('admin.customers.search'))->assertRedirect();
     }
 
     public function test_an_admin_can_toggle_a_customers_consent(): void

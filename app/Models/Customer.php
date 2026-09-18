@@ -24,6 +24,10 @@ class Customer extends Authenticatable
         'is_active',
         'sms_opt_out_at',
         'sms_opt_out_source',
+        // 'app' when they signed themselves up, 'admin' when a phone or counter
+        // order created the record for them. Distinct from phone_verified_at,
+        // which is the conversion signal: created_via never changes.
+        'created_via',
     ];
 
     protected $hidden = [

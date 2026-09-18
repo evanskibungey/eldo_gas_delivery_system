@@ -3,7 +3,7 @@ import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import {
     Eye, RefreshCw, Package, Clock, AlertCircle, Wrench,
-    Search, ShoppingBag, ChevronLeft, ChevronRight,
+    Search, ShoppingBag, ChevronLeft, ChevronRight, Plus, Store,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,8 @@ interface OrderRow {
     order_number:   string;
     status:         OrderStatus;
     order_type:     'swap' | 'new_cylinder' | 'accessory';
+    /** How it reached us. A counter sale is history, not a job to dispatch. */
+    channel:        'app' | 'phone' | 'walk_in';
     items_summary:  string;
     cylinder_count: number;
     size_name:      string | null;
@@ -219,6 +221,12 @@ export default function OrdersIndex({ orders, filters, counts, stale_pending: st
                         onClick={() => router.reload({ only: ['orders', 'counts', 'stale_pending'] })}>
                         <RefreshCw className="h-3 w-3" /> Refresh
                     </Button>
+                    {/* Phone-in and counter sales. Without a way to record them
+                        the sale happens off the system and the shelf stops
+                        matching what the app thinks is in stock. */}
+                    <Button asChild size="sm" className="h-8 gap-1.5 bg-orange-500 text-xs hover:bg-orange-600">
+                        <Link href="/admin/orders/create"><Plus className="h-3 w-3" /> New order</Link>
+                    </Button>
                 </div>
             </div>
 
@@ -316,6 +324,18 @@ export default function OrdersIndex({ orders, filters, counts, stale_pending: st
                                                 {o.created_ago}
                                             </p>
                                         </div>
+                                        {/* Only when it is not an app order — that
+                                            is the norm and needs no label. */}
+                                        {o.channel === 'walk_in' && (
+                                            <span className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-2xs font-semibold text-slate-600" title="Counter sale">
+                                                <Store className="inline h-2.5 w-2.5" /> Counter
+                                            </span>
+                                        )}
+                                        {o.channel === 'phone' && (
+                                            <span className="shrink-0 rounded-full border border-sky-200 bg-sky-50 px-1.5 py-0.5 text-2xs font-semibold text-sky-700" title="Taken over the phone">
+                                                Phone
+                                            </span>
+                                        )}
                                         {o.has_issue && (
                                             <span className="flex items-center gap-0.5 text-red-500 shrink-0" title={o.issue_type?.replace(/_/g, ' ')}>
                                                 <AlertCircle className="h-3.5 w-3.5" />

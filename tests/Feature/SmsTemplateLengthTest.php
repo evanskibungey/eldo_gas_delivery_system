@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Customer;
 use App\Models\CylinderSize;
+use App\Models\GasBrand;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Rider;
 use App\Models\SystemSetting;
 use App\Services\Sms\SmsTemplateService;
@@ -110,6 +112,33 @@ class SmsTemplateLengthTest extends TestCase
         return [$order->load(['customer', 'size', 'brand']), $rider];
     }
 
+    /**
+     * A two-line basket — the shape the walk-in receipt is actually priced on.
+     *
+     * Named brands rather than factory-random ones so the character count is
+     * stable run to run; a template that only fits when the brand is called
+     * "Ab" is not really inside its budget.
+     */
+    private function orderWithBasket(): Order
+    {
+        $customer = Customer::factory()->create(['name' => 'Christopher Wanjala']);
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'total_amount' => 5900,
+        ]);
+
+        foreach ([['13kg', 'ProGas', 2], ['6kg', 'Total Gas', 1]] as [$sizeName, $brandName, $quantity]) {
+            OrderItem::factory()->create([
+                'order_id' => $order->id,
+                'size_id' => CylinderSize::factory()->create(['name' => $sizeName]),
+                'brand_id' => GasBrand::factory()->create(['name' => $brandName]),
+                'quantity' => $quantity,
+            ]);
+        }
+
+        return $order->load(['customer', 'items.size', 'items.brand']);
+    }
+
     public function test_customer_templates_stay_within_their_segment_budget(): void
     {
         [$order, $rider] = $this->fixtures();
@@ -121,6 +150,10 @@ class SmsTemplateLengthTest extends TestCase
             'orderConfirmation' => $this->report('orderConfirmation', $sms->orderConfirmation($order)),
             'riderAssigned' => $this->report('riderAssigned', $sms->riderAssigned($order, $rider)),
             'deliveryThankYou' => $this->report('deliveryThankYou', $sms->deliveryThankYou($order, 170, 1250)),
+            // Priced against a real basket, not the bare fixture: this template
+            // is the only one that prints the item list, so an empty order
+            // would flatter it by fourteen characters or more.
+            'walkInReceipt' => $this->report('walkInReceipt', $sms->walkInReceipt($this->orderWithBasket(), 170)),
             'safetyTip' => $this->report('safetyTip', $sms->safetyTip()),
         ];
 
@@ -152,6 +185,10 @@ class SmsTemplateLengthTest extends TestCase
             'orderConfirmation' => 1,
             'riderAssigned' => 1,
             'deliveryThankYou' => 1,
+            // The only message a counter sale sends, and the whole reason to
+            // record walk-ins at all — it carries the points and the app link.
+            // It also carries the item list, so it is the closest to the edge.
+            'walkInReceipt' => 1,
             // No link, but the full safety instruction set does not fit in 160.
             // Deliberately not trimmed: see SmsTemplateService::safetyTip().
             'safetyTip' => 2,

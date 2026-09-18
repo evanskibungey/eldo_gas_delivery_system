@@ -3,18 +3,27 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\CancelOrderAction;
+use App\Exceptions\OutOfStockException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Orders\AssignRiderRequest;
 use App\Http\Requests\Admin\Orders\CancelOrderRequest;
 use App\Http\Requests\Admin\Orders\ReassignRiderRequest;
+use App\Http\Requests\Admin\Orders\StoreAdminOrderRequest;
 use App\Http\Requests\Admin\Orders\UpdateOrderStatusRequest;
+use App\Models\AddonGroup;
+use App\Models\CylinderSize;
 use App\Models\Order;
 use App\Models\Rider;
+use App\Models\SystemSetting;
+use App\Services\Admin\AdminOrderCreator;
 use App\Services\Admin\OrderService;
 use App\Support\OrderLifecycle;
+use App\Support\ShopLocation;
 use App\Support\Utf8Sanitizer;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -35,6 +44,46 @@ class OrderController extends Controller
             'counts' => $this->orders->statusCounts(),
             'stale_pending' => $this->orders->stalePendingCount(),
         ]);
+    }
+
+    /**
+     * The composer for an order the customer did not place themselves — taken
+     * over the telephone, or rung up at the counter.
+     *
+     * The catalogue ships with the page rather than being fetched afterwards:
+     * it is small, it never changes mid-order, and a counter sale is a queue
+     * of one person waiting.
+     */
+    public function create(): Response
+    {
+        return Inertia::render('Admin/Orders/Create', [
+            'catalogue' => $this->sanitize($this->catalogueData()),
+            'shop_label' => ShopLocation::label(),
+        ]);
+    }
+
+    /** The same catalogue as JSON, for a composer left open across a price change. */
+    public function catalogue(): JsonResponse
+    {
+        return response()->json($this->sanitize($this->catalogueData()));
+    }
+
+    public function store(StoreAdminOrderRequest $request, AdminOrderCreator $creator): RedirectResponse
+    {
+        try {
+            $order = $creator->create($request->validated(), auth('admin')->id());
+        } catch (OutOfStockException $exception) {
+            // The same guard the customer app hits. A counter sale must not be
+            // able to sell a cylinder that is not on the shelf.
+            throw ValidationException::withMessages(['items' => $exception->getMessage()]);
+        }
+
+        return redirect()->route('admin.orders.show', $order)->with(
+            'success',
+            $order->isWalkIn()
+                ? "Counter sale #{$order->order_number} recorded."
+                : "Order #{$order->order_number} created. Assign a rider to send it out.",
+        );
     }
 
     public function show(Order $order): Response
@@ -110,6 +159,71 @@ class OrderController extends Controller
             ->with('success', "Order #{$order->order_number} cancelled.");
     }
 
+    /**
+     * Everything the composer needs to price an order without a round trip.
+     *
+     * Assembled the same way Customer\Order\OrderController@build does, and
+     * deliberately so: the admin must see the prices, the brand availability
+     * and the stock the customer sees, or the counter and the app quietly
+     * disagree about what things cost.
+     *
+     * @return array<string, mixed>
+     */
+    private function catalogueData(): array
+    {
+        $sizes = CylinderSize::active()->ordered()
+            ->with(['stockLevel', 'price', 'brands' => fn ($query) => $query->where('gas_brands.is_active', true)])
+            ->get();
+
+        $feeMode = SystemSetting::get('delivery_fee_mode', 'per_size');
+        $globalFee = (float) SystemSetting::get('delivery_base_fee', '0.00');
+
+        $addonsBySize = AddonGroup::active()->ordered()
+            ->whereIn('size_id', $sizes->pluck('id'))
+            ->with(['items' => fn ($query) => $query->active()->ordered()])
+            ->get()
+            ->groupBy('size_id')
+            ->map(fn ($groups) => $groups->map(fn (AddonGroup $group) => [
+                'id' => $group->id,
+                'name' => $group->name,
+                'selection_type' => $group->selection_type,
+                'items' => $group->items->map(fn ($item) => [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'price' => $item->price,
+                ])->values(),
+            ])->values());
+
+        return [
+            'sizes' => $sizes->map(fn (CylinderSize $size) => [
+                'id' => $size->id,
+                'name' => $size->name,
+                'weight_kg' => $size->weight_kg,
+                'is_commercial' => $size->is_commercial,
+                // The count, not a boolean. Someone at the counter asking for
+                // four needs to be told there are two before the order is
+                // built, not after PlaceOrderAction refuses it.
+                'filled_count' => (int) ($size->stockLevel?->filled_count ?? 0),
+                'swap_price' => (int) ($size->price?->gas_refill_price ?? 0),
+                'new_price' => (int) (($size->price?->new_cylinder_price ?? 0) + ($size->price?->new_gas_fill_price ?? 0)),
+                'delivery_fee' => (float) ($feeMode === 'per_size' ? ($size->price?->delivery_fee ?? 0) : $globalFee),
+                'has_price' => $size->price !== null,
+            ])->values()->all(),
+            'brands_by_size' => $sizes->mapWithKeys(fn (CylinderSize $size) => [
+                (string) $size->id => $size->brands->map(fn ($brand) => [
+                    'id' => $brand->id,
+                    'name' => $brand->name,
+                ])->values()->all(),
+            ])->all(),
+            'addons_by_size' => $addonsBySize->all(),
+            // A basket is one journey, so it is charged one fee — the highest
+            // of its sizes under per-size pricing. The composer needs the rule
+            // to show a total that matches what the server will charge.
+            'delivery_fee_mode' => $feeMode,
+            'delivery_base_fee' => $globalFee,
+        ];
+    }
+
     private function formatListRow(Order $order): array
     {
         return [
@@ -117,6 +231,10 @@ class OrderController extends Controller
             'order_number' => $order->order_number,
             'status' => $order->status,
             'order_type' => $order->order_type,
+            // How it reached us: app, phone or walk_in. A counter sale on the
+            // board is history, not a job — without this it reads as a
+            // delivery nobody was ever sent on.
+            'channel' => $order->channel ?? 'app',
             'size_name' => $order->size?->name,
             'brand_name' => $order->brand?->name,
             // What is actually on the order. The two above name its first
@@ -145,6 +263,7 @@ class OrderController extends Controller
             'order_number' => $order->order_number,
             'status' => $order->status,
             'order_type' => $order->order_type,
+            'channel' => $order->channel ?? 'app',
             'size_name' => $order->size?->name,
             'brand_name' => $order->brand?->name,
             // Line by line here rather than a summary string: this is the

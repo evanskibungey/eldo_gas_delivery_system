@@ -34,7 +34,7 @@ class GeocodeController extends Controller
         ]);
 
         try {
-            $results = $this->geocoding->search($data['q'], $this->viewbox());
+            $results = $this->geocoding->search($data['q'], $this->serviceArea->viewbox());
         } catch (RuntimeException) {
             return $this->unavailable();
         }
@@ -56,24 +56,6 @@ class GeocodeController extends Controller
         }
 
         return response()->json(['data' => $place]);
-    }
-
-    /** @return array{west: float, south: float, east: float, north: float} */
-    private function viewbox(): array
-    {
-        [$lat, $lng] = $this->serviceArea->centre();
-        $radiusKm = $this->serviceArea->radiusKm();
-
-        $latDelta = $radiusKm / 110.574;
-        $cosLat = max(0.01, abs(cos(deg2rad($lat))));
-        $lngDelta = $radiusKm / (111.320 * $cosLat);
-
-        return [
-            'west' => $lng - $lngDelta,
-            'south' => $lat - $latDelta,
-            'east' => $lng + $lngDelta,
-            'north' => $lat + $latDelta,
-        ];
     }
 
     private function unavailable(): JsonResponse

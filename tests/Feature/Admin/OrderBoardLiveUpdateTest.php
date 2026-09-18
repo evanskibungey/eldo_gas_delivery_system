@@ -82,6 +82,37 @@ class OrderBoardLiveUpdateTest extends TestCase
         $this->assertArrayHasKey('image_url', $payload);
     }
 
+    /**
+     * The alarm is for orders the shop did not already know about.
+     *
+     * AdminRealtime raises the full-screen ringing modal only when
+     * `channel === 'app'`. Without the key in the payload an admin recording a
+     * counter sale sets the alarm off at themselves, which teaches everyone to
+     * dismiss it unread — and the one that matters then gets dismissed too.
+     */
+    public function test_the_payload_says_which_channel_the_order_came_through(): void
+    {
+        $fromApp = Order::factory()->create(['status' => 'pending', 'channel' => 'app']);
+        $counterSale = Order::factory()->create(['status' => 'delivered', 'channel' => 'walk_in']);
+        $phoneIn = Order::factory()->create(['status' => 'pending', 'channel' => 'phone']);
+
+        $this->assertSame('app', (new OrderPlacedEvent($fromApp))->broadcastWith()['channel']);
+        $this->assertSame('walk_in', (new OrderPlacedEvent($counterSale))->broadcastWith()['channel']);
+        $this->assertSame('phone', (new OrderPlacedEvent($phoneIn))->broadcastWith()['channel']);
+    }
+
+    public function test_an_admin_created_order_still_refreshes_the_board(): void
+    {
+        // Suppressing the alarm must not suppress the broadcast: the phone
+        // order needs a rider, so it has to appear on everyone's board.
+        $phoneIn = Order::factory()->create(['status' => 'pending', 'channel' => 'phone']);
+
+        $this->assertContains(
+            'private-admin.orders',
+            $this->channelNames(new OrderPlacedEvent($phoneIn)),
+        );
+    }
+
     public function test_the_payload_lists_every_cylinder_on_the_order(): void
     {
         $order = Order::factory()->create(['status' => 'pending']);

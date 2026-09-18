@@ -21,6 +21,7 @@ class Order extends Model
         'size_id',
         'brand_id',
         'order_type',
+        'channel',
         'status',
         'gas_price',
         'cylinder_price',
@@ -116,6 +117,18 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /** A counter sale: collected and paid at the shop, never delivered. */
+    public function isWalkIn(): bool
+    {
+        return $this->channel === 'walk_in';
+    }
+
+    /** Placed by an admin rather than by the customer themselves. */
+    public function isAdminCreated(): bool
+    {
+        return in_array($this->channel, ['phone', 'walk_in'], true);
     }
 
     /** Total cylinders across every line — four means four to load. */

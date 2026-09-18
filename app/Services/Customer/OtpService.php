@@ -12,7 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class OtpService
 {
-    public function __construct(private readonly SmsServiceInterface $sms) {}
+    public function __construct(
+        private readonly SmsServiceInterface $sms,
+        private readonly CustomerRegistrar $registrar,
+    ) {}
 
     public function generate(string $phone): OtpToken
     {
@@ -79,15 +82,10 @@ class OtpService
 
         $otp->update(['used_at' => now()]);
 
-        $customer = Customer::firstOrCreate(
-            ['phone' => $phone],
-            [
-                'name' => '',
-                'phone_verified_at' => now(),
-                'referral_code' => $this->uniqueReferralCode(),
-                'is_active' => true,
-            ]
-        );
+        // A walk-in an admin entered at the counter already exists under this
+        // number, so this resolves to their record and their history follows
+        // them into the app rather than starting again.
+        $customer = $this->registrar->findOrCreateByPhone($phone, null, 'app', verified: true);
 
         if (! $customer->is_active) {
             throw ValidationException::withMessages([
@@ -100,7 +98,7 @@ class OtpService
             $updates['phone_verified_at'] = now();
         }
         if (! $customer->referral_code) {
-            $updates['referral_code'] = $this->uniqueReferralCode();
+            $updates['referral_code'] = $this->registrar->uniqueReferralCode();
         }
         if ($updates !== []) {
             $customer->update($updates);
@@ -135,15 +133,7 @@ class OtpService
      */
     private function reviewerCustomer(string $phone): Customer
     {
-        $customer = Customer::firstOrCreate(
-            ['phone' => $phone],
-            [
-                'name' => 'Play Reviewer',
-                'phone_verified_at' => now(),
-                'referral_code' => $this->uniqueReferralCode(),
-                'is_active' => true,
-            ]
-        );
+        $customer = $this->registrar->findOrCreateByPhone($phone, 'Play Reviewer', 'app', verified: true);
 
         $updates = [];
         if (empty($customer->name)) {
@@ -156,21 +146,12 @@ class OtpService
             $updates['phone_verified_at'] = now();
         }
         if (! $customer->referral_code) {
-            $updates['referral_code'] = $this->uniqueReferralCode();
+            $updates['referral_code'] = $this->registrar->uniqueReferralCode();
         }
         if ($updates !== []) {
             $customer->update($updates);
         }
 
         return $customer->fresh();
-    }
-
-    private function uniqueReferralCode(): string
-    {
-        do {
-            $code = strtoupper(substr(str_shuffle('ABCDEFGHJKLMNPQRSTUVWXYZ23456789'), 0, 8));
-        } while (Customer::where('referral_code', $code)->exists());
-
-        return $code;
     }
 }

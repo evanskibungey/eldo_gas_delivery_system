@@ -20,6 +20,14 @@ class SendOrderConfirmationNotification implements ShouldQueue
             return;
         }
 
+        // "Your order has been received" makes no sense to somebody standing at
+        // the counter holding the cylinder. A walk-in gets one message — the
+        // receipt sent by AdminOrderCreator — instead of this plus a delivery
+        // thank-you.
+        if ($order->isWalkIn()) {
+            return;
+        }
+
         SendSmsJob::dispatch(
             $customer->phone,
             app(SmsTemplateService::class)->orderConfirmation($order),

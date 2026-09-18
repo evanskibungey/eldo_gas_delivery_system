@@ -30,6 +30,14 @@ class SendDeliveryThankYou implements ShouldQueue
             return;
         }
 
+        // A counter sale is created already delivered, which fires this. The
+        // walk-in receipt already thanked them, named the points and carried
+        // the app link, so this would be the second of two near-identical
+        // messages for one transaction.
+        if ($order->isWalkIn()) {
+            return;
+        }
+
         $gasPoints = app(GasPointsService::class);
 
         // Read both from the database at send time. The event's copy of the

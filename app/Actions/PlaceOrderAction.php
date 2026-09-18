@@ -161,6 +161,13 @@ class PlaceOrderAction
                 $deliveryFee = $this->orderDeliveryFee($perSizeFees);
             }
 
+            // Nothing is delivered on a counter sale, so nothing is charged for
+            // it. Applied after both branches so an accessory bought over the
+            // counter is free of it too.
+            if (array_key_exists('delivery_fee_override', $data) && $data['delivery_fee_override'] !== null) {
+                $deliveryFee = (float) $data['delivery_fee_override'];
+            }
+
             // The legacy columns mirror the first line so every read path
             // that has not moved to items yet keeps working. On a basket they
             // describe one of the cylinders rather than all of them — which
@@ -220,6 +227,9 @@ class PlaceOrderAction
                 'gaspoints_discount' => $gaspointsDiscount,
                 'total_amount' => $total,
                 'payment_method' => $data['payment_method'],
+                // How the order reached us. Defaults to 'app' so the two
+                // customer-facing callers need not know this exists.
+                'channel' => $data['channel'] ?? 'app',
                 'delivery_lat' => $data['delivery_lat'],
                 'delivery_lng' => $data['delivery_lng'],
                 'delivery_label' => $data['delivery_label'] ?? null,
@@ -266,8 +276,10 @@ class PlaceOrderAction
             OrderStatusHistory::create([
                 'order_id' => $order->id,
                 'status' => OrderLifecycle::STATUS_PENDING,
-                'actor_type' => 'customer',
-                'actor_id' => $customer->id,
+                // An order an admin took over the phone was not placed by the
+                // customer, and the history is the record of who did what.
+                'actor_type' => $data['actor_type'] ?? 'customer',
+                'actor_id' => $data['actor_id'] ?? $customer->id,
                 'created_at' => now(),
             ]);
 

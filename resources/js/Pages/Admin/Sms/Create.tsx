@@ -71,7 +71,7 @@ export default function SmsCreate({ audiences, selected, selectedCustomers, optO
             setSearching(true);
             try {
                 const response = await fetch(
-                    `/admin/sms/customers?q=${encodeURIComponent(query)}`,
+                    `/admin/customers/search?q=${encodeURIComponent(query)}`,
                     { signal: controller.signal, headers: { Accept: 'application/json' } },
                 );
                 if (response.ok) setResults(await response.json());

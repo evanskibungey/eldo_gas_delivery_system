@@ -87,6 +87,32 @@ class SmsTemplateService
     }
 
     /**
+     * Receipt for a counter sale, and the one message a walk-in receives.
+     *
+     * Its real job is conversion: somebody who bought over the counter has no
+     * account, so the points they just earned are the reason to install the app
+     * — they cannot spend them anywhere else. The order-placed confirmation and
+     * the delivery thank-you are both suppressed for this channel so this is
+     * not the second or third text about one transaction.
+     *
+     * Plain ASCII. One emoji or dash re-encodes the message to UCS-2 and cuts
+     * the segment size from 160 characters to 70.
+     */
+    public function walkInReceipt(Order $order, int $pointsEarned = 0): string
+    {
+        $name = $this->firstName($order);
+        $total = 'KES ' . number_format($order->total_amount);
+
+        $points = $pointsEarned > 0
+            ? 'You earned ' . number_format($pointsEarned) . ' GasPoints - get the app to use them: '
+            : 'Order again on the ' . $this->appName . ' app: ';
+
+        return "{$this->appName}: Thanks {$name}! "
+            . $this->itemsLine($order) . ", {$total}. "
+            . $points . $this->appLink;
+    }
+
+    /**
      * Safety tip sent ~10 minutes after delivery.
      */
     public function safetyTip(): string

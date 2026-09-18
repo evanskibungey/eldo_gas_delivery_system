@@ -44,6 +44,8 @@ interface OrderDetail {
     order_number:     string;
     status:           OrderStatus;
     order_type:       'swap' | 'new_cylinder' | 'accessory';
+    /** How it reached us. A counter sale was never dispatched to anybody. */
+    channel:          'app' | 'phone' | 'walk_in';
     size_name:        string | null;
     brand_name:       string | null;
     items:            OrderItem[];
@@ -405,6 +407,18 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                     <ArrowLeft className="h-4 w-4" /> Back to Orders
                 </Link>
                 <div className="flex items-center gap-2">
+                    {/* Only when it is not an app order. Without it a counter
+                        sale reads as a delivery that somehow skipped a rider. */}
+                    {order.channel === 'walk_in' && (
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-2xs font-semibold text-slate-600">
+                            Counter sale
+                        </span>
+                    )}
+                    {order.channel === 'phone' && (
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-2xs font-semibold text-sky-700">
+                            Taken by phone
+                        </span>
+                    )}
                     <StatusBadge status={order.status} />
                     <span className="text-xs text-slate-500">{order.created_at}</span>
                 </div>

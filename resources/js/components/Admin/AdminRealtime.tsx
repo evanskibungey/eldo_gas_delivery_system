@@ -27,6 +27,8 @@ export interface NewOrderPayload {
     order_number:   string;
     status:         string;
     order_type:     'swap' | 'new_cylinder' | 'accessory';
+    /** How the order reached us. Absent on a broadcast from before this shipped. */
+    channel?:       'app' | 'phone' | 'walk_in';
     total_amount:   number;
     payment_method: 'cash' | 'mpesa';
     size_name:      string | null;
@@ -203,7 +205,14 @@ export function AdminRealtimeProvider({ children }: PropsWithChildren) {
             const isNew = !seenOrderIds.current.has(payload.id);
             seenOrderIds.current.add(payload.id);
 
-            if (isNew) raiseAlert(payload);
+            // Only an order the customer placed themselves is news. A phone or
+            // counter order was just typed in by an admin — raising the
+            // full-screen alarm would set it off at the person who created it,
+            // and train everyone to dismiss it without reading. The board still
+            // refreshes below, so nothing goes stale.
+            const isCustomerPlaced = (payload.channel ?? 'app') === 'app';
+
+            if (isNew && isCustomerPlaced) raiseAlert(payload);
 
             emit({ kind: 'placed', order: payload });
             scheduleRefresh();

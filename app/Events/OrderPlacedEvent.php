@@ -56,6 +56,10 @@ class OrderPlacedEvent implements ShouldBroadcast
             'order_number'   => $this->order->order_number,
             'status'         => $this->order->status,
             'order_type'     => $this->order->order_type,
+            // The alarm is for orders that arrive unattended. An admin who just
+            // recorded a counter sale is already looking at the screen, so the
+            // panel uses this to refresh the board without sounding it.
+            'channel'        => $this->order->channel ?? 'app',
             'total_amount'   => $this->order->total_amount,
             'payment_method' => $this->order->payment_method,
             'size_name'      => $this->order->size?->name,

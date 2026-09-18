@@ -37,6 +37,34 @@ class ServiceAreaService
         );
     }
 
+    /**
+     * A box around the service area, for bounding a geocoder search.
+     *
+     * Without it a common street name returns a match several hundred
+     * kilometres away that nobody choosing from a list can tell apart from the
+     * local one.
+     *
+     * @return array{west: float, south: float, east: float, north: float}
+     */
+    public function viewbox(): array
+    {
+        [$lat, $lng] = $this->centre();
+        $radiusKm = $this->radiusKm();
+
+        $latDelta = $radiusKm / 110.574;
+        // Longitude degrees shrink towards the poles; guard the divisor so a
+        // pathological configured latitude cannot divide by zero.
+        $cosLat = max(0.01, abs(cos(deg2rad($lat))));
+        $lngDelta = $radiusKm / (111.320 * $cosLat);
+
+        return [
+            'west' => $lng - $lngDelta,
+            'south' => $lat - $latDelta,
+            'east' => $lng + $lngDelta,
+            'north' => $lat + $latDelta,
+        ];
+    }
+
     public function distanceKm(float $lat, float $lng): float
     {
         [$centreLat, $centreLng] = $this->centre();

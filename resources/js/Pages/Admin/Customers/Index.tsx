@@ -15,6 +15,13 @@ interface CustomerRow {
     gaspoints_balance: number;
     orders_count:      number;
     is_active:         boolean;
+    /**
+     * Has signed into the app at least once. Backfilled by the OTP service on
+     * first login, so a walk-in flips to an app user by themselves — this is
+     * the conversion signal, not `created_via`, which never changes.
+     */
+    is_app_user:       boolean;
+    created_via:       'app' | 'admin';
     joined_at:         string;
     last_order_at:     string | null;
 }
@@ -30,7 +37,7 @@ interface Paginated {
 
 interface Props {
     customers: Paginated;
-    filters:   { search?: string };
+    filters:   { search?: string; source?: string };
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -48,9 +55,17 @@ function CustomerAvatar({ name }: { name: string }) {
 export default function CustomersIndex({ customers, filters }: Props) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [picked, setPicked] = useState<number[]>([]);
+    const source = filters.source ?? '';
+
+    function applyFilters(next: { search?: string; source?: string }) {
+        router.get('/admin/customers', {
+            search: (next.search ?? search) || undefined,
+            source: (next.source ?? source) || undefined,
+        }, { preserveState: true });
+    }
 
     function applySearch() {
-        router.get('/admin/customers', { search: search || undefined }, { preserveState: true });
+        applyFilters({});
     }
 
     function toggle(id: number) {
@@ -96,6 +111,30 @@ export default function CustomersIndex({ customers, filters }: Props) {
                         </button>
                     </div>
                 )}
+
+                {/* Who has actually installed the app. The not-yet-converted
+                    are the list worth an SMS campaign, so they are one click
+                    away rather than something to eyeball down the table. */}
+                <div className="flex items-center gap-1.5">
+                    {([
+                        { value: '',        label: 'All' },
+                        { value: 'app',     label: 'App users' },
+                        { value: 'walk_in', label: 'Not on the app' },
+                    ] as const).map(tab => (
+                        <button
+                            key={tab.value}
+                            onClick={() => applyFilters({ source: tab.value })}
+                            className={cn(
+                                'rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
+                                source === tab.value
+                                    ? 'border-orange-500 bg-orange-500 text-white shadow-sm shadow-orange-500/20'
+                                    : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700',
+                            )}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
 
                 <div className="relative">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
@@ -168,7 +207,21 @@ export default function CustomersIndex({ customers, filters }: Props) {
                                     <div className="flex items-center gap-3">
                                         <CustomerAvatar name={c.name} />
                                         <div>
-                                            <p className="font-semibold text-slate-900">{c.name}</p>
+                                            <div className="flex items-center gap-1.5">
+                                                <p className="font-semibold text-slate-900">{c.name}</p>
+                                                <span className={cn(
+                                                    'rounded-full border px-1.5 py-0.5 text-2xs font-semibold',
+                                                    c.is_app_user
+                                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                                        : 'border-amber-200 bg-amber-50 text-amber-700',
+                                                )}
+                                                    title={c.is_app_user
+                                                        ? 'Has signed into the app'
+                                                        : 'Recorded at the counter or over the phone — not yet on the app'}
+                                                >
+                                                    {c.is_app_user ? 'App user' : 'Walk-in'}
+                                                </span>
+                                            </div>
                                             {!c.is_active && (
                                                 <span className="text-2xs font-semibold text-red-400">Inactive</span>
                                             )}
