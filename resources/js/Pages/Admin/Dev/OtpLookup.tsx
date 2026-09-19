@@ -4,14 +4,11 @@ import { Search, ShieldAlert, ClipboardCopy, CheckCheck, Phone } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { errorMessage, postJson } from '@/lib/http';
 
 interface Result {
     otp: string | null;
     message: string;
-}
-
-function csrfToken(): string {
-    return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
 }
 
 function normalizePhone(raw: string): string {
@@ -36,26 +33,12 @@ export default function OtpLookup() {
         setResult(null);
 
         try {
-            const res = await fetch('/admin/dev/otp/lookup', {
-                method: 'POST',
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept':       'application/json',
-                    'X-CSRF-TOKEN': csrfToken(),
-                },
-                body: JSON.stringify({ phone: normalized }),
+            setResult(await postJson<Result>('/admin/dev/otp/lookup', { phone: normalized }));
+        } catch (error) {
+            setResult({
+                otp: null,
+                message: errorMessage(error, 'Request failed — ensure you are logged into the admin panel.'),
             });
-
-            if (!res.ok && res.status !== 200) {
-                setResult({ otp: null, message: `Server error ${res.status} — check Forge logs.` });
-                return;
-            }
-
-            const data: Result = await res.json();
-            setResult(data);
-        } catch (err) {
-            setResult({ otp: null, message: 'Request failed — ensure you are logged into the admin panel.' });
         } finally {
             setLoading(false);
         }

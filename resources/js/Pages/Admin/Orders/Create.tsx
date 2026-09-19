@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { errorMessage, postJson } from '@/lib/http';
 import { cn } from '@/lib/utils';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -256,28 +257,9 @@ export default function AdminOrderCreate({ catalogue, shop_label }: Props) {
         setCreating(true);
         setCustomerError(null);
         try {
-            const response = await fetch('/admin/customers', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '',
-                },
-                body: JSON.stringify({ name, phone }),
-            });
-
-            if (!response.ok) {
-                const body = await response.json().catch(() => null);
-                setCustomerError(
-                    body?.errors?.phone?.[0] ?? body?.message ?? 'Could not add that customer.',
-                );
-                return;
-            }
-
-            pick(await response.json());
-        } catch {
-            setCustomerError('Could not reach the server. Check the connection and try again.');
+            pick(await postJson<PickedCustomer>('/admin/customers', { name, phone }));
+        } catch (error) {
+            setCustomerError(errorMessage(error, 'Could not add that customer.'));
         } finally {
             setCreating(false);
         }
@@ -326,36 +308,21 @@ export default function AdminOrderCreate({ catalogue, shop_label }: Props) {
 
         setSavingAddress(true);
         try {
-            const response = await fetch(`/admin/customers/${customer.id}/addresses`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '',
-                },
-                body: JSON.stringify({
-                    label: placeLabel,
-                    description: place.short || place.display_name,
-                    latitude: place.lat,
-                    longitude: place.lon,
-                }),
+            const saved = await postJson<Address>(`/admin/customers/${customer.id}/addresses`, {
+                label: placeLabel,
+                description: place.short || place.display_name,
+                latitude: place.lat,
+                longitude: place.lon,
             });
 
-            if (!response.ok) {
-                setLookupError('Could not save that address.');
-                return;
-            }
-
-            const saved: Address = await response.json();
             setAddresses(current => [...current, saved]);
             setValue('address_id', saved.id, { shouldValidate: true });
             setShowNewAddress(false);
             setPlace(null);
             setPlaceQuery('');
             setPlaces([]);
-        } catch {
-            setLookupError('Could not reach the server.');
+        } catch (error) {
+            setLookupError(errorMessage(error, 'Could not save that address.'));
         } finally {
             setSavingAddress(false);
         }

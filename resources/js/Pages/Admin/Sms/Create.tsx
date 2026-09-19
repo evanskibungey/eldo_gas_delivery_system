@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowLeft, MessageSquare, Search, Send, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { errorMessage, isAbort, postJson } from '@/lib/http';
 import { cn } from '@/lib/utils';
 import { measureSms } from '@/lib/smsSegments';
 
@@ -100,45 +101,28 @@ export default function SmsCreate({ audiences, selected, selectedCustomers, optO
     const local = useMemo(() => measureSms(body), [body]);
 
     // The server owns the recipient count and is the authority on cost, so it
-    // is asked too — debounced, and by fetch rather than an Inertia visit,
+    // is asked too — debounced, and over XHR rather than an Inertia visit,
     // which cannot return JSON.
     useEffect(() => {
         const controller = new AbortController();
         const timer = window.setTimeout(async () => {
             try {
-                const response = await fetch('/admin/sms/preview', {
-                    method: 'POST',
-                    signal: controller.signal,
-                    // Sends the session cookie. Without it the endpoint sees a
-                    // guest and redirects to the login page.
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': document.head.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '',
-                    },
-                    body: JSON.stringify({ message, kind, audience, customer_ids: pickedIds }),
-                });
-
-                if (response.ok) {
-                    setPreview(await response.json());
-                    setPreviewError(null);
-                } else {
-                    // Say what happened. Left silent, this hung the panel on
-                    // "Checking recipients…" with no way to tell whether the
-                    // count was slow or the request had died.
-                    setPreviewError(
-                        response.status === 419
-                            ? 'Session expired — reload the page.'
-                            : `Could not check recipients (HTTP ${response.status}).`,
-                    );
-                }
+                setPreview(await postJson<Preview>(
+                    '/admin/sms/preview',
+                    { message, kind, audience, customer_ids: pickedIds },
+                    controller.signal,
+                ));
+                setPreviewError(null);
             } catch (error) {
                 // An abort is this effect superseding itself, not a failure.
-                if ((error as Error)?.name !== 'AbortError') {
-                    setPreviewError('Could not reach the server to check recipients.');
-                }
+                if (isAbort(error)) return;
+
+                // Say what happened. Left silent, this hung the panel on
+                // "Checking recipients…" with no way to tell whether the count
+                // was slow or the request had died — which is exactly what the
+                // stale-CSRF bug looked like from here before postJson moved
+                // this off the meta tag.
+                setPreviewError(errorMessage(error, 'Could not reach the server to check recipients.'));
             }
         }, 400);
 
