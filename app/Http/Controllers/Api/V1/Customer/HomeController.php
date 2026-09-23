@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\SystemSetting;
 use App\Services\EtaService;
+use App\Services\FirstOrderDiscount;
 use App\Services\ShopHoursService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,12 @@ use Illuminate\Support\Facades\DB;
 
 class HomeController extends Controller
 {
-    public function index(Request $request, ShopHoursService $shopHours, EtaService $eta): JsonResponse
+    public function index(
+        Request $request,
+        ShopHoursService $shopHours,
+        EtaService $eta,
+        FirstOrderDiscount $firstOrder,
+    ): JsonResponse
     {
         $customer = $request->user();
         $till = SystemSetting::get('mpesa_till_number') ?? config('services.mpesa.till_number');
@@ -93,6 +99,15 @@ class HomeController extends Controller
                 'created_at' => $lastDeliveredOrder->created_at?->toIso8601String(),
             ] : null,
             'eta_minutes' => $etaMinutes,
+            // The offer, so the app can say it exists before checkout and
+            // show the line in the breakdown. What actually comes off is
+            // decided again when the order is placed.
+            'first_order_discount' => [
+                'amount' => $firstOrder->isEligible($customer)
+                    ? $firstOrder->amount()
+                    : 0,
+                'min_order' => $firstOrder->minimumOrder(),
+            ],
             'payment' => [
                 'mpesa_till_number' => $till !== null && $till !== '' ? (string) $till : null,
             ],

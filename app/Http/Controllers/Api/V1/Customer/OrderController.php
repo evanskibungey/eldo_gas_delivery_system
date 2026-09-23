@@ -131,6 +131,7 @@ class OrderController extends Controller
             'addons_total' => $order->addons_total,
             'gaspoints_redeemed' => $order->gaspoints_redeemed ?? 0,
             'gaspoints_discount' => $order->gaspoints_discount ?? 0,
+            'first_order_discount' => $order->first_order_discount ?? 0,
             'total_amount' => $order->total_amount,
             'payment_method' => $order->payment_method,
             'delivery_lat' => $order->delivery_lat,

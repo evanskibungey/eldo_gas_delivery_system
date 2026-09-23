@@ -16,6 +16,7 @@ use App\Models\StockLevel;
 use App\Models\SystemSetting;
 use App\Services\AccessoryPricing;
 use App\Services\Admin\StockService;
+use App\Services\FirstOrderDiscount;
 use App\Services\GasPointsService;
 use App\Support\OrderLifecycle;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,7 @@ class PlaceOrderAction
         private readonly GasPointsService $gasPoints,
         private readonly StockService $stock,
         private readonly AccessoryPricing $accessoryPricing,
+        private readonly FirstOrderDiscount $firstOrderDiscount,
     ) {}
 
     /**
@@ -210,7 +212,25 @@ class PlaceOrderAction
                 }
             }
 
-            $total = max(0, $subtotal - $gaspointsDiscount);
+            // Decided here, inside the transaction, never from anything the
+            // app sent. The customer row is locked while this runs — two
+            // orders placed at the same moment would otherwise both look
+            // like a first one and both take the money off.
+            Customer::lockForUpdate()->find($customer->id);
+
+            $afterPoints = max(0, $subtotal - $gaspointsDiscount);
+            $firstOrderDiscount = min(
+                $this->firstOrderDiscount->forOrder(
+                    $customer,
+                    $subtotal,
+                    $data['channel'] ?? 'app',
+                ),
+                // Never more than is left to pay: the amount recorded has to
+                // be the amount actually taken off.
+                (int) $afterPoints,
+            );
+
+            $total = $afterPoints - $firstOrderDiscount;
 
             $order = Order::create([
                 'order_number' => 'TMP-' . Str::upper(Str::random(16)),
@@ -225,6 +245,7 @@ class PlaceOrderAction
                 'addons_total' => $addonsTotal,
                 'gaspoints_redeemed' => $redemptionPoints,
                 'gaspoints_discount' => $gaspointsDiscount,
+                'first_order_discount' => $firstOrderDiscount,
                 'total_amount' => $total,
                 'payment_method' => $data['payment_method'],
                 // How the order reached us. Defaults to 'app' so the two

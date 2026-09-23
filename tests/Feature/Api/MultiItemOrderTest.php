@@ -24,6 +24,17 @@ class MultiItemOrderTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Every order here is some customer's first, so the first-order
+        // discount would come off all of them. What these tests are about is
+        // what a basket costs before any promotion; the promotion has its own
+        // file.
+        SystemSetting::set('first_order_discount', '0');
+    }
+
     /** @return array{0: CylinderSize, 1: GasBrand} */
     private function cylinder(string $name, int $refill, int $fee, int $stock = 20): array
     {

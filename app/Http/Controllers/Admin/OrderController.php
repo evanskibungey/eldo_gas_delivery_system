@@ -286,6 +286,7 @@ class OrderController extends Controller
             // total on any order that redeemed points.
             'gaspoints_redeemed' => $order->gaspoints_redeemed,
             'gaspoints_discount' => $order->gaspoints_discount,
+            'first_order_discount' => $order->first_order_discount ?? 0,
             'total_amount' => $order->total_amount,
             'payment_method' => $order->payment_method,
             'payment_status' => $order->payment_status,

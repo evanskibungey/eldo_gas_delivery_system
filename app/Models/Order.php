@@ -29,6 +29,7 @@ class Order extends Model
         'addons_total',
         'gaspoints_redeemed',
         'gaspoints_discount',
+        'first_order_discount',
         'total_amount',
         'payment_method',
         'payment_status',
@@ -78,6 +79,7 @@ class Order extends Model
             'addons_total' => 'integer',
             'gaspoints_redeemed' => 'integer',
             'gaspoints_discount' => 'integer',
+            'first_order_discount' => 'integer',
             'total_amount' => 'integer',
         ];
     }

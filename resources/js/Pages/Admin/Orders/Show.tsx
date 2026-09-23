@@ -56,6 +56,7 @@ interface OrderDetail {
     addons_total:     number;
     gaspoints_redeemed: number;
     gaspoints_discount: number;
+    first_order_discount: number;
     total_amount:     number;
     payment_method:   'cash' | 'mpesa';
     payment_status:   string;
@@ -621,6 +622,16 @@ export default function OrdersShow({ order, availableRiders }: Props) {
                                     </span>
                                     <span className="font-medium text-emerald-600">
                                         −{fmt(order.gaspoints_discount)}
+                                    </span>
+                                </div>
+                            )}
+                            {order.first_order_discount > 0 && (
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-emerald-600">
+                                        First order discount
+                                    </span>
+                                    <span className="font-medium text-emerald-600">
+                                        −{fmt(order.first_order_discount)}
                                     </span>
                                 </div>
                             )}
