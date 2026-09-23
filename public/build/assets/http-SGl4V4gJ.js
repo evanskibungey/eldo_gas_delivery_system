@@ -1,0 +1,1 @@
+import{c as t}from"./app-yebfJRMx.js";async function n(s,r,e){return(await t.post(s,r,{headers:{Accept:"application/json","X-Requested-With":"XMLHttpRequest"},signal:e})).data}function i(s){return t.isCancel(s)||s?.code==="ERR_CANCELED"}function c(s,r){const e=s?.response?.data;return(e?.errors?Object.values(e.errors)[0]?.[0]:void 0)??e?.message??r}export{c as e,i,n as p};

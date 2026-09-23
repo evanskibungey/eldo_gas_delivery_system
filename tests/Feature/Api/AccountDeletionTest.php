@@ -4,12 +4,57 @@ namespace Tests\Feature\Api;
 
 use App\Models\Customer;
 use App\Models\OtpToken;
+use App\Services\Customer\AccountDeletionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class AccountDeletionTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * customers.phone is varchar(20), and the anonymised value has to fit it.
+     *
+     * This is asserted on the string rather than by writing a row, because
+     * the suite runs on SQLite, which ignores column widths entirely. MySQL
+     * in strict mode does not: the old placeholder came to 21 characters for
+     * any four-digit id, so deletion failed with "Data too long for column
+     * 'phone'" for every customer numbered 1000 or above, and every test here
+     * still passed.
+     */
+    public function test_the_anonymised_phone_fits_the_column(): void
+    {
+        foreach ([1, 7, 99, 999, 1000, 54321, 999999] as $id) {
+            $phone = AccountDeletionService::tombstonePhone($id);
+
+            $this->assertLessThanOrEqual(
+                20,
+                strlen($phone),
+                "id {$id} produced a phone too long for the column: {$phone}",
+            );
+
+            // The id is what keeps these unique, so it must survive intact.
+            $this->assertStringStartsWith("deleted_{$id}_", $phone);
+        }
+    }
+
+    public function test_a_customer_numbered_above_a_thousand_can_delete(): void
+    {
+        $customer = Customer::factory()->create([
+            'id' => 4210,
+            'phone' => '+254712345678',
+            'is_active' => true,
+        ]);
+        $token = $customer->createToken('mobile')->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->deleteJson('/api/v1/profile')
+            ->assertOk();
+
+        $customer->refresh();
+        $this->assertStringStartsWith('deleted_4210_', $customer->phone);
+        $this->assertLessThanOrEqual(20, strlen($customer->phone));
+    }
 
     public function test_deletion_page_loads(): void
     {

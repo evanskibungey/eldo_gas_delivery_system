@@ -25,6 +25,9 @@ use Illuminate\Support\Str;
  */
 class AccountDeletionService
 {
+    /** Width of customers.phone, which the anonymised value has to fit. */
+    private const PHONE_MAX = 20;
+
     /**
      * Remove all personal data for a customer and deactivate the account.
      * Runs in a transaction so a mid-way failure leaves nothing partial.
@@ -58,12 +61,33 @@ class AccountDeletionService
             // in the schema, so it is left intact.
             $customer->forceFill([
                 'name' => '',
-                'phone' => 'deleted_' . $id . '_' . Str::random(8),
+                'phone' => self::tombstonePhone($id),
                 'phone_verified_at' => null,
                 'referred_by' => null,
                 'gaspoints_balance' => 0,
                 'is_active' => false,
             ])->save();
         });
+    }
+
+    /**
+     * The value left in `phone` once the real number is gone.
+     *
+     * customers.phone is varchar(20) and unique. The obvious placeholder —
+     * 'deleted_' + id + '_' + eight random characters — is 21 characters for
+     * any four-digit id, so MySQL in strict mode rejected the write, the
+     * transaction rolled back, and every customer numbered 1000 or above got
+     * a 500 instead of a deleted account. The test suite runs on SQLite,
+     * which ignores column lengths, so nothing caught it.
+     *
+     * The id alone is what makes this unique; the random tail only makes the
+     * value unguessable, so it is the part that gives way when space runs
+     * short.
+     */
+    public static function tombstonePhone(int $id): string
+    {
+        $prefix = 'deleted_' . $id . '_';
+
+        return Str::limit($prefix . Str::random(self::PHONE_MAX), self::PHONE_MAX, '');
     }
 }
