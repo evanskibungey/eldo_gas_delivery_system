@@ -24,6 +24,19 @@ class AfricasTalkingSmsService implements SmsServiceInterface
     {
         // In dev mode (or no API key), just log — never block the queue
         if ($this->devMode) {
+            // Except in production, where "logged it" is not "sent it": a
+            // customer waiting on a verification code has no way to know the
+            // difference, and resending only writes another log line.
+            if (app()->environment('production')) {
+                Log::error(
+                    '[SMS] No Africa\'s Talking key in production — refusing '
+                    .'to report an unsent message as sent',
+                    ['phone' => $phone]
+                );
+
+                return false;
+            }
+
             Log::channel('single')->info("[SMS:DEV] To: {$phone} | {$message}");
             return true;
         }

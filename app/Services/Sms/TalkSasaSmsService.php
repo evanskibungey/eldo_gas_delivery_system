@@ -24,6 +24,22 @@ class TalkSasaSmsService implements SmsServiceInterface
         $apiToken = config('services.talksasa.api_token');
 
         if (! $apiToken) {
+            // In production this used to answer "sent" and write the code to
+            // a log file. Nothing arrived, nothing failed, and the customer
+            // sat on the verification screen waiting for an SMS that was
+            // never going to come — including every time they pressed
+            // resend. Missing credentials there is an outage, so say so.
+            if (app()->environment('production')) {
+                $this->lastError = 'TALKSASA_API_TOKEN is not configured';
+                Log::error(
+                    '[SMS] No TalkSasa token in production — refusing to '
+                    .'report an unsent message as sent',
+                    ['phone' => $phone]
+                );
+
+                return false;
+            }
+
             Log::channel('single')->info("[SMS:DEV] To: {$phone} | {$message}");
 
             return true;
